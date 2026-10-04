@@ -27,7 +27,11 @@ HMAC_SECRET_KEY = os.environ.get("HMAC_SECRET_KEY", "SECURE_VENUE_HMAC_MASTER_KE
 # Admin Default Credentials
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venue_crowd.db")
+# SQLite database storage (Uses /tmp on serverless environments like Vercel)
+if os.environ.get("VERCEL"):
+    DB_PATH = "/tmp/venue_crowd.db"
+else:
+    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venue_crowd.db")
 
 # Venue Exit Gates configuration
 GATES_CONFIG = [
@@ -111,6 +115,16 @@ def init_db():
     
     conn.commit()
     conn.close()
+
+# Auto-initialize database on application launch and serverless cold-starts
+_db_ready = False
+
+@app.before_request
+def ensure_db_ready():
+    global _db_ready
+    if not _db_ready:
+        init_db()
+        _db_ready = True
 
 # ----------------- SECURITY & HELPER FUNCTIONS -----------------
 
