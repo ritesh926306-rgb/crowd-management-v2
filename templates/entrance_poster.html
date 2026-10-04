@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venue Entrance Signage - Static QR Registration Poster</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #0B192C;
+      color: #FFFFFF;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .poster-container {
+      max-width: 680px;
+      width: 100%;
+      background: #FFFFFF;
+      color: #0B192C;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 8px solid #00ADB5;
+      text-align: center;
+    }
+    .poster-header {
+      background: linear-gradient(135deg, #0B192C 0%, #1E3E62 100%);
+      color: #FFFFFF;
+      padding: 2.5rem 1.5rem 2rem;
+    }
+    .poster-badge {
+      display: inline-block;
+      background: #00ADB5;
+      color: #0B192C;
+      font-weight: 800;
+      font-size: 0.88rem;
+      padding: 0.35rem 1.25rem;
+      border-radius: 9999px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .poster-title-en {
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .poster-title-hi {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #E0F2FE;
+      margin-top: 0.5rem;
+    }
+    .poster-body {
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .qr-large {
+      width: 280px;
+      height: 280px;
+      padding: 1rem;
+      background: #FFFFFF;
+      border: 3px solid #0B192C;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(11, 25, 44, 0.15);
+    }
+    .scan-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+      text-align: center;
+      width: 100%;
+    }
+    .step-box {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 1rem 0.5rem;
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: #00ADB5;
+      color: #0B192C;
+      font-weight: 800;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.5rem;
+      font-size: 0.85rem;
+    }
+    .step-text {
+      font-size: 0.8rem;
+      color: #334155;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .poster-footer {
+      background: #F1F5F9;
+      border-top: 2px dashed #CBD5E1;
+      padding: 1rem;
+      font-size: 0.82rem;
+      color: #64748B;
+      font-weight: 600;
+    }
+    @media print {
+      body {
+        background: #FFFFFF !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .poster-container {
+        box-shadow: none !important;
+        border: 4px solid #000000 !important;
+        max-width: 100% !important;
+      }
+      .poster-header {
+        background: #0B192C !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Print action button -->
+  <div class="no-print" style="margin-bottom: 1.5rem; display: flex; gap: 1rem;">
+    <button onclick="window.print()" class="btn btn-primary" style="font-size: 1rem; padding: 0.85rem 1.75rem;">
+      🖨️ Print Venue Entrance Poster
+    </button>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline" style="background: #FFFFFF; color: #0B192C;">
+      &larr; Return to Dashboard
+    </a>
+  </div>
+
+  <div class="poster-container">
+    <div class="poster-header">
+      <div class="poster-badge">VENUE SINGLE ENTRY CHECKPOINT</div>
+      <div class="poster-title-en">SCAN HERE FOR ENTRY PASS</div>
+      <div class="poster-title-hi">प्रवेश पास हेतु यहाँ स्कैन करें</div>
+    </div>
+
+    <div class="poster-body">
+      <img src="{{ entrance_qr }}" alt="Venue Registration QR Code" class="qr-large">
+      
+      <div style="font-size: 0.95rem; font-weight: 700; color: #1E3E62; margin-top: 1rem;">
+        URL: <span style="font-family: monospace; color: #00ADB5;">{{ entrance_url }}</span>
+      </div>
+
+      <div class="scan-steps">
+        <div class="step-box">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <strong>Scan QR Code</strong><br>Open smartphone camera
+          </div>
+        </div>
+        <div class="step-box">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <strong>Register Group</strong><br>Enter visitor details
+          </div>
+        </div>
+        <div class="step-box">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <strong>Show Digital Pass</strong><br>Get assigned exit corridor
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="poster-footer">
+      Smart Crowd Flow Control &bull; Single Entry Gate &bull; 4 Capacity-Balanced Exits &bull; Gate 5 Emergency Route
+    </div>
+  </div>
+
+</body>
+</html>

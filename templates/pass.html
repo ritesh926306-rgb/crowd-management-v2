@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Official Entry Pass - {{ reg.reg_code }}{% endblock %}
+
+{% block content %}
+<div class="pass-container">
+
+  <!-- Top Action Bar (Print & Return) -->
+  <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+    <a href="{{ url_for('index') }}" class="btn btn-outline">
+      &larr; <span data-i18n="pass_new_btn">➕ Register Another Visitor</span>
+    </a>
+
+    <div style="display: flex; gap: 0.75rem;">
+      <button onclick="window.print()" class="btn btn-primary">
+        <span>🖨️</span>
+        <span data-i18n="pass_print_btn">Print / Save Pass as PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Official ID / Security Pass Card -->
+  <div class="pass-card" id="printablePass">
+    
+    <!-- Pass Security Header -->
+    <div class="pass-security-header">
+      <div>
+        <span class="pass-badge-pill" data-i18n="pass_verified_pill">CRYPTOGRAPHICALLY VERIFIED</span>
+        <div style="font-size: 1.3rem; font-weight: 800; margin-top: 0.4rem; letter-spacing: -0.01em;">
+          VENUE SMART ENTRY PASS
+        </div>
+        <div style="font-size: 0.8rem; color: #94A3B8;">Single Entry Gate Clearance Document</div>
+      </div>
+
+      <div style="text-align: right;">
+        <span style="font-size: 0.75rem; text-transform: uppercase; color: #94A3B8; font-weight: 600;">PASS CODE</span>
+        <div class="pass-reg_code mono-font">{{ reg.reg_code }}</div>
+      </div>
+    </div>
+
+    <!-- Pass Body -->
+    <div class="pass-body">
+      
+      <!-- Left Details Column -->
+      <div>
+        
+        <!-- Assigned Exit Route Highlight Banner -->
+        <div class="gate-banner gate-theme-border theme-{{ reg.gate_id }}">
+          <div class="gate-icon-box gate-theme-bg">
+            🚪
+          </div>
+          <div class="gate-info">
+            <span class="gate-theme-color" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">
+              SMART CROWD SPLIT &bull; {{ reg.assigned_group }}
+            </span>
+            <h4 style="color: var(--primary-navy);">{{ reg.assigned_gate }}</h4>
+            <p>{{ gate_info.description }}</p>
+          </div>
+        </div>
+
+        <!-- Visitor Credentials Table -->
+        <table class="pass-details-table">
+          <tbody>
+            <tr>
+              <th data-i18n="pass_primary_person">Primary Visitor</th>
+              <td>{{ reg.primary_name }}</td>
+            </tr>
+            <tr>
+              <th data-i18n="pass_phone">Mobile Number</th>
+              <td class="mono-font">{{ reg.mobile }}</td>
+            </tr>
+            <tr>
+              <th data-i18n="pass_age">Age</th>
+              <td>{{ reg.age }} years</td>
+            </tr>
+            <tr>
+              <th data-i18n="pass_total_count">Total Group Count</th>
+              <td>
+                <span class="badge badge-teal" style="font-size: 0.9rem; padding: 0.2rem 0.65rem;">
+                  {{ reg.group_count }} {{ 'Person' if reg.group_count == 1 else 'Persons' }}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th data-i18n="pass_address">Common Address</th>
+              <td style="font-weight: 500; font-size: 0.88rem; color: var(--text-secondary);">
+                {{ reg.address }}
+              </td>
+            </tr>
+            <tr>
+              <th data-i18n="pass_timestamp">Pass Generated</th>
+              <td class="mono-font" style="font-size: 0.82rem; color: var(--text-muted);">
+                {{ reg.created_at }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Accompanying Members Table -->
+        <div style="margin-top: 1.5rem;">
+          <h5 style="font-size: 0.9rem; color: var(--secondary-navy); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.04em;">
+            <span data-i18n="pass_members_list">Accompanying Group Members</span> ({{ members|length }})
+          </h5>
+          
+          {% if members %}
+            <div style="background: var(--bg-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color); overflow: hidden;">
+              <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                <thead>
+                  <tr style="background: #E2E8F0; color: var(--secondary-navy);">
+                    <th style="padding: 0.4rem 0.6rem; text-align: left;">#</th>
+                    <th style="padding: 0.4rem 0.6rem; text-align: left;">Member Name</th>
+                    <th style="padding: 0.4rem 0.6rem; text-align: left;">Age</th>
+                    <th style="padding: 0.4rem 0.6rem; text-align: left;">Mobile</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in members %}
+                    <tr style="border-top: 1px solid #E2E8F0;">
+                      <td style="padding: 0.4rem 0.6rem; color: var(--text-muted);">{{ loop.index }}</td>
+                      <td style="padding: 0.4rem 0.6rem; font-weight: 600;">{{ m.member_name }}</td>
+                      <td style="padding: 0.4rem 0.6rem;">{{ m.member_age }}y</td>
+                      <td style="padding: 0.4rem 0.6rem; font-family: monospace;">{{ m.member_mobile or '—' }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p style="font-size: 0.82rem; color: var(--text-muted); font-style: italic;" data-i18n="pass_no_members">
+              Solo Visitor (No additional members)
+            </p>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Right Column: Verification QR Code & Guard Instructions -->
+      <div style="display: flex; flex-direction: column; justify-content: flex-start;">
+        <div class="pass-qr-box">
+          <img src="{{ qr_code }}" alt="Pass Verification QR Code" class="qr-image">
+          <div class="qr-caption" data-i18n="pass_scan_notice">
+            Show this dynamic QR code to the security guard at the venue entrance gate.
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <a href="{{ verification_url }}" class="no-print" target="_blank" style="font-size: 0.75rem; color: var(--accent-teal-dark); text-decoration: underline;">
+              Manual Security Link
+            </a>
+          </div>
+        </div>
+
+        <div style="margin-top: 1rem; padding: 0.85rem; background: #F1F5F9; border-radius: var(--radius-sm); border-left: 3px solid var(--secondary-navy); font-size: 0.78rem; color: var(--text-secondary);">
+          <strong>Security Note:</strong> Pass QR is uniquely signed via cryptographic SHA256 HMAC token. Screenshots or duplicates with altered names/headcounts will fail terminal verification.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Live Venue Blueprint Route Map -->
+    <div style="padding: 0 2rem 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--secondary-navy); text-transform: uppercase; letter-spacing: 0.04em;">
+          📍 Live Route Guidance & Venue Blueprint (Follow Colored Path)
+        </span>
+        <span style="font-size: 0.75rem; color: #64748B;">Capacity-Balanced Crowd Corridor</span>
+      </div>
+
+      <div class="map-svg-container">
+        <!-- Responsive Scalable Vector Graphic (SVG) Venue Blueprint -->
+        <svg viewBox="0 0 700 360" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0B192C"/>
+              <stop offset="100%" stop-color="#1E3E62"/>
+            </linearGradient>
+            <!-- Route Glow Filter -->
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="glow"/>
+              <feComposite in="SourceGraphic" in2="glow" operator="over"/>
+            </filter>
+          </defs>
+
+          <!-- Blueprint Background Grid -->
+          <rect width="700" height="360" fill="url(#bgGrad)" rx="8"/>
+          <g stroke="rgba(255,255,255,0.05)" stroke-width="1">
+            <line x1="50" y1="0" x2="50" y2="360"/>
+            <line x1="150" y1="0" x2="150" y2="360"/>
+            <line x1="250" y1="0" x2="250" y2="360"/>
+            <line x1="350" y1="0" x2="350" y2="360"/>
+            <line x1="450" y1="0" x2="450" y2="360"/>
+            <line x1="550" y1="0" x2="550" y2="360"/>
+            <line x1="650" y1="0" x2="650" y2="360"/>
+            <line x1="0" y1="60" x2="700" y2="60"/>
+            <line x1="0" y1="120" x2="700" y2="120"/>
+            <line x1="0" y1="180" x2="700" y2="180"/>
+            <line x1="0" y1="240" x2="700" y2="240"/>
+            <line x1="0" y1="300" x2="700" y2="300"/>
+          </g>
+
+          <!-- Main Central Atrium / Sanctum / Stage -->
+          <rect x="230" y="100" width="240" height="130" rx="12" fill="#152840" stroke="#334E68" stroke-width="2"/>
+          <text x="350" y="160" fill="#E2E8F0" font-size="14" font-weight="700" text-anchor="middle">CENTRAL VENUE ATRIUM</text>
+          <text x="350" y="180" fill="#94A3B8" font-size="11" text-anchor="middle">Common Assembly / Sacred Sanctum / Stage</text>
+
+          <!-- Gate 5: Hidden Staff & Emergency Route (Always strictly guarded) -->
+          <g transform="translate(560, 20)">
+            <rect x="0" y="0" width="125" height="45" rx="6" fill="rgba(245, 158, 11, 0.15)" stroke="#F59E0B" stroke-dasharray="4" stroke-width="1.5"/>
+            <text x="62" y="20" fill="#FBBF24" font-size="11" font-weight="700" text-anchor="middle">GATE 5 (HIDDEN)</text>
+            <text x="62" y="34" fill="#FDE68A" font-size="9" text-anchor="middle">Staff & Emergency Only</text>
+          </g>
+          <!-- Hidden Gate 5 Access Corridor (Dashed) -->
+          <path d="M 470 140 L 560 42" stroke="#F59E0B" stroke-width="2" stroke-dasharray="5,5" fill="none" opacity="0.6"/>
+
+          <!-- SINGLE ENTRY GATE (Bottom Center) -->
+          <g transform="translate(275, 295)">
+            <rect x="0" y="0" width="150" height="45" rx="8" fill="#00ADB5" stroke="#FFFFFF" stroke-width="2"/>
+            <text x="75" y="22" fill="#0B192C" font-size="12" font-weight="800" text-anchor="middle">🚪 SINGLE ENTRY GATE</text>
+            <text x="75" y="36" fill="#0B192C" font-size="9" font-weight="600" text-anchor="middle">(Static QR Code Checkpoint)</text>
+          </g>
+
+          <!-- Corridor from Entry Gate to Central Atrium -->
+          <line x1="350" y1="295" x2="350" y2="230" stroke="#00ADB5" stroke-width="3" stroke-dasharray="6,4"/>
+
+          <!-- 4 EXIT GATES -->
+
+          <!-- EXIT 1 (WEST - Alpha) -->
+          <g transform="translate(20, 140)">
+            <rect x="0" y="0" width="130" height="50" rx="8" 
+                  fill="{{ '#00ADB5' if reg.gate_id == 'exit_1' else '#1E293B' }}" 
+                  stroke="{{ '#FFFFFF' if reg.gate_id == 'exit_1' else '#475569' }}" 
+                  stroke-width="{{ '3' if reg.gate_id == 'exit_1' else '1' }}"/>
+            <text x="65" y="24" fill="{{ '#0B192C' if reg.gate_id == 'exit_1' else '#CBD5E1' }}" font-size="12" font-weight="700" text-anchor="middle">EXIT 1 (WEST)</text>
+            <text x="65" y="38" fill="{{ '#0B192C' if reg.gate_id == 'exit_1' else '#94A3B8' }}" font-size="9" text-anchor="middle">Group A &bull; Transit Hub</text>
+          </g>
+
+          <!-- EXIT 2 (NORTH - Beta) -->
+          <g transform="translate(285, 15)">
+            <rect x="0" y="0" width="130" height="50" rx="8" 
+                  fill="{{ '#00ADB5' if reg.gate_id == 'exit_2' else '#1E293B' }}" 
+                  stroke="{{ '#FFFFFF' if reg.gate_id == 'exit_2' else '#475569' }}" 
+                  stroke-width="{{ '3' if reg.gate_id == 'exit_2' else '1' }}"/>
+            <text x="65" y="24" fill="{{ '#0B192C' if reg.gate_id == 'exit_2' else '#CBD5E1' }}" font-size="12" font-weight="700" text-anchor="middle">EXIT 2 (NORTH)</text>
+            <text x="65" y="38" fill="{{ '#0B192C' if reg.gate_id == 'exit_2' else '#94A3B8' }}" font-size="9" text-anchor="middle">Group B &bull; Highway Pkg</text>
+          </g>
+
+          <!-- EXIT 3 (EAST - Gamma) -->
+          <g transform="translate(550, 140)">
+            <rect x="0" y="0" width="130" height="50" rx="8" 
+                  fill="{{ '#00ADB5' if reg.gate_id == 'exit_3' else '#1E293B' }}" 
+                  stroke="{{ '#FFFFFF' if reg.gate_id == 'exit_3' else '#475569' }}" 
+                  stroke-width="{{ '3' if reg.gate_id == 'exit_3' else '1' }}"/>
+            <text x="65" y="24" fill="{{ '#0B192C' if reg.gate_id == 'exit_3' else '#CBD5E1' }}" font-size="12" font-weight="700" text-anchor="middle">EXIT 3 (EAST)</text>
+            <text x="65" y="38" fill="{{ '#0B192C' if reg.gate_id == 'exit_3' else '#94A3B8' }}" font-size="9" text-anchor="middle">Group C &bull; Metro Plaza</text>
+          </g>
+
+          <!-- EXIT 4 (SOUTH - Delta) -->
+          <g transform="translate(510, 295)">
+            <rect x="0" y="0" width="130" height="45" rx="8" 
+                  fill="{{ '#00ADB5' if reg.gate_id == 'exit_4' else '#1E293B' }}" 
+                  stroke="{{ '#FFFFFF' if reg.gate_id == 'exit_4' else '#475569' }}" 
+                  stroke-width="{{ '3' if reg.gate_id == 'exit_4' else '1' }}"/>
+            <text x="65" y="22" fill="{{ '#0B192C' if reg.gate_id == 'exit_4' else '#CBD5E1' }}" font-size="12" font-weight="700" text-anchor="middle">EXIT 4 (SOUTH)</text>
+            <text x="65" y="36" fill="{{ '#0B192C' if reg.gate_id == 'exit_4' else '#94A3B8' }}" font-size="9" text-anchor="middle">Group D &bull; Taxi Stand</text>
+          </g>
+
+          <!-- DYNAMIC HIGHLIGHTED ROUTE PATH BASED ON ASSIGNED GATE -->
+          {% if reg.gate_id == 'exit_1' %}
+            <!-- Route to West Gate -->
+            <path d="M 350 295 L 350 165 L 150 165" fill="none" stroke="#00ADB5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+            <circle cx="150" cy="165" r="6" fill="#FFFFFF"/>
+          {% elif reg.gate_id == 'exit_2' %}
+            <!-- Route to North Gate -->
+            <path d="M 350 295 L 350 65" fill="none" stroke="#00ADB5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+            <circle cx="350" cy="65" r="6" fill="#FFFFFF"/>
+          {% elif reg.gate_id == 'exit_3' %}
+            <!-- Route to East Gate -->
+            <path d="M 350 295 L 350 165 L 550 165" fill="none" stroke="#00ADB5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+            <circle cx="550" cy="165" r="6" fill="#FFFFFF"/>
+          {% elif reg.gate_id == 'exit_4' %}
+            <!-- Route to South Gate -->
+            <path d="M 350 295 L 350 270 L 510 270 L 510 295" fill="none" stroke="#00ADB5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+            <circle cx="510" cy="295" r="6" fill="#FFFFFF"/>
+          {% endif %}
+
+        </svg>
+      </div>
+    </div>
+
+    <!-- Cryptographic Anti-Fraud Security Footer -->
+    <div class="pass-security-footer">
+      <div>
+        <strong data-i18n="pass_hmac_hash">Anti-Fraud HMAC Signature:</strong>
+        <span class="hmac-hash">{{ reg.hmac_signature }}</span>
+      </div>
+      <div>
+        Security Level: <strong>SHA256 Encrypted</strong>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
