@@ -73,6 +73,10 @@ jobs:
     name: 🌐 Deploy Frontend to GitHub Pages
     needs: database-and-backend-test
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -97,6 +101,8 @@ jobs:
 
     - name: Setup GitHub Pages
       uses: actions/configure-pages@v5
+      with:
+        enablement: true
 
     - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v3
