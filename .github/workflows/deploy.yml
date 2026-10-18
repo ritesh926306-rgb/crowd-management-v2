@@ -74,12 +74,7 @@ jobs:
     needs: database-and-backend-test
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-      contents: read
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      contents: write
 
     steps:
     - name: Checkout Code
@@ -99,19 +94,12 @@ jobs:
       run: |
         python frontend/build_static.py
 
-    - name: Setup GitHub Pages
-      uses: actions/configure-pages@v5
+    - name: Deploy to GitHub Pages (gh-pages branch)
+      uses: peaceiris/actions-gh-pages@v3
       with:
-        enablement: true
-
-    - name: Upload Pages Artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: "dist"
-
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        force_orphan: true
 
   # -----------------------------------------------------------------
   # 3. DEPLOY BACKEND TO GITHUB CONTAINER REGISTRY (GHCR)
