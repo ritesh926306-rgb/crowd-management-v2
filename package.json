@@ -1,0 +1,20 @@
+{
+  "name": "venue-crowd-management",
+  "version": "1.0.0",
+  "description": "Venue Entry & Smart Crowd Management System",
+  "scripts": {
+    "dev": "python backend/app.py",
+    "start": "python backend/app.py",
+    "test": "python -m unittest backend/test_app.py",
+    "install:backend": "pip install -r backend/requirements.txt"
+  },
+  "keywords": [
+    "crowd-management",
+    "flask",
+    "hmac-sha256",
+    "qr-code",
+    "venue-entry"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -27,15 +27,25 @@ ENV/
 env/
 .venv/
 
-# Environment Variables & Secrets
+# Environment Variables & Secrets (CRITICAL SECURITY: NEVER COMMIT)
 .env
 .env.local
 .env.*.local
+.env.*
+*.key
+*.pem
+*.cert
+credentials.json
 
-# SQLite Database (Exclude active data from version control)
+# Database files (Exclude active data from version control)
 *.db
 *.sqlite3
 venue_crowd.db
+backend/venue_crowd.db
+
+# Node.js
+node_modules/
+npm-debug.log*
 
 # IDEs and Editors
 .vscode/

@@ -1,6 +1,6 @@
 """
 Venue Entry & Smart Crowd Management System
-Backend Application with Flask, SQLite, HMAC-SHA256 Security, and Dynamic QR Generation.
+Backend Application with Flask, Dual MySQL / SQLite Support, HMAC-SHA256 Security, and Dynamic QR Generation.
 """
 
 import os
@@ -12,26 +12,66 @@ import sqlite3
 import datetime
 import qrcode
 import base64
+import secrets
 from functools import wraps
 from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, Response, jsonify
 )
+from dotenv import load_dotenv
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "venue-crowd-secret-key-2026-prod-99x")
+# Optional PyMySQL for MySQL database connections
+try:
+    import pymysql
+    import pymysql.cursors
+    HAS_PYMYSQL = True
+except ImportError:
+    HAS_PYMYSQL = False
 
-# Cryptographic HMAC Secret Key for Anti-Fraud Pass Signature
-HMAC_SECRET_KEY = os.environ.get("HMAC_SECRET_KEY", "SECURE_VENUE_HMAC_MASTER_KEY_2026_@ANTIFRAUD").encode("utf-8")
+# ----------------- CONFIGURATION & SECRETS -----------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(BASE_DIR, ".."))
 
-# Admin Default Credentials
+# Load .env securely (Never expose keys in public code)
+env_path = os.path.join(ROOT_DIR, ".env")
+if not os.path.exists(env_path):
+    env_path = os.path.join(BASE_DIR, ".env")
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+else:
+    load_dotenv()
+
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
+template_folder = os.path.join(FRONTEND_DIR, "templates") if os.path.exists(os.path.join(FRONTEND_DIR, "templates")) else os.path.join(BASE_DIR, "templates")
+static_folder = os.path.join(FRONTEND_DIR, "static") if os.path.exists(os.path.join(FRONTEND_DIR, "static")) else os.path.join(BASE_DIR, "static")
+
+app = Flask(__name__, template_folder=template_folder, static_folder=static_folder, static_url_path="/static")
+
+# Secure Random Fallbacks (prevents predictable keys if .env is missing)
+_flask_key = os.environ.get("FLASK_SECRET_KEY")
+if not _flask_key:
+    _flask_key = secrets.token_hex(32)
+app.secret_key = _flask_key
+
+_hmac_key = os.environ.get("HMAC_SECRET_KEY")
+if not _hmac_key:
+    _hmac_key = secrets.token_hex(32)
+HMAC_SECRET_KEY = _hmac_key.encode("utf-8")
+
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
-# SQLite database storage (Uses /tmp on serverless environments like Vercel)
+# Database Configuration
+DB_TYPE = os.environ.get("DB_TYPE", "sqlite").lower()
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = int(os.environ.get("DB_PORT", 3306))
+DB_USER = os.environ.get("DB_USER", "root")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+DB_NAME = os.environ.get("DB_NAME", "venue_crowd")
+
 if os.environ.get("VERCEL"):
-    DB_PATH = "/tmp/venue_crowd.db"
+    SQLITE_PATH = "/tmp/venue_crowd.db"
 else:
-    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venue_crowd.db")
+    SQLITE_PATH = os.path.join(BASE_DIR, "venue_crowd.db")
 
 # Venue Exit Gates configuration
 GATES_CONFIG = [
@@ -69,49 +109,141 @@ GATES_CONFIG = [
     }
 ]
 
-# ----------------- DATABASE UTILITIES -----------------
+# ----------------- DATABASE UTILITIES (MySQL + SQLite) -----------------
+
+class UnifiedCursor:
+    """Cursor adapter providing uniform parameter replacement and dictionary access."""
+    def __init__(self, raw_cursor, is_mysql=False):
+        self.cursor = raw_cursor
+        self.is_mysql = is_mysql
+
+    def execute(self, query, params=None):
+        if self.is_mysql:
+            # Convert SQLite parameter placeholder ? to MySQL %s
+            query = query.replace("?", "%s")
+        if params is None:
+            return self.cursor.execute(query)
+        return self.cursor.execute(query, params)
+
+    def fetchone(self):
+        return self.cursor.fetchone()
+
+    def fetchall(self):
+        return self.cursor.fetchall()
+
+    @property
+    def lastrowid(self):
+        return self.cursor.lastrowid
+
+class UnifiedConnection:
+    """Connection adapter supporting both MySQL (via PyMySQL) and SQLite."""
+    def __init__(self, raw_conn, is_mysql=False):
+        self.conn = raw_conn
+        self.is_mysql = is_mysql
+
+    def cursor(self):
+        if self.is_mysql:
+            return UnifiedCursor(self.conn.cursor(), is_mysql=True)
+        return UnifiedCursor(self.conn.cursor(), is_mysql=False)
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
+    """Returns an active database connection (MySQL if configured, with SQLite fallback)."""
+    if DB_TYPE == "mysql" and HAS_PYMYSQL:
+        try:
+            raw_conn = pymysql.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                database=DB_NAME,
+                charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=False
+            )
+            # Enable PIPES_AS_CONCAT so || concatenation operates identically across MySQL and SQLite
+            with raw_conn.cursor() as cur:
+                cur.execute("SET sql_mode=(SELECT CONCAT(COALESCE(@@sql_mode, ''), ',PIPES_AS_CONCAT'))")
+            return UnifiedConnection(raw_conn, is_mysql=True)
+        except Exception as e:
+            print(f"[DATABASE WARNING] Unable to connect to MySQL at {DB_HOST}:{DB_PORT} ({e}). Falling back to SQLite.")
+            
+    conn = sqlite3.connect(SQLITE_PATH)
     conn.row_factory = sqlite3.Row
-    return conn
+    return UnifiedConnection(conn, is_mysql=False)
 
 def init_db():
+    """Initialize database tables for either MySQL or SQLite."""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Registrations table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS registrations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reg_code TEXT UNIQUE NOT NULL,
-        language TEXT NOT NULL DEFAULT 'en',
-        primary_name TEXT NOT NULL,
-        mobile TEXT NOT NULL,
-        age INTEGER NOT NULL,
-        address TEXT NOT NULL,
-        group_count INTEGER NOT NULL DEFAULT 1,
-        assigned_group TEXT NOT NULL,
-        assigned_gate TEXT NOT NULL,
-        gate_id TEXT NOT NULL,
-        hmac_signature TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        checked_in INTEGER DEFAULT 0,
-        checked_in_at TEXT
-    )
-    """)
-    
-    # Group members sub-table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS group_members (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reg_id INTEGER NOT NULL,
-        member_name TEXT NOT NULL,
-        member_age INTEGER NOT NULL,
-        member_mobile TEXT,
-        FOREIGN KEY (reg_id) REFERENCES registrations (id) ON DELETE CASCADE
-    )
-    """)
+    if conn.is_mysql:
+        # MySQL Production Tables
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS registrations (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            reg_code VARCHAR(64) UNIQUE NOT NULL,
+            language VARCHAR(10) NOT NULL DEFAULT 'en',
+            primary_name VARCHAR(255) NOT NULL,
+            mobile VARCHAR(20) NOT NULL,
+            age INT UNSIGNED NOT NULL,
+            address TEXT NOT NULL,
+            group_count INT UNSIGNED NOT NULL DEFAULT 1,
+            assigned_group VARCHAR(50) NOT NULL,
+            assigned_gate VARCHAR(100) NOT NULL,
+            gate_id VARCHAR(50) NOT NULL,
+            hmac_signature VARCHAR(128) NOT NULL,
+            created_at DATETIME NOT NULL,
+            checked_in TINYINT(1) DEFAULT 0,
+            checked_in_at DATETIME NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS group_members (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            reg_id BIGINT UNSIGNED NOT NULL,
+            member_name VARCHAR(255) NOT NULL,
+            member_age INT UNSIGNED NOT NULL,
+            member_mobile VARCHAR(20) DEFAULT '',
+            FOREIGN KEY (reg_id) REFERENCES registrations (id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
+    else:
+        # SQLite Tables
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS registrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reg_code TEXT UNIQUE NOT NULL,
+            language TEXT NOT NULL DEFAULT 'en',
+            primary_name TEXT NOT NULL,
+            mobile TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            address TEXT NOT NULL,
+            group_count INTEGER NOT NULL DEFAULT 1,
+            assigned_group TEXT NOT NULL,
+            assigned_gate TEXT NOT NULL,
+            gate_id TEXT NOT NULL,
+            hmac_signature TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            checked_in INTEGER DEFAULT 0,
+            checked_in_at TEXT
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS group_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reg_id INTEGER NOT NULL,
+            member_name TEXT NOT NULL,
+            member_age INTEGER NOT NULL,
+            member_mobile TEXT,
+            FOREIGN KEY (reg_id) REFERENCES registrations (id) ON DELETE CASCADE
+        )
+        """)
     
     conn.commit()
     conn.close()
