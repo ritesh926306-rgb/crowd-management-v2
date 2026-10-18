@@ -1,19 +1,81 @@
-name: Build, Test & Deploy to Production
+name: Deploy Frontend, Backend & Database via GitHub Actions
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
   workflow_dispatch:
 
+# Permissions required for GitHub Pages and GitHub Container Registry deployment
 permissions:
   contents: read
+  pages: write
+  id-token: write
   packages: write
   deployments: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  test:
-    name: 🧪 Run Security & Unit Tests
+  # -----------------------------------------------------------------
+  # 1. DATABASE & BACKEND VERIFICATION (Live MySQL 8.0 Service)
+  # -----------------------------------------------------------------
+  database-and-backend-test:
+    name: 🗄️ Test Database (MySQL 8.0) & Backend APIs
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: venue_crowd
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: "pip"
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+
+    - name: Initialize and Verify MySQL Database Schema
+      run: |
+        mysql -h 127.0.0.1 -P 3306 -u root -prootpassword venue_crowd < backend/schema.sql
+        echo "MySQL schema and views successfully deployed!"
+
+    - name: Execute Backend Tests Against Live Database
+      env:
+        DB_TYPE: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+        DB_USER: root
+        DB_PASSWORD: rootpassword
+        DB_NAME: venue_crowd
+      run: |
+        python -m unittest discover -s backend -p "test_*.py"
+
+  # -----------------------------------------------------------------
+  # 2. DEPLOY FRONTEND TO GITHUB PAGES
+  # -----------------------------------------------------------------
+  deploy-frontend-pages:
+    name: 🌐 Deploy Frontend to GitHub Pages
+    needs: database-and-backend-test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
     - name: Checkout Code
@@ -27,18 +89,31 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r backend/requirements.txt
+        python -m pip install jinja2
 
-    - name: Execute Test Suite
+    - name: Build Frontend Static Site
       run: |
-        python -m unittest discover -s backend -p "test_*.py"
+        python frontend/build_static.py
 
-  build-and-publish-container:
-    name: 🐳 Build & Publish Container to GHCR
-    needs: test
+    - name: Setup GitHub Pages
+      uses: actions/configure-pages@v5
+
+    - name: Upload Pages Artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: "dist"
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  # -----------------------------------------------------------------
+  # 3. DEPLOY BACKEND TO GITHUB CONTAINER REGISTRY (GHCR)
+  # -----------------------------------------------------------------
+  deploy-backend-ghcr:
+    name: 🐳 Deploy Backend to GitHub Container Registry
+    needs: database-and-backend-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
     - name: Checkout Code
@@ -54,44 +129,13 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract Metadata (Tags, Labels)
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ghcr.io/${{ github.repository }}
-        tags: |
-          type=raw,value=latest
-          type=sha
-
-    - name: Build and Push Docker Image
+    - name: Build and Push Backend Container
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        tags: |
+          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
-  deploy-cloud:
-    name: 🚀 Cloud Deployment Trigger
-    needs: [test, build-and-publish-container]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: https://venue-crowd-management.onrender.com
-
-    steps:
-    - name: Trigger Render Cloud Webhook (If Configured)
-      env:
-        DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-      run: |
-        if [ -n "$DEPLOY_HOOK" ]; then
-          echo "Triggering cloud deploy hook..."
-          curl -s -X POST "$DEPLOY_HOOK"
-          echo "Cloud deployment triggered successfully!"
-        else
-          echo "Deploy container published to ghcr.io/${{ github.repository }}:latest"
-          echo "Ready for zero-downtime deployment."
-        fi
