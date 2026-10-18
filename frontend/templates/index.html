@@ -1,185 +1,138 @@
 {% extends "base.html" %}
 
-{% block title %}Venue Entry & Pass Registration{% endblock %}
+{% block title %}VenueGuard — Visitor Registration{% endblock %}
 
 {% block content %}
 <div class="registration-container" style="max-width: 900px; margin: 0 auto;">
 
-  <!-- Venue Information & Smart Crowd Flow Card -->
-  <div class="card" style="border-left: 5px solid var(--accent-teal);">
+  <!-- ── HERO CARD ── -->
+  <div class="card" style="border-left: 3px solid var(--teal); margin-bottom: 1.5rem;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h2 class="card-title">
+        <h1 class="card-title" style="font-size: 1.6rem;">
           <span>🏛️</span>
           <span data-i18n="form_title">Venue Entry Pass Registration</span>
-        </h2>
-        <p class="card-desc" data-i18n="form_subtitle">
-          Scan static QR code at venue entrance to generate your verified digital pass.
+        </h1>
+        <p class="card-desc" data-i18n="form_subtitle" style="margin-top: 0.4rem; max-width: 560px;">
+          Fill in your details to generate a cryptographically verified entry pass with smart exit gate assignment.
         </p>
       </div>
-
-      <!-- Live Flow Indicator Badge -->
-      <div style="background: #E0F2FE; border: 1px solid #7DD3FC; border-radius: var(--radius-md); padding: 0.5rem 0.85rem; font-size: 0.82rem; color: #0369A1; display: flex; align-items: center; gap: 0.5rem;">
-        <span style="display: inline-block; width: 8px; height: 8px; background: #0284C7; border-radius: 50%; animation: pulseWarning 1.8s infinite;"></span>
-        <strong>Smart Split Routing Active</strong>
+      <div class="live-badge">
+        <span class="pulse-dot"></span>
+        Smart Split Routing Active
       </div>
     </div>
 
-    <!-- Venue Architecture Blueprint Summary -->
-    <div style="margin-top: 1.25rem; padding: 1rem; background: var(--bg-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-      <h4 style="font-size: 0.92rem; color: var(--secondary-navy); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
-        <span>🗺️</span>
-        <span data-i18n="venue_summary_title">Venue Flow Architecture & Capacity Rules</span>
-      </h4>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; font-size: 0.82rem; color: var(--text-secondary);">
-        <div style="padding: 0.6rem; background: #FFFFFF; border-radius: var(--radius-sm); border: 1px solid #E2E8F0;">
-          <strong style="color: var(--primary-navy);">🚪 Single Entry Gate:</strong>
-          <p data-i18n="entry_gate_desc">Strict QR Pass Verification required before entry.</p>
-        </div>
-        <div style="padding: 0.6rem; background: #FFFFFF; border-radius: var(--radius-sm); border: 1px solid #E2E8F0;">
-          <strong style="color: var(--accent-teal);">🔄 4 Smart Exit Gates:</strong>
-          <p data-i18n="exit_routing_desc">Assigned dynamically between West, North, East, and South exits to avoid bottlenecks.</p>
-        </div>
-        <div style="padding: 0.6rem; background: #FFFBEB; border-radius: var(--radius-sm); border: 1px solid #FDE68A;">
-          <strong style="color: #B45309;">⚠️ Gate 5 (Hidden Route):</strong>
-          <p data-i18n="gate5_desc">Strictly restricted for Venue Staff & Emergency Evacuation only.</p>
-        </div>
+    <!-- Venue Architecture Summary -->
+    <div style="margin-top: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem;">
+      <div style="background: rgba(0,255,198,0.05); border: 1px solid rgba(0,255,198,0.15); border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); font-weight: 700; margin-bottom: 0.3rem;">🚪 Single Entry Gate</div>
+        <p style="font-size: 0.83rem; color: var(--text-secondary);" data-i18n="entry_gate_desc">Strict QR Pass Verification required before entry.</p>
+      </div>
+      <div style="background: rgba(59,91,219,0.06); border: 1px solid rgba(59,91,219,0.2); border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6B8CF7; font-weight: 700; margin-bottom: 0.3rem;">🔄 4 Smart Exit Gates</div>
+        <p style="font-size: 0.83rem; color: var(--text-secondary);" data-i18n="exit_routing_desc">Auto-assigned to least-loaded exit gate.</p>
+      </div>
+      <div style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); font-weight: 700; margin-bottom: 0.3rem;">⚠️ Gate 5 — Restricted</div>
+        <p style="font-size: 0.83rem; color: var(--text-secondary);" data-i18n="gate5_desc">Staff & Emergency Evacuation only.</p>
       </div>
     </div>
   </div>
 
-  <!-- Registration Form Card -->
+  <!-- ── REGISTRATION FORM ── -->
   <div class="card">
     <form id="registrationForm" action="{{ url_for('register') }}" method="POST">
-      
-      <!-- Hidden input for language sync -->
       <input type="hidden" name="language" id="formLanguageChoice" value="en">
 
-      <!-- Section 1: Primary Visitor Details -->
+      <!-- Section 1 -->
       <div class="card-header">
-        <h3 class="card-title" style="font-size: 1.25rem;">
-          <span>👤</span>
-          <span data-i18n="sec_primary">1. Primary Visitor Details</span>
-        </h3>
+        <h2 class="card-title" style="font-size: 1.2rem;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(0,255,198,0.12); border: 1px solid rgba(0,255,198,0.25); border-radius: 50%; font-size: 0.85rem; color: var(--teal);">1</span>
+          <span data-i18n="sec_primary">Primary Visitor Details</span>
+        </h2>
       </div>
 
       <div class="form-grid">
-        
-        <!-- Primary Name -->
+        <!-- Name -->
         <div class="form-group">
           <label for="primary_name">
-            <span data-i18n="name_label">Primary Visitor Full Name</span>
+            <span data-i18n="name_label">Full Name</span>
             <span class="required-star">*</span>
           </label>
-          <input 
-            type="text" 
-            id="primary_name" 
-            name="primary_name" 
-            class="form-control" 
-            placeholder="e.g., Rajesh Sharma" 
-            data-i18n-ph="name_placeholder"
-            required 
-            maxlength="80"
-          >
+          <input type="text" id="primary_name" name="primary_name" class="form-control"
+            placeholder="e.g., Rajesh Sharma" data-i18n-ph="name_placeholder"
+            required maxlength="80" autocomplete="name">
         </div>
 
-        <!-- Mobile Number -->
+        <!-- Mobile -->
         <div class="form-group">
           <label for="mobile">
-            <span data-i18n="phone_label">Primary Mobile Number (10 Digits)</span>
+            <span data-i18n="phone_label">Mobile (10 Digits)</span>
             <span class="required-star">*</span>
           </label>
-          <input 
-            type="tel" 
-            id="mobile" 
-            name="mobile" 
-            class="form-control" 
-            placeholder="e.g., 9876543210" 
-            data-i18n-ph="phone_placeholder"
-            pattern="[0-9]{10}"
-            maxlength="10"
-            required
-            title="Please enter a valid 10-digit mobile number"
-            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-          >
-          <span class="input-helper">10-digit mobile number without +91 or leading 0</span>
+          <input type="tel" id="mobile" name="mobile" class="form-control"
+            placeholder="e.g., 9876543210" data-i18n-ph="phone_placeholder"
+            pattern="[0-9]{10}" maxlength="10" required
+            oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          <span class="input-helper">10-digit number without country code</span>
         </div>
 
         <!-- Age -->
         <div class="form-group">
           <label for="age">
-            <span data-i18n="age_label">Primary Visitor Age</span>
+            <span data-i18n="age_label">Age</span>
             <span class="required-star">*</span>
           </label>
-          <input 
-            type="number" 
-            id="age" 
-            name="age" 
-            class="form-control" 
-            placeholder="e.g., 34" 
-            data-i18n-ph="age_placeholder"
-            min="1" 
-            max="120" 
-            required
-          >
+          <input type="number" id="age" name="age" class="form-control"
+            placeholder="e.g., 34" data-i18n-ph="age_placeholder"
+            min="1" max="120" required>
         </div>
 
-        <!-- Common Home Address -->
+        <!-- Address -->
         <div class="form-group full-width">
           <label for="address">
             <span data-i18n="address_label">Common Home Address</span>
             <span class="required-star">*</span>
           </label>
-          <textarea 
-            id="address" 
-            name="address" 
-            class="form-control" 
-            rows="2" 
-            placeholder="House No, Street, City, State, PIN (Common for all group members)" 
-            data-i18n-ph="address_placeholder"
-            required
-          ></textarea>
-          <span class="input-helper">This address will be officially tied to this pass for all members</span>
+          <textarea id="address" name="address" class="form-control" rows="2"
+            placeholder="House No, Street, City, State, PIN" data-i18n-ph="address_placeholder"
+            required></textarea>
+          <span class="input-helper">Shared address for all group members on this pass</span>
         </div>
-
       </div>
 
-      <!-- Section 2: Accompanying Group Members -->
+      <!-- Section 2 — Members -->
       <div class="members-section">
         <div class="members-header">
           <div>
-            <h4 style="font-size: 1.1rem; color: var(--primary-navy); display: flex; align-items: center; gap: 0.4rem;">
-              <span>👥</span>
-              <span data-i18n="sec_group">2. Accompanying Family & Group Members</span>
-            </h4>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;" data-i18n="sec_group_desc">
-              Add members visiting together. Each member will be included under this verified pass.
-            </p>
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: rgba(0,255,198,0.12); border: 1px solid rgba(0,255,198,0.25); border-radius: 50%; font-size: 0.8rem; color: var(--teal);">2</span>
+              <span data-i18n="sec_group">Group Members</span>
+            </h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;" data-i18n="sec_group_desc">Add accompanying members included on this pass.</p>
           </div>
-
-          <button type="button" class="btn btn-outline" onclick="addMemberRow()" style="border-color: var(--accent-teal); color: var(--secondary-navy);">
-            <span data-i18n="btn_add_member">+ Add Another Member</span>
+          <button type="button" class="btn btn-outline" onclick="addMemberRow()" style="white-space: nowrap;">
+            <span data-i18n="btn_add_member">+ Add Member</span>
           </button>
         </div>
 
-        <!-- Container for dynamically added member rows -->
-        <div id="membersContainer">
-          <!-- Dynamically added via JavaScript -->
-        </div>
+        <div id="membersContainer"></div>
 
-        <div style="font-size: 0.85rem; color: var(--secondary-navy); font-weight: 600; margin-top: 0.75rem;">
-          Total Pass Headcount: <span id="headcountDisplay" style="color: var(--accent-teal); font-size: 1.1rem;">1 Person</span> (Primary + Accompanying)
+        <div style="font-size: 0.84rem; color: var(--text-secondary); font-weight: 600; margin-top: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>👥 Total Pass Headcount:</span>
+          <span id="headcountDisplay">1 Person</span>
+          <span style="color: var(--text-muted); font-weight: 400;">(Primary + Accompanying)</span>
         </div>
       </div>
 
-      <!-- Submit Button -->
-      <div style="margin-top: 2rem;">
+      <!-- Submit -->
+      <div style="margin-top: 1.75rem;">
         <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn">
           <span>🛡️</span>
           <span data-i18n="btn_submit_pass">Generate Official Entry Pass & Exit Route</span>
         </button>
       </div>
-
     </form>
   </div>
 
@@ -193,84 +146,52 @@
   function addMemberRow() {
     memberIndex++;
     const container = document.getElementById('membersContainer');
-    
     const row = document.createElement('div');
     row.className = 'member-row';
     row.id = `memberRow_${memberIndex}`;
-    
     row.innerHTML = `
       <div class="form-group" style="margin-bottom: 0;">
-        <input 
-          type="text" 
-          name="member_name[]" 
-          class="form-control" 
-          placeholder="Member Full Name" 
-          data-i18n-ph="member_name_placeholder"
-          required
-        >
+        <input type="text" name="member_name[]" class="form-control"
+          placeholder="Member Full Name" data-i18n-ph="member_name_placeholder" required>
       </div>
       <div class="form-group" style="margin-bottom: 0;">
-        <input 
-          type="number" 
-          name="member_age[]" 
-          class="form-control" 
-          placeholder="Age" 
-          data-i18n-ph="member_age_placeholder"
-          min="1" 
-          max="120" 
-          required
-        >
+        <input type="number" name="member_age[]" class="form-control"
+          placeholder="Age" data-i18n-ph="member_age_placeholder" min="1" max="120" required>
       </div>
       <div class="form-group" style="margin-bottom: 0;">
-        <input 
-          type="tel" 
-          name="member_mobile[]" 
-          class="form-control" 
-          placeholder="Mobile (Optional)" 
-          data-i18n-ph="member_mobile_placeholder"
-          maxlength="10"
-          pattern="[0-9]{10}"
-          oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-        >
+        <input type="tel" name="member_mobile[]" class="form-control"
+          placeholder="Mobile (Optional)" data-i18n-ph="member_mobile_placeholder"
+          maxlength="10" pattern="[0-9]{10}"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '')">
       </div>
       <div>
-        <button type="button" class="btn btn-danger-outline" onclick="removeMemberRow(${memberIndex})" title="Remove member">
-          ✕ Remove
-        </button>
+        <button type="button" class="btn btn-danger-outline" onclick="removeMemberRow(${memberIndex})" title="Remove member">✕</button>
       </div>
     `;
-
     container.appendChild(row);
     updateHeadcount();
-    
-    // Refresh i18n placeholders for new row
-    if (typeof setLanguage === 'function') {
-      setLanguage(currentLang);
-    }
+    if (typeof setLanguage === 'function') setLanguage(currentLang);
   }
 
   function removeMemberRow(idx) {
     const row = document.getElementById(`memberRow_${idx}`);
-    if (row) {
-      row.remove();
-      updateHeadcount();
-    }
+    if (row) { row.remove(); updateHeadcount(); }
   }
 
   function updateHeadcount() {
     const rows = document.querySelectorAll('#membersContainer .member-row');
-    const totalCount = 1 + rows.length;
-    const countText = totalCount === 1 ? '1 Person' : `${totalCount} Persons`;
-    document.getElementById('headcountDisplay').textContent = countText;
+    const n = 1 + rows.length;
+    document.getElementById('headcountDisplay').textContent = n === 1 ? '1 Person' : `${n} Persons`;
   }
 
-  function validateForm() {
+  // Form validation (backup for server-side)
+  document.getElementById('registrationForm')?.addEventListener('submit', function(e) {
     const phone = document.getElementById('mobile').value.trim();
-    if (phone.length !== 10 || !/^\d{10}$/.test(phone)) {
-      alert("Please enter a valid 10-digit mobile number.");
+    if (!/^\d{10}$/.test(phone)) {
+      e.preventDefault();
+      alert('Please enter a valid 10-digit mobile number.');
       return false;
     }
-    return true;
-  }
+  });
 </script>
 {% endblock %}

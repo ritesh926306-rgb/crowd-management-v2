@@ -1,44 +1,48 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Portal Login - Venue Crowd Control{% endblock %}
+{% block title %}Admin Login · VenueGuard{% endblock %}
 
 {% block content %}
-<div style="max-width: 440px; margin: 3rem auto;">
-  <div class="card" style="box-shadow: var(--shadow-lg);">
-    
+<div style="max-width: 420px; margin: 4rem auto;">
+  <div class="card" style="border: 1px solid var(--glass-border); box-shadow: var(--shadow-card), 0 0 60px rgba(0,255,198,0.04);">
+
+    <!-- Logo -->
     <div style="text-align: center; margin-bottom: 2rem;">
-      <div style="width: 60px; height: 60px; background: var(--primary-navy); color: var(--accent-teal); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 1rem;">
+      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(0,255,198,0.15), rgba(123,47,190,0.15)); border: 1px solid rgba(0,255,198,0.25); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1.1rem; box-shadow: 0 0 30px rgba(0,255,198,0.12);">
         🔐
       </div>
-      <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--primary-navy);">Command Center Login</h2>
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.35rem;">
-        Restricted to Authorized Venue Administrators & Coordinators
+      <h1 style="font-size: 1.4rem; font-weight: 800; background: linear-gradient(90deg, #fff 0%, var(--teal) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        Command Center
+      </h1>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
+        Restricted — Authorized Venue Administrators Only
       </p>
     </div>
 
-    <form action="{{ url_for('admin_login') }}" method="POST">
+    <form action="{{ url_for('admin_login') }}" method="POST" id="adminLoginForm">
       <div class="form-group" style="margin-bottom: 1.5rem;">
-        <label for="password" style="font-weight: 600;">Administrator Password</label>
-        <input 
-          type="password" 
-          id="password" 
-          name="password" 
-          class="form-control" 
-          placeholder="Enter administrator password" 
-          required 
+        <label for="password">Administrator Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="Enter administrator password"
+          required
           autofocus
+          style="font-size: 1rem; letter-spacing: 0.05em;"
         >
-        <span class="input-helper">Default: <code>admin123</code></span>
+        <span class="input-helper">Default: <code style="background: rgba(0,255,198,0.1); color: var(--teal); padding: 0.1rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">admin123</code></span>
       </div>
 
-      <button type="submit" class="btn btn-navy btn-block btn-lg">
-        Unlock Admin Dashboard &rarr;
+      <button type="submit" class="btn btn-primary btn-block btn-lg">
+        Unlock Dashboard →
       </button>
     </form>
 
     <div style="margin-top: 1.5rem; text-align: center;">
-      <a href="{{ url_for('index') }}" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">
-        &larr; Back to Visitor Registration
+      <a href="{{ url_for('index') }}" style="font-size: 0.82rem; color: var(--text-muted); text-decoration: none;">
+        ← Back to Visitor Registration
       </a>
     </div>
 

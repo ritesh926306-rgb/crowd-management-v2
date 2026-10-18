@@ -1,65 +1,67 @@
 {% extends "base.html" %}
 
-{% block title %}Security Guard Terminal & Verification{% endblock %}
+{% block title %}Security Guard Terminal · VenueGuard{% endblock %}
 
 {% block content %}
-<div class="terminal-card card" style="padding: 0;">
+<div class="terminal-card" style="padding: 0;">
 
   {% if is_valid and reg %}
-    <!-- ================== VALID ACCESS GRANTED STATE ================== -->
+    <!-- ══════════════════ VALID ACCESS ══════════════════ -->
     <div class="verification-status status-valid">
       <div class="status-icon">✅</div>
       <h1 class="status-title">VERIFIED ACCESS GRANTED</h1>
-      <p class="status-desc">Cryptographic HMAC-SHA256 Signature Authenticated. Authorized for Single Entry Gate.</p>
+      <p class="status-desc">HMAC-SHA256 Signature Authenticated · Authorized for Single Entry Gate</p>
     </div>
 
     <div class="terminal-body">
-      
-      <!-- Headcount & Gate Alert Card -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-        <div style="background: #F0FDF4; border: 2px solid #10B981; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-          <div style="font-size: 0.8rem; text-transform: uppercase; color: #047857; font-weight: 700;">Authorized Headcount</div>
-          <div style="font-size: 2.2rem; font-weight: 800; color: #065F46; line-height: 1.1; margin: 0.25rem 0;">
-            {{ reg.group_count }}
-          </div>
-          <div style="font-size: 0.8rem; color: #059669; font-weight: 600;">
+
+      <!-- Quick Stats -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
+
+        <div style="background: rgba(34,197,94,0.08); border: 1.5px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #4ADE80; font-weight: 700; margin-bottom: 0.3rem;">Authorized Headcount</div>
+          <div style="font-size: 2.5rem; font-weight: 900; color: #4ADE80; line-height: 1; text-shadow: 0 0 20px rgba(74,222,128,0.4);">{{ reg.group_count }}</div>
+          <div style="font-size: 0.78rem; color: rgba(74,222,128,0.75); font-weight: 600; margin-top: 0.2rem;">
             {{ 'Person Allowed' if reg.group_count == 1 else 'Persons Allowed Together' }}
           </div>
         </div>
 
-        <div class="gate-theme-border theme-{{ reg.gate_id }}" style="background: #F8FAFC; border-width: 2px; border-style: solid; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-          <div class="gate-theme-color" style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Assigned Exit Direction</div>
-          <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary-navy); margin: 0.25rem 0;">
-            {{ reg.assigned_gate }}
-          </div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">{{ reg.assigned_group }}</div>
+        <div class="gate-theme-border theme-{{ reg.gate_id }}" style="background: rgba(255,255,255,0.04); border-width: 1.5px; border-style: solid; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+          <div class="gate-theme-color" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.3rem;">Assigned Exit</div>
+          <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">{{ reg.assigned_gate }}</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">{{ reg.assigned_group }}</div>
+        </div>
+
+        <div style="background: rgba(0,255,198,0.05); border: 1.5px solid rgba(0,255,198,0.18); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); font-weight: 700; margin-bottom: 0.3rem;">Pass Code</div>
+          <div class="mono-font" style="font-size: 1rem; font-weight: 700; color: var(--teal); text-shadow: 0 0 12px var(--teal-glow);">{{ reg.reg_code }}</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">{{ reg.created_at }}</div>
         </div>
       </div>
 
-      <!-- Live Check-In Action Button for Security Guard -->
-      <div style="margin-bottom: 1.75rem; background: #F1F5F9; border-radius: var(--radius-md); padding: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <!-- Check-In Action -->
+      <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;">
         <div>
-          <div style="font-weight: 700; color: var(--primary-navy); font-size: 0.95rem;">Gate Admission Status:</div>
-          <div id="checkInStatusText" style="font-size: 0.85rem; color: var(--text-muted);">
+          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem; margin-bottom: 0.25rem;">Gate Admission Status</div>
+          <div id="checkInStatusText" style="font-size: 0.84rem;">
             {% if reg.checked_in == 1 %}
-              <span style="color: #059669; font-weight: 700;">● Admitted into venue at {{ reg.checked_in_at }}</span>
+              <span style="color: #4ADE80; font-weight: 700;">● Admitted at {{ reg.checked_in_at }}</span>
             {% else %}
-              <span style="color: #D97706; font-weight: 700;">⏳ Pending physical entry at gate</span>
+              <span style="color: var(--amber); font-weight: 700;">⏳ Pending physical entry at gate</span>
             {% endif %}
           </div>
         </div>
-
-        <button 
-          id="checkInBtn" 
-          onclick="toggleCheckIn('{{ reg.reg_code }}')" 
+        <button
+          id="checkInBtn"
+          onclick="toggleCheckIn('{{ reg.reg_code }}')"
           class="btn {{ 'btn-outline btn-admitted' if reg.checked_in == 1 else 'btn-primary' }}"
         >
           <span id="checkInBtnIcon">{{ '↩️ Undo Admission' if reg.checked_in == 1 else '🚪 Mark as Admitted' }}</span>
         </button>
       </div>
 
-      <!-- Visitor Information Details -->
-      <h3 style="font-size: 1.1rem; color: var(--primary-navy); margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.4rem;">
+      <!-- Visitor Details -->
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
         Primary Visitor & Group Details
       </h3>
 
@@ -67,49 +69,46 @@
         <tbody>
           <tr>
             <th>Pass Code</th>
-            <td class="mono-font" style="color: var(--accent-teal); font-weight: 700;">{{ reg.reg_code }}</td>
+            <td class="mono-font" style="color: var(--teal);">{{ reg.reg_code }}</td>
           </tr>
           <tr>
             <th>Primary Visitor</th>
             <td>{{ reg.primary_name }} (Age: {{ reg.age }})</td>
           </tr>
           <tr>
-            <th>Verified Mobile</th>
+            <th>Mobile</th>
             <td class="mono-font">{{ reg.mobile }}</td>
           </tr>
           <tr>
-            <th>Common Address</th>
-            <td style="color: var(--text-secondary);">{{ reg.address }}</td>
+            <th>Address</th>
+            <td style="font-size: 0.84rem; color: var(--text-secondary);">{{ reg.address }}</td>
           </tr>
           <tr>
-            <th>Created At</th>
-            <td class="mono-font" style="font-size: 0.82rem; color: var(--text-muted);">{{ reg.created_at }}</td>
+            <th>Assigned Exit</th>
+            <td class="gate-theme-color theme-{{ reg.gate_id }}" style="font-weight: 700;">{{ reg.assigned_gate }} ({{ reg.assigned_group }})</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- Member Roster for Guard Verification -->
       {% if members %}
-        <h4 style="font-size: 0.95rem; color: var(--secondary-navy); margin-bottom: 0.5rem;">
-          Accompanying Group Members (Check Identity):
-        </h4>
-        <div style="background: var(--bg-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color); overflow: hidden; margin-bottom: 1.5rem;">
-          <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+        <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.65rem; font-weight: 700;">Accompanying Members ({{ members|length }})</h4>
+        <div style="border: 1px solid var(--glass-border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1.5rem;">
+          <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
             <thead>
-              <tr style="background: #E2E8F0; color: var(--secondary-navy);">
-                <th style="padding: 0.5rem 0.75rem; text-align: left;">#</th>
-                <th style="padding: 0.5rem 0.75rem; text-align: left;">Name</th>
-                <th style="padding: 0.5rem 0.75rem; text-align: left;">Age</th>
-                <th style="padding: 0.5rem 0.75rem; text-align: left;">Contact</th>
+              <tr style="background: rgba(255,255,255,0.04);">
+                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">#</th>
+                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Name</th>
+                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Age</th>
+                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Mobile</th>
               </tr>
             </thead>
             <tbody>
               {% for m in members %}
-                <tr style="border-top: 1px solid #E2E8F0;">
-                  <td style="padding: 0.5rem 0.75rem; color: var(--text-muted);">{{ loop.index }}</td>
-                  <td style="padding: 0.5rem 0.75rem; font-weight: 600;">{{ m.member_name }}</td>
-                  <td style="padding: 0.5rem 0.75rem;">{{ m.member_age }} years</td>
-                  <td style="padding: 0.5rem 0.75rem; font-family: monospace;">{{ m.member_mobile or '—' }}</td>
+                <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
+                  <td style="padding: 0.5rem 0.8rem; color: var(--text-muted);">{{ loop.index }}</td>
+                  <td style="padding: 0.5rem 0.8rem; font-weight: 600;">{{ m.member_name }}</td>
+                  <td style="padding: 0.5rem 0.8rem;">{{ m.member_age }}y</td>
+                  <td style="padding: 0.5rem 0.8rem;" class="mono-font">{{ m.member_mobile or '—' }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -117,55 +116,56 @@
         </div>
       {% endif %}
 
-      <!-- Security Stamp -->
-      <div style="padding: 0.75rem; background: #ECFDF5; border-radius: var(--radius-sm); border: 1px solid #A7F3D0; font-size: 0.75rem; color: #065F46; word-break: break-all;">
-        <strong>Cryptographic Signature Match:</strong> {{ reg.hmac_signature }}
+      <!-- HMAC note -->
+      <div style="padding: 0.85rem 1rem; background: rgba(0,255,198,0.04); border: 1px solid rgba(0,255,198,0.12); border-radius: var(--radius-md); font-size: 0.76rem; color: var(--text-muted);">
+        🔐 <strong style="color: var(--teal);">HMAC:</strong>
+        <span class="mono-font" style="word-break: break-all; opacity: 0.65;">{{ reg.hmac_signature }}</span>
       </div>
-
     </div>
 
-  {% else %}
-    <!-- ================== TAMPERED / FRAUD DETECTED STATE ================== -->
+  {% elif tamper_reason %}
+    <!-- ══════════════════ TAMPERED ══════════════════ -->
     <div class="verification-status status-fraud">
       <div class="status-icon">🚨</div>
       <h1 class="status-title">FRAUD WARNING: INVALID ENTRY PASS</h1>
-      <p class="status-desc" style="font-weight: 700; font-size: 1.1rem; margin-top: 0.5rem;">
-        STOP VISITOR IMMEDIATELY. UNAUTHORIZED OR COUNTERFEIT PASS.
-      </p>
+      <p class="status-desc">CRYPTOGRAPHIC SIGNATURE MISMATCH — Data tampering detected. Access denied.</p>
+    </div>
+    <div class="terminal-body">
+      <div style="background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.25); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+        <strong style="color: var(--red);">⚠️ Tamper Reason:</strong>
+        <p style="color: var(--text-secondary); margin-top: 0.35rem; font-size: 0.88rem;">{{ tamper_reason }}</p>
+      </div>
+      <ul style="font-size: 0.88rem; color: var(--text-secondary); padding-left: 1.5rem; line-height: 2;">
+        <li>Do NOT allow this visitor to enter.</li>
+        <li>Alert security supervisor immediately.</li>
+        <li>Direct them to scan the official entrance QR to re-register a valid pass.</li>
+      </ul>
     </div>
 
+  {% else %}
+    <!-- ══════════════════ STANDBY ══════════════════ -->
+    <div style="padding: 2.5rem 1.5rem; text-align: center; border-bottom: 1px solid var(--glass-border);">
+      <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔍</div>
+      <h1 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">Security Guard Terminal</h1>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.4rem;">Scan a visitor QR code or enter a pass code manually to verify access.</p>
+    </div>
     <div class="terminal-body">
-      <div style="background: #FEF2F2; border: 2px solid #EF4444; border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
-        <h3 style="color: #991B1B; font-size: 1.1rem; margin-bottom: 0.5rem;">Tamper Alert Investigation Reason:</h3>
-        <p style="color: #B91C1C; font-weight: 600; font-size: 0.95rem;">
-          {{ tamper_reason or "Cryptographic HMAC check failed. The data or QR code has been manipulated or is not recognized in the official registry." }}
-        </p>
-      </div>
-
-      <div style="background: #FFFBEB; border: 1px solid #F59E0B; border-radius: var(--radius-md); padding: 1rem; font-size: 0.88rem; color: #92400E;">
-        <strong>Security Guard Protocol:</strong>
-        <ol style="padding-left: 1.25rem; margin-top: 0.5rem; line-height: 1.6;">
-          <li>Refuse admittance through the single entry gate.</li>
-          <li>Escort the individual to the on-site Registration Assistance Helpdesk.</li>
-          <li>Instruct them to scan the official entrance QR code to create a valid registered pass.</li>
-        </ol>
+      <div style="padding: 0.85rem 1rem; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius-md); font-size: 0.84rem; color: #93C5FD; margin-bottom: 1.75rem;">
+        ℹ️ Scan the visitor's digital pass QR code using a barcode scanner, or type the code below.
       </div>
     </div>
   {% endif %}
 
-  <!-- Manual Registration Code Lookup Form for Guard Backup -->
-  <div style="background: var(--bg-subtle); border-top: 1px solid var(--border-color); padding: 1.25rem 2rem;">
-    <form onsubmit="event.preventDefault(); manualLookup();" style="display: flex; gap: 0.5rem; align-items: center; max-width: 450px; margin: 0 auto;">
-      <input 
-        type="text" 
-        id="manualRegCode" 
-        class="form-control" 
-        placeholder="Enter Reg Code (e.g. REG-A1B2C3)" 
-        style="text-transform: uppercase;"
-        required
-      >
+  <!-- Manual Lookup -->
+  <div style="padding: 1.5rem 2rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.15);">
+    <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.75rem;">Manual Code Lookup</div>
+    <form onsubmit="manualLookup(); return false;" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <input type="text" id="manualRegCode" class="form-control"
+        placeholder="Enter code (e.g. REG-A1B2C3)"
+        style="flex: 1; min-width: 200px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;"
+        required>
       <button type="submit" class="btn btn-navy" style="white-space: nowrap;">
-        🔍 Verify Code
+        🔍 Verify
       </button>
     </form>
   </div>
@@ -183,12 +183,13 @@
   }
 
   function toggleCheckIn(regCode) {
-    const btn = document.getElementById('checkInBtn');
+    const btn        = document.getElementById('checkInBtn');
     const statusText = document.getElementById('checkInStatusText');
-    const iconSpan = document.getElementById('checkInBtnIcon');
-    
+    const iconSpan   = document.getElementById('checkInBtnIcon');
+
     btn.disabled = true;
-    
+    iconSpan.innerHTML = '<span class="spinner"></span>';
+
     fetch(`/api/check-in/${regCode}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -198,21 +199,23 @@
       btn.disabled = false;
       if (data.success) {
         if (data.checked_in === 1) {
-          statusText.innerHTML = `<span style="color: #059669; font-weight: 700;">● Admitted into venue at ${data.checked_in_at}</span>`;
+          statusText.innerHTML = `<span style="color:#4ADE80;font-weight:700;">● Admitted at ${data.checked_in_at}</span>`;
           iconSpan.textContent = '↩️ Undo Admission';
           btn.className = 'btn btn-outline btn-admitted';
         } else {
-          statusText.innerHTML = `<span style="color: #D97706; font-weight: 700;">⏳ Pending physical entry at gate</span>`;
+          statusText.innerHTML = `<span style="color:var(--amber);font-weight:700;">⏳ Pending physical entry at gate</span>`;
           iconSpan.textContent = '🚪 Mark as Admitted';
           btn.className = 'btn btn-primary';
         }
       } else {
-        alert("Check-in update failed: " + (data.message || 'Unknown error'));
+        iconSpan.textContent = btn.classList.contains('btn-admitted') ? '↩️ Undo Admission' : '🚪 Mark as Admitted';
+        alert('Check-in update failed: ' + (data.message || 'Unknown error'));
       }
     })
-    .catch(err => {
+    .catch(() => {
       btn.disabled = false;
-      alert("Network error updating admission state.");
+      iconSpan.textContent = btn.classList.contains('btn-admitted') ? '↩️ Undo Admission' : '🚪 Mark as Admitted';
+      alert('Network error. Please try again.');
     });
   }
 </script>

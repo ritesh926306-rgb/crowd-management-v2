@@ -1,142 +1,112 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Command & Control Dashboard{% endblock %}
+{% block title %}Admin Dashboard · VenueGuard{% endblock %}
 
 {% block content %}
 <div class="admin-dashboard-container">
 
-  <!-- Header Section with Actions -->
+  <!-- Header -->
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
     <div>
-      <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--primary-navy); letter-spacing: -0.02em;">
-        Venue Operations & Crowd Analytics
+      <h1 style="font-size: 1.8rem; font-weight: 800; background: linear-gradient(90deg, #fff 0%, var(--teal) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em;">
+        {{ 'Venue Operations & Crowd Analytics'|safe }}
       </h1>
-      <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.2rem;">
-        Real-time capacity tracking, smart split load-balancing & visitor registry
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.2rem;">
+        Real-time capacity tracking, smart split balancing & visitor registry
       </p>
     </div>
-
     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-      <a href="{{ url_for('entrance_poster') }}" target="_blank" class="btn btn-outline" style="border-color: var(--secondary-navy); color: var(--secondary-navy);">
-        <span>🪧</span> Print Entrance QR Poster
+      <a href="{{ url_for('entrance_poster') }}" target="_blank" class="btn btn-outline">
+        <span>🪧</span> Entrance Poster
       </a>
-      
       <a href="{{ url_for('export_csv') }}" class="btn btn-primary">
-        <span>📥</span> Export to CSV
+        <span>📥</span> Export CSV
       </a>
     </div>
   </div>
 
-  <!-- Key Metrics Stats Cards -->
+  <!-- ── KPI STATS ── -->
   <div class="stats-grid">
-    
-    <div class="stat-card" style="border-top: 4px solid var(--accent-teal);">
-      <div class="stat-label">Total Venue Headcount</div>
+    <div class="stat-card">
+      <div class="stat-label">Total Headcount</div>
       <div class="stat-number">{{ total_people }}</div>
-      <div class="stat-indicator" style="color: var(--accent-teal-dark);">
-        Primary visitors + group members
-      </div>
+      <div class="stat-indicator">Primary + group members</div>
     </div>
-
-    <div class="stat-card" style="border-top: 4px solid var(--secondary-navy);">
-      <div class="stat-label">Total Issued Passes</div>
+    <div class="stat-card">
+      <div class="stat-label">Passes Issued</div>
       <div class="stat-number">{{ total_passes }}</div>
-      <div class="stat-indicator" style="color: var(--text-muted);">
-        Unique cryptographic registration codes
-      </div>
+      <div class="stat-indicator">Unique registration codes</div>
     </div>
-
-    <div class="stat-card" style="border-top: 4px solid #10B981;">
-      <div class="stat-label">Admitted / Checked-In</div>
-      <div class="stat-number" style="color: #059669;">{{ admitted_people }}</div>
-      <div class="stat-indicator" style="color: #059669;">
+    <div class="stat-card">
+      <div class="stat-label">Admitted</div>
+      <div class="stat-number" style="background: linear-gradient(135deg, #fff 0%, #22C55E 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ admitted_people }}</div>
+      <div class="stat-indicator">
         {% if total_people > 0 %}
-          {{ ((admitted_people / total_people) * 100)|round(1) }}% of total visitors entered
+          {{ ((admitted_people / total_people) * 100)|round(1) }}% of total entered
         {% else %}
           0% entered
         {% endif %}
       </div>
     </div>
-
-    <div class="stat-card" style="border-top: 4px solid #F59E0B;">
-      <div class="stat-label">Static QR Checkpoint</div>
-      <div class="stat-number" style="font-size: 1.4rem; padding-top: 0.5rem; color: #B45309;">
-        ACTIVE (Single Gate)
+    <div class="stat-card">
+      <div class="stat-label">QR Checkpoint</div>
+      <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span class="pulse-dot"></span>
+        <span style="font-size: 1rem; font-weight: 700; color: var(--teal);">ACTIVE</span>
       </div>
-      <div class="stat-indicator" style="color: var(--text-muted);">
-        Route Split: Capacity-Balanced
-      </div>
+      <div class="stat-indicator" style="margin-top: 0.4rem;">Single entry gate · capacity split ON</div>
     </div>
-
   </div>
 
-  <!-- Smart Crowd Flow & Gate Capacity Distribution -->
-  <div class="card" style="margin-bottom: 2rem;">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+  <!-- ── GATE CAPACITY ── -->
+  <div class="card" style="margin-bottom: 1.75rem;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
       <div>
-        <h3 class="card-title" style="font-size: 1.25rem;">
-          <span>⚖️</span> Live Smart Exit Split Load Balancing
-        </h3>
-        <p class="card-desc">
-          Capacity-based crowd routing automatically allocates new registrants to the least congested exit corridor.
-        </p>
+        <h3 class="card-title" style="font-size: 1.1rem;">⚖️ Smart Exit Load Balancing</h3>
+        <p class="card-desc">Auto-allocates new registrants to the least congested exit corridor.</p>
       </div>
-
-      <span class="badge badge-teal" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;">
-        Dynamic Balancing: ON
-      </span>
+      <span class="badge badge-teal">Dynamic Balancing ON</span>
     </div>
 
     <div class="gate-capacity-grid">
       {% for gate in gate_analytics %}
-        <div class="gate-stat-box theme-{{ gate.gate_id }}" style="border-left-width: 4px; border-left-style: solid; border-left-color: var(--gate-theme-color, #00ADB5);">
+        <div class="gate-stat-box theme-{{ gate.gate_id }}">
           <div class="gate-stat-header">
-            <span style="color: var(--primary-navy);">{{ gate.name }}</span>
+            <span>{{ gate.name }}</span>
             <span class="gate-theme-color">{{ gate.count }} pax</span>
           </div>
-          <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-            {{ gate.group }} &bull; {{ gate.zone }}
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+            {{ gate.group }} · {{ gate.zone }}
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill gate-theme-bg" style="width: {{ gate.percentage }}%;"></div>
+            <div class="progress-bar-fill" style="width: {{ gate.percentage }}%;"></div>
           </div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary); text-align: right; margin-top: 0.35rem;">
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 0.3rem;">
             {{ gate.percentage }}% crowd share
           </div>
         </div>
       {% endfor %}
     </div>
 
-    <!-- Hidden Gate 5 Security Notice -->
-    <div style="padding: 0.85rem 1.25rem; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; color: #92400E;">
-      <span style="font-size: 1.3rem;">🛡️</span>
+    <!-- Gate 5 Notice -->
+    <div style="padding: 0.85rem 1.1rem; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.75rem; font-size: 0.84rem; color: var(--amber);">
+      <span style="font-size: 1.2rem;">🛡️</span>
       <div>
-        <strong>Gate 5 Protocol:</strong> Hidden staff corridor and emergency evacuation route are reserved exclusively for incident response teams. No standard visitor passes are routed through Gate 5.
+        <strong>Gate 5 Protocol:</strong> Hidden staff corridor reserved exclusively for incident response and emergency evacuation. No visitor passes routed via Gate 5.
       </div>
     </div>
   </div>
 
-  <!-- Registrations Registry Table Card -->
+  <!-- ── REGISTRATIONS TABLE ── -->
   <div class="card">
     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h3 class="card-title" style="font-size: 1.25rem;">
-          <span>📋</span> All Visitor Registrations & Passes
-        </h3>
-        <p class="card-desc">Complete record of primary visitors, accompanying family members, addresses, and assigned exits.</p>
+        <h3 class="card-title" style="font-size: 1.1rem;">📋 Visitor Registry</h3>
+        <p class="card-desc">All registrations with pass codes, gates, and admission status.</p>
       </div>
-
-      <!-- Quick Search Bar -->
-      <div style="min-width: 280px;">
-        <input 
-          type="text" 
-          id="tableSearchInput" 
-          onkeyup="filterTable()" 
-          class="form-control" 
-          placeholder="🔍 Search name, phone, code, gate..." 
-          style="padding: 0.55rem 0.9rem; font-size: 0.88rem;"
-        >
-      </div>
+      <input type="text" id="tableSearchInput" onkeyup="filterTable()" class="form-control"
+        placeholder="🔍 Search name, code, gate…"
+        style="max-width: 260px; padding: 0.5rem 0.9rem; font-size: 0.85rem; border-radius: var(--radius-full);">
     </div>
 
     {% if registrations %}
@@ -148,65 +118,60 @@
               <th>Created</th>
               <th>Primary Visitor</th>
               <th>Mobile</th>
-              <th>Group Size</th>
-              <th>Accompanying Members</th>
-              <th>Common Address</th>
-              <th>Assigned Exit</th>
-              <th>Check-in</th>
+              <th>Group</th>
+              <th>Members</th>
+              <th>Exit Gate</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for r in registrations %}
               <tr>
-                <td class="mono-font" style="font-weight: 700; color: var(--primary-navy);">
-                  <a href="{{ url_for('view_pass', reg_code=r.reg_code) }}" target="_blank" style="color: var(--accent-teal-dark); text-decoration: underline;">
+                <td class="mono-font" style="font-weight: 700;">
+                  <a href="{{ url_for('view_pass', reg_code=r.reg_code) }}" target="_blank"
+                    style="color: var(--teal); text-decoration: none;">
                     {{ r.reg_code }}
                   </a>
                 </td>
-                <td style="font-size: 0.8rem; color: var(--text-muted); white-space: nowrap;">
-                  {{ r.created_at }}
-                </td>
+                <td style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">{{ r.created_at }}</td>
                 <td>
-                  <strong>{{ r.primary_name }}</strong>
-                  <div style="font-size: 0.75rem; color: var(--text-muted);">Age: {{ r.age }}y</div>
+                  <div style="font-weight: 600;">{{ r.primary_name }}</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);">Age: {{ r.age }}y</div>
                 </td>
-                <td class="mono-font">{{ r.mobile }}</td>
-                <td>
-                  <span class="badge badge-teal">
-                    {{ r.group_count }} Pax
-                  </span>
-                </td>
-                <td style="font-size: 0.82rem; max-width: 220px; line-height: 1.4;">
+                <td class="mono-font" style="font-size: 0.85rem;">{{ r.mobile }}</td>
+                <td><span class="badge badge-teal">{{ r.group_count }} pax</span></td>
+                <td style="font-size: 0.8rem; max-width: 200px; color: var(--text-secondary);">
                   {% if r.members_summary %}
-                    <span style="color: var(--secondary-navy); font-weight: 500;">{{ r.members_summary }}</span>
+                    {{ r.members_summary }}
                   {% else %}
-                    <span style="color: var(--text-muted); font-style: italic;">Solo Visitor</span>
+                    <span style="color: var(--text-muted); font-style: italic;">Solo</span>
                   {% endif %}
                 </td>
-                <td style="font-size: 0.82rem; max-width: 180px; color: var(--text-secondary); word-break: break-word;">
-                  {{ r.address }}
-                </td>
                 <td>
-                  <span class="badge" style="background: #F1F5F9; color: var(--primary-navy); border: 1px solid var(--border-color); font-weight: 700;">
+                  <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--glass-border);">
                     {{ r.assigned_gate }}
                   </span>
-                  <div style="font-size: 0.7rem; color: var(--text-muted);">{{ r.assigned_group }}</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">{{ r.assigned_group }}</div>
                 </td>
                 <td>
                   {% if r.checked_in == 1 %}
-                    <span class="badge badge-success">Admitted</span>
+                    <span class="badge badge-success">✓ Admitted</span>
                   {% else %}
-                    <span class="badge badge-warning">Pending</span>
+                    <span class="badge badge-warning">⏳ Pending</span>
                   {% endif %}
                 </td>
                 <td>
-                  <div style="display: flex; gap: 0.4rem;">
-                    <a href="{{ url_for('verify_pass', reg_code=r.reg_code) }}" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" title="Verify pass terminal">
-                      🛡️ Verify
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <a href="{{ url_for('verify_pass', reg_code=r.reg_code) }}"
+                      class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.76rem;"
+                      title="Security terminal">
+                      🛡️
                     </a>
-                    <form action="{{ url_for('delete_registration', reg_id=r.id) }}" method="POST" onsubmit="return confirm('Permanently delete registration {{ r.reg_code }}?');" style="margin: 0;">
-                      <button type="submit" class="btn btn-danger-outline" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" title="Delete record">
+                    <form action="{{ url_for('delete_registration', reg_id=r.id) }}" method="POST"
+                      onsubmit="return confirm('Delete {{ r.reg_code }}?');" style="margin: 0;">
+                      <button type="submit" class="btn btn-danger-outline"
+                        style="padding: 0.3rem 0.65rem; font-size: 0.76rem;" title="Delete">
                         🗑️
                       </button>
                     </form>
@@ -218,18 +183,15 @@
         </table>
       </div>
     {% else %}
-      <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-        <div style="font-size: 3rem; margin-bottom: 0.5rem;">📂</div>
-        <h3>No Registrations Recorded Yet</h3>
-        <p style="font-size: 0.9rem; margin-top: 0.35rem;">
-          Visitors who scan the entrance QR code will appear here in real time.
-        </p>
-        <div style="margin-top: 1.25rem;">
+      <div style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+        <div style="font-size: 3.5rem; margin-bottom: 0.75rem; opacity: 0.5;">📂</div>
+        <h3 style="font-size: 1.1rem; color: var(--text-secondary);">No Registrations Yet</h3>
+        <p style="font-size: 0.88rem; margin-top: 0.35rem;">Visitors who scan the entrance QR will appear here in real time.</p>
+        <div style="margin-top: 1.5rem;">
           <a href="{{ url_for('index') }}" class="btn btn-primary">Open Registration Form</a>
         </div>
       </div>
     {% endif %}
-
   </div>
 
 </div>
@@ -238,22 +200,11 @@
 {% block scripts %}
 <script>
   function filterTable() {
-    const input = document.getElementById('tableSearchInput');
-    const filter = input.value.toLowerCase();
-    const table = document.getElementById('registrationsTable');
-    if (!table) return;
-    
-    const rows = table.getElementsByTagName('tr');
-    
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const text = row.textContent || row.innerText;
-      if (text.toLowerCase().indexOf(filter) > -1) {
-        row.style.display = "";
-      } else {
-        row.style.display = "none";
-      }
-    }
+    const filter = document.getElementById('tableSearchInput').value.toLowerCase();
+    const rows   = document.querySelectorAll('#registrationsTable tbody tr');
+    rows.forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+    });
   }
 </script>
 {% endblock %}
