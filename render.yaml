@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: venue-crowd-management
+    name: crowd-management-v2
     runtime: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
