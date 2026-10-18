@@ -50,7 +50,7 @@
 
   <!-- Registration Form Card -->
   <div class="card">
-    <form id="registrationForm" action="{{ url_for('register') }}" method="POST" onsubmit="return validateForm()">
+    <form id="registrationForm" action="{{ url_for('register') }}" method="POST">
       
       <!-- Hidden input for language sync -->
       <input type="hidden" name="language" id="formLanguageChoice" value="en">
