@@ -76,6 +76,7 @@ def build():
     env.globals["url_for"]              = mock_url_for
     env.globals["get_flashed_messages"] = lambda **kwargs: []
     env.globals["session"]              = {}
+    env.globals["is_static_build"]      = True
 
     class MockRequest:
         args     = {"lang": "en"}

@@ -66,8 +66,11 @@
 
   function isStaticHost() {
     // If running under Flask backend, never run static-mode client override!
-    if (window.IS_FLASK_BACKEND === true) {
+    if (typeof window.IS_FLASK_BACKEND !== 'undefined' && window.IS_FLASK_BACKEND === true) {
       return false;
+    }
+    if (typeof window.IS_STATIC_BUILD !== 'undefined' && window.IS_STATIC_BUILD === true) {
+      return true;
     }
     // If running on a live web server (e.g., port 5000 or without .html on localhost/127.0.0.1), let the backend handle everything!
     if (window.location.port === '5000' || window.location.port === '8000' || window.location.port === '3000') {
@@ -78,6 +81,13 @@
       return window.location.protocol === 'file:' || window.location.pathname.endsWith('.html');
     }
     return h.endsWith('github.io') || window.location.protocol === 'file:' || window.location.pathname.endsWith('.html');
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function (s) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s];
+    });
   }
 
   function getBaseUrl() {
@@ -520,6 +530,59 @@
     if (!isStaticHost()) return;
 
     hydrateAdminDashboard();
+
+    // Bind CSV Export for static mode
+    const exportBtn = document.querySelector('a[href*="export"], a[href="#"].btn-primary');
+    if (exportBtn && !exportBtn.dataset.bound) {
+      exportBtn.dataset.bound = 'true';
+      exportBtn.addEventListener('click', function(e) {
+        if (!isStaticHost()) return;
+        e.preventDefault();
+        exportPassesCsv();
+      });
+    }
+  }
+
+  function exportPassesCsv() {
+    const passes = getPasses();
+    const headers = [
+      "Reg ID", "Registration Code", "Timestamp", "Language",
+      "Primary Visitor Name", "Mobile Number", "Age", "Common Address",
+      "Total Group Size", "Assigned Group", "Assigned Exit Gate",
+      "Checked In Status", "Checked In Timestamp", "Accompanying Group Members",
+      "HMAC Security Hash"
+    ];
+
+    const rows = passes.map((p, index) => {
+      const membersStr = (p.members || []).map(m => `${m.member_name} [Age: ${m.member_age}]`).join(' | ') || 'None (Solo Visitor)';
+      return [
+        index + 1,
+        `"${p.reg_code}"`,
+        `"${p.created_at || ''}"`,
+        '"EN"',
+        `"${(p.primary_name || '').replace(/"/g, '""')}"`,
+        `"${p.mobile || ''}"`,
+        p.age || 0,
+        `"${(p.address || '').replace(/"/g, '""')}"`,
+        p.group_count || 1,
+        `"${p.assigned_group || ''}"`,
+        `"${p.assigned_gate || ''}"`,
+        p.checked_in === 1 ? '"ADMITTED"' : '"PENDING"',
+        `"${p.checked_in_at || 'N/A'}"`,
+        `"${membersStr.replace(/"/g, '""')}"`,
+        `"${p.hmac_signature || ''}"`
+      ].join(',');
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const timestamp = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 14);
+    link.setAttribute("download", `venue_crowd_data_${timestamp}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   function hydrateAdminDashboard() {
@@ -649,8 +712,24 @@
     if (!code) return;
 
     const passes = getPasses();
-    const pass   = passes.find(p => p.reg_code === code);
-    if (!pass) return;
+    const pass   = passes.find(p => p.reg_code.toUpperCase() === code.toUpperCase());
+    if (!pass) {
+      card.innerHTML = `
+        <div class="verification-status status-invalid">
+          <div class="status-icon">⚠️</div>
+          <h1 class="status-title">FRAUD WARNING: INVALID ENTRY PASS</h1>
+          <p class="status-desc">REGISTRATION CODE NOT FOUND IN DATABASE. POTENTIAL COUNTERFEIT PASS.</p>
+        </div>
+        <div class="terminal-body" style="padding: 2.5rem 1.5rem; text-align: center;">
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); padding: 1.5rem; max-width: 580px; margin: 0 auto 1.5rem;">
+            <p style="color: #FCA5A5; font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;">Scanned Pass Code: <span class="mono-font">${escapeHtml(code)}</span></p>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">This pass code does not exist in the verified registry. Entry denied under venue safety protocols.</p>
+          </div>
+          <a href="verify.html" class="btn btn-navy">← Return to Guard Scanner Terminal</a>
+        </div>
+      `;
+      return;
+    }
 
     // Update status bar description
     const statusDesc = document.querySelector('.status-desc');
@@ -747,11 +826,34 @@
     }
   };
 
+  /* ─────────────────────────── NAVBAR STATIC STATE ─────────────────────────── */
+
+  function updateStaticNavbar() {
+    if (!isStaticHost()) return;
+    const isAdmin = sessionStorage.getItem('vg_admin') === 'true';
+    const actions = document.querySelector('.header-actions');
+    if (!actions) return;
+    const adminLink = actions.querySelector('a[href*="login"], a[href*="admin"]');
+    if (adminLink && isAdmin) {
+      adminLink.outerHTML = `
+        <a href="admin.html" class="nav-link active">Dashboard</a>
+        <a href="#" onclick="logoutStaticAdmin(event)" class="nav-link" style="color: var(--red);">Logout</a>
+      `;
+    }
+  }
+
+  window.logoutStaticAdmin = function (e) {
+    if (e) e.preventDefault();
+    sessionStorage.removeItem('vg_admin');
+    window.location.href = 'login.html';
+  };
+
   /* ─────────────────────────── BOOT ─────────────────────────── */
 
   function boot() {
     if (!isStaticHost()) return;
     injectBanner();
+    updateStaticNavbar();
     initRegistrationForm();
     initPassPage();
     initLoginPage();

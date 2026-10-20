@@ -880,13 +880,30 @@ def export_csv():
 def delete_registration(reg_id):
     """Delete a registration record and its members (admin only)."""
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM group_members WHERE reg_id = ?", (reg_id,))
-    cursor.execute("DELETE FROM registrations WHERE id = ?", (reg_id,))
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM group_members WHERE reg_id = ?", (reg_id,))
+        cursor.execute("DELETE FROM registrations WHERE id = ?", (reg_id,))
+        conn.commit()
+    finally:
+        conn.close()
     flash(f"Registration #{reg_id} deleted successfully.", "info")
     return redirect(url_for("admin_dashboard"))
+
+# ----------------- ERROR HANDLERS -----------------
+
+@app.errorhandler(404)
+def handle_404(e):
+    flash("The requested venue resource or pass was not found.", "warning")
+    return redirect(url_for("index"))
+
+@app.errorhandler(500)
+def handle_500(e):
+    return jsonify({
+        "success": False,
+        "error": "Internal Server Error",
+        "message": "A server error occurred. Please contact venue operations."
+    }), 500
 
 # ----------------- MAIN INITIALIZATION -----------------
 
