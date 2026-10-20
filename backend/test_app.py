@@ -96,5 +96,51 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         self.assertEqual(csv_res.headers['Content-Type'], 'text/csv; charset=utf-8')
         self.assertIn(b'Registration Code', csv_res.data)
 
+    def test_05_guard_verify_terminal(self):
+        """Test guard terminal standby page and guard PIN login."""
+        # 1. Test standby terminal loads
+        res = self.client.get('/verify')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(b'Guard Gate Terminal', res.data)
+        self.assertIn(b'Start Camera Scanner', res.data)
+
+        # 2. Test guard login with PIN
+        login_res = self.client.post('/guard/login', data={'pin': 'guard123'}, follow_redirects=True)
+        self.assertEqual(login_res.status_code, 200)
+        self.assertIn(b'Guard terminal unlocked', login_res.data)
+
+    def test_06_api_verify_and_anti_passback(self):
+        """Test real-time JSON verification API and anti-passback duplicate detection."""
+        # 1. Register test user
+        data = {
+            'language': 'en',
+            'primary_name': 'Kavita Roy',
+            'mobile': '9811223344',
+            'age': '29',
+            'address': 'Sector 18, Noida'
+        }
+        res = self.client.post('/register', data=data, follow_redirects=False)
+        reg_code = res.headers['Location'].split('/')[-1]
+
+        # 2. Test API verify before admission
+        api_res = self.client.get(f'/api/verify/{reg_code}')
+        self.assertEqual(api_res.status_code, 200)
+        json_data = api_res.get_json()
+        self.assertTrue(json_data['is_valid'])
+        self.assertFalse(json_data['is_already_checked_in'])
+        self.assertEqual(json_data['reg']['primary_name'], 'Kavita Roy')
+
+        # 3. Check in visitor
+        checkin_res = self.client.post(f'/api/check-in/{reg_code}')
+        self.assertEqual(checkin_res.status_code, 200)
+        self.assertEqual(checkin_res.get_json()['checked_in'], 1)
+
+        # 4. Test API verify detects anti-passback
+        api_res2 = self.client.get(f'/api/verify/{reg_code}')
+        self.assertEqual(api_res2.status_code, 200)
+        json_data2 = api_res2.get_json()
+        self.assertTrue(json_data2['is_valid'])
+        self.assertTrue(json_data2['is_already_checked_in'])
+
 if __name__ == '__main__':
     unittest.main()

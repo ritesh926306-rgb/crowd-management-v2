@@ -65,10 +65,19 @@
   /* ─────────────────────────── HELPERS ─────────────────────────── */
 
   function isStaticHost() {
+    // If running under Flask backend, never run static-mode client override!
+    if (window.IS_FLASK_BACKEND === true) {
+      return false;
+    }
+    // If running on a live web server (e.g., port 5000 or without .html on localhost/127.0.0.1), let the backend handle everything!
+    if (window.location.port === '5000' || window.location.port === '8000' || window.location.port === '3000') {
+      return false;
+    }
     const h = window.location.hostname;
-    return h.endsWith('github.io') || h === 'localhost' || h === '127.0.0.1' ||
-           window.location.protocol === 'file:' ||
-           window.location.pathname.endsWith('.html');
+    if (h === 'localhost' || h === '127.0.0.1') {
+      return window.location.protocol === 'file:' || window.location.pathname.endsWith('.html');
+    }
+    return h.endsWith('github.io') || window.location.protocol === 'file:' || window.location.pathname.endsWith('.html');
   }
 
   function getBaseUrl() {
@@ -287,6 +296,7 @@
 
   function initPassPage() {
     if (!document.querySelector('.pass-container')) return;
+    if (!isStaticHost()) return;
 
     const params = new URLSearchParams(window.location.search);
     const code   = params.get('code');
@@ -740,6 +750,7 @@
   /* ─────────────────────────── BOOT ─────────────────────────── */
 
   function boot() {
+    if (!isStaticHost()) return;
     injectBanner();
     initRegistrationForm();
     initPassPage();

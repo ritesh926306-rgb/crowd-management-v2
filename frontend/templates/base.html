@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+    window.IS_FLASK_BACKEND = {{ 'true' if is_flask_backend else 'false' }};
+  </script>
   <script src="{{ url_for('static', filename='static-mode.js') }}" defer></script>
   {% block head %}{% endblock %}
 </head>
@@ -30,9 +33,12 @@
           🌐 <span id="langBtnText">हिंदी में बदलें</span>
         </button>
         <a href="{{ url_for('index') }}" class="nav-link" data-i18n="nav_register">Register</a>
+        <a href="{{ url_for('verify_terminal') }}" class="nav-link">Guard Portal</a>
         {% if session.get('is_admin') %}
           <a href="{{ url_for('admin_dashboard') }}" class="nav-link active">Dashboard</a>
           <a href="{{ url_for('admin_logout') }}" class="nav-link" style="color: var(--red);">Logout</a>
+        {% elif session.get('guard_logged_in') %}
+          <a href="{{ url_for('guard_logout') }}" class="nav-link" style="color: var(--amber);" title="Lock Guard Terminal">🔒 Guard Lock</a>
         {% else %}
           <a href="{{ url_for('admin_login') }}" class="nav-link" data-i18n="nav_admin">Admin</a>
         {% endif %}

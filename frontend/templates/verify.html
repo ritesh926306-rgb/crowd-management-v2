@@ -2,96 +2,690 @@
 
 {% block title %}Security Guard Terminal · VenueGuard{% endblock %}
 
-{% block content %}
-<div class="terminal-card" style="padding: 0;">
+{% block head %}
+<script src="{{ url_for('static', filename='html5-qrcode.min.js') }}"></script>
+{% endblock %}
 
-  {% if is_valid and reg %}
-    <!-- ══════════════════ VALID ACCESS ══════════════════ -->
-    <div class="verification-status status-valid">
-      <div class="status-icon">✅</div>
-      <h1 class="status-title">VERIFIED ACCESS GRANTED</h1>
-      <p class="status-desc">HMAC-SHA256 Signature Authenticated · Authorized for Single Entry Gate</p>
+{% block content %}
+<div class="terminal-card" style="padding: 0; max-width: 820px; margin: 1.5rem auto;">
+
+  <!-- ══════════════════ TERMINAL TOP TOOLBAR ══════════════════ -->
+  <div style="padding: 1rem 1.5rem; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.6rem;">
+      <span class="pulse-dot"></span>
+      <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal);">
+        Guard Gate Terminal
+      </span>
+      {% if guard_active %}
+        <span class="badge badge-teal" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">AUTHENTICATED</span>
+      {% endif %}
     </div>
 
-    <div class="terminal-body">
+    <!-- Quick Controls -->
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <button id="toggleAudioBtn" class="pill-toggle active" onclick="toggleAudio()" title="Toggle Scan Sound Chimes">
+        <span id="audioIcon">🔔</span> <span id="audioText">Audio ON</span>
+      </button>
 
-      <!-- Quick Stats -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
+      <button id="torchBtn" class="pill-toggle" onclick="toggleTorch()" style="display: none;" title="Toggle Flashlight">
+        <span>⚡</span> Torch
+      </button>
 
-        <div style="background: rgba(34,197,94,0.08); border: 1.5px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #4ADE80; font-weight: 700; margin-bottom: 0.3rem;">Authorized Headcount</div>
-          <div style="font-size: 2.5rem; font-weight: 900; color: #4ADE80; line-height: 1; text-shadow: 0 0 20px rgba(74,222,128,0.4);">{{ reg.group_count }}</div>
-          <div style="font-size: 0.78rem; color: rgba(74,222,128,0.75); font-weight: 600; margin-top: 0.2rem;">
-            {{ 'Person Allowed' if reg.group_count == 1 else 'Persons Allowed Together' }}
+      {% if guard_active %}
+        <a href="{{ url_for('guard_logout') }}" class="pill-toggle" style="color: var(--amber);" title="Lock Gate Terminal">
+          🔒 Lock Terminal
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══════════════════ LIVE CAMERA SCANNER VIEWPORT ══════════════════ -->
+  <div class="scanner-panel" style="margin: 1.25rem 1.25rem 0.5rem; border-radius: var(--radius-md);">
+    <div class="scanner-toolbar">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.1rem;">📷</span>
+        <strong style="font-size: 0.9rem; color: var(--text-primary);">In-Browser Live Scanner</strong>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <select id="cameraSelect" class="form-control" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; width: auto; max-width: 200px; display: none;" onchange="changeCamera(this.value)">
+        </select>
+        <button id="cameraToggleBtn" class="btn btn-primary" onclick="toggleCameraScanner()" style="font-size: 0.82rem; padding: 0.45rem 1rem;">
+          📷 Start Camera Scanner
+        </button>
+      </div>
+    </div>
+
+    <!-- Viewfinder Box (shown when camera is running) -->
+    <div id="viewfinderWrapper" style="display: none; margin-top: 1rem;">
+      <div class="scanner-viewfinder">
+        <div id="reader"></div>
+        <div class="scanner-overlay-aim">
+          <div class="scanner-reticle" id="scannerReticle">
+            <div class="reticle-badge">ALIGN QR CODE HERE</div>
+            <div class="reticle-corner corner-tl"></div>
+            <div class="reticle-corner corner-tr"></div>
+            <div class="reticle-corner corner-bl"></div>
+            <div class="reticle-corner corner-br"></div>
+            <div class="reticle-center-cross"></div>
+            <div class="scanner-laser"></div>
           </div>
-        </div>
-
-        <div class="gate-theme-border theme-{{ reg.gate_id }}" style="background: rgba(255,255,255,0.04); border-width: 1.5px; border-style: solid; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-          <div class="gate-theme-color" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.3rem;">Assigned Exit</div>
-          <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">{{ reg.assigned_gate }}</div>
-          <div style="font-size: 0.78rem; color: var(--text-muted);">{{ reg.assigned_group }}</div>
-        </div>
-
-        <div style="background: rgba(0,255,198,0.05); border: 1.5px solid rgba(0,255,198,0.18); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-          <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); font-weight: 700; margin-bottom: 0.3rem;">Pass Code</div>
-          <div class="mono-font" style="font-size: 1rem; font-weight: 700; color: var(--teal); text-shadow: 0 0 12px var(--teal-glow);">{{ reg.reg_code }}</div>
-          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">{{ reg.created_at }}</div>
         </div>
       </div>
 
-      <!-- Check-In Action -->
-      <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;">
-        <div>
-          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem; margin-bottom: 0.25rem;">Gate Admission Status</div>
-          <div id="checkInStatusText" style="font-size: 0.84rem;">
-            {% if reg.checked_in == 1 %}
-              <span style="color: #4ADE80; font-weight: 700;">● Admitted at {{ reg.checked_in_at }}</span>
-            {% else %}
-              <span style="color: var(--amber); font-weight: 700;">⏳ Pending physical entry at gate</span>
-            {% endif %}
+      <div style="display: flex; justify-content: center; align-items: center; gap: 0.85rem; margin-top: 0.85rem; flex-wrap: wrap;">
+        <p id="scannerNotice" style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+          Hold pass steadily inside the target reticle box.
+        </p>
+        <label for="qrFileInput" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.3rem 0.75rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+          <span>📁</span> Scan Image / File
+        </label>
+        <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleQrFileUpload(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ DYNAMIC VERIFICATION RESULTS CONTAINER ══════════════════ -->
+  <div id="verificationResultContainer">
+
+    {% if is_valid and reg %}
+      <!-- ══════════════════ SERVER-SIDE RENDERED: VALID ACCESS ══════════════════ -->
+      <div class="verification-status status-valid">
+        <div class="status-icon">✅</div>
+        <h1 class="status-title">VERIFIED ACCESS GRANTED</h1>
+        <p class="status-desc">HMAC-SHA256 Signature Authenticated · Single Entry Clearance</p>
+      </div>
+
+      <div class="terminal-body">
+
+        <!-- Anti-Passback Warning (if already admitted) -->
+        {% if is_already_checked_in %}
+          <div class="anti-passback-banner">
+            <div class="anti-passback-icon">⚠️</div>
+            <div>
+              <div class="anti-passback-title">ANTI-PASSBACK ALERT: PASS ALREADY ADMITTED</div>
+              <p class="anti-passback-desc">
+                This pass was already used for entry. Check visitor physical identity to prevent counterfeit duplicate pass sharing.
+              </p>
+              <span class="anti-passback-time">Admitted at: {{ reg.checked_in_at }}</span>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Quick Stats -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
+          <div style="background: rgba(34,197,94,0.08); border: 1.5px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #4ADE80; font-weight: 700; margin-bottom: 0.3rem;">Authorized Headcount</div>
+            <div style="font-size: 2.4rem; font-weight: 900; color: #4ADE80; line-height: 1;">{{ reg.group_count }}</div>
+            <div style="font-size: 0.76rem; color: rgba(74,222,128,0.75); font-weight: 600; margin-top: 0.2rem;">
+              {{ 'Person Allowed' if reg.group_count == 1 else 'Persons Allowed Together' }}
+            </div>
+          </div>
+
+          <div class="gate-theme-border theme-{{ reg.gate_id }}" style="background: rgba(255,255,255,0.04); border-width: 1.5px; border-style: solid; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+            <div class="gate-theme-color" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.3rem;">Assigned Exit</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">{{ reg.assigned_gate }}</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);">{{ reg.assigned_group }}</div>
+          </div>
+
+          <div style="background: rgba(0,255,198,0.05); border: 1.5px solid rgba(0,255,198,0.18); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); font-weight: 700; margin-bottom: 0.3rem;">Pass Code</div>
+            <div class="mono-font" style="font-size: 1rem; font-weight: 700; color: var(--teal);">{{ reg.reg_code }}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">{{ reg.created_at }}</div>
           </div>
         </div>
-        <button
-          id="checkInBtn"
-          onclick="toggleCheckIn('{{ reg.reg_code }}')"
-          class="btn {{ 'btn-outline btn-admitted' if reg.checked_in == 1 else 'btn-primary' }}"
-        >
-          <span id="checkInBtnIcon">{{ '↩️ Undo Admission' if reg.checked_in == 1 else '🚪 Mark as Admitted' }}</span>
+
+        <!-- Admission Toggle Button -->
+        <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;">
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem; margin-bottom: 0.25rem;">Gate Admission Status</div>
+            <div id="checkInStatusText" style="font-size: 0.84rem;">
+              {% if reg.checked_in == 1 %}
+                <span style="color: #4ADE80; font-weight: 700;">● Admitted at {{ reg.checked_in_at }}</span>
+              {% else %}
+                <span style="color: var(--amber); font-weight: 700;">⏳ Pending physical entry at gate</span>
+              {% endif %}
+            </div>
+          </div>
+          <button
+            id="checkInBtn"
+            onclick="toggleCheckIn('{{ reg.reg_code }}')"
+            class="btn {{ 'btn-outline btn-admitted' if reg.checked_in == 1 else 'btn-primary' }}"
+          >
+            <span id="checkInBtnIcon">{{ '↩️ Undo Admission' if reg.checked_in == 1 else '🚪 Mark as Admitted' }}</span>
+          </button>
+        </div>
+
+        <!-- Visitor Details -->
+        <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
+          Primary Visitor & Group Details
+        </h3>
+
+        <table class="pass-details-table" style="margin-bottom: 1.5rem;">
+          <tbody>
+            <tr>
+              <th>Pass Code</th>
+              <td class="mono-font" style="color: var(--teal);">{{ reg.reg_code }}</td>
+            </tr>
+            <tr>
+              <th>Primary Visitor</th>
+              <td>{{ reg.primary_name }} (Age: {{ reg.age }})</td>
+            </tr>
+            <tr>
+              <th>Mobile</th>
+              <td class="mono-font">{{ reg.mobile }}</td>
+            </tr>
+            <tr>
+              <th>Address</th>
+              <td style="font-size: 0.84rem; color: var(--text-secondary);">{{ reg.address }}</td>
+            </tr>
+            <tr>
+              <th>Assigned Exit</th>
+              <td class="gate-theme-color theme-{{ reg.gate_id }}" style="font-weight: 700;">{{ reg.assigned_gate }} ({{ reg.assigned_group }})</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {% if members %}
+          <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.65rem; font-weight: 700;">Accompanying Members ({{ members|length }})</h4>
+          <div style="border: 1px solid var(--glass-border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1.5rem;">
+            <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+              <thead>
+                <tr style="background: rgba(255,255,255,0.04);">
+                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">#</th>
+                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Name</th>
+                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Age</th>
+                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Mobile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in members %}
+                  <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
+                    <td style="padding: 0.5rem 0.8rem; color: var(--text-muted);">{{ loop.index }}</td>
+                    <td style="padding: 0.5rem 0.8rem; font-weight: 600;">{{ m.member_name }}</td>
+                    <td style="padding: 0.5rem 0.8rem;">{{ m.member_age }}y</td>
+                    <td style="padding: 0.5rem 0.8rem;" class="mono-font">{{ m.member_mobile or '—' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        <div style="padding: 0.85rem 1rem; background: rgba(0,255,198,0.04); border: 1px solid rgba(0,255,198,0.12); border-radius: var(--radius-md); font-size: 0.76rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          🔐 <strong style="color: var(--teal);">HMAC Integrity:</strong>
+          <span class="mono-font" style="word-break: break-all; opacity: 0.65;">{{ reg.hmac_signature }}</span>
+        </div>
+
+        <button onclick="resetToStandby()" class="btn btn-navy btn-block">
+          🔄 Ready for Next Visitor
         </button>
       </div>
 
-      <!-- Visitor Details -->
-      <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
-        Primary Visitor & Group Details
-      </h3>
+    {% elif tamper_reason %}
+      <!-- ══════════════════ SERVER-SIDE RENDERED: TAMPERED / FRAUD ══════════════════ -->
+      <div class="verification-status status-fraud">
+        <div class="status-icon">🚨</div>
+        <h1 class="status-title">FRAUD WARNING: INVALID ENTRY PASS</h1>
+        <p class="status-desc">CRYPTOGRAPHIC SIGNATURE MISMATCH — Data tampering detected. Access denied.</p>
+      </div>
+      <div class="terminal-body">
+        <div style="background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.25); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+          <strong style="color: var(--red);">⚠️ Tamper Reason:</strong>
+          <p style="color: var(--text-secondary); margin-top: 0.35rem; font-size: 0.88rem;">{{ tamper_reason }}</p>
+        </div>
+        <ul style="font-size: 0.88rem; color: var(--text-secondary); padding-left: 1.5rem; line-height: 2; margin-bottom: 1.5rem;">
+          <li>Do NOT allow this visitor to enter.</li>
+          <li>Alert venue security supervisor immediately.</li>
+          <li>Direct them to scan the official entrance QR to register a legitimate pass.</li>
+        </ul>
+        <button onclick="resetToStandby()" class="btn btn-navy btn-block">
+          🔄 Scan Next Pass
+        </button>
+      </div>
 
-      <table class="pass-details-table" style="margin-bottom: 1.5rem;">
-        <tbody>
-          <tr>
-            <th>Pass Code</th>
-            <td class="mono-font" style="color: var(--teal);">{{ reg.reg_code }}</td>
-          </tr>
-          <tr>
-            <th>Primary Visitor</th>
-            <td>{{ reg.primary_name }} (Age: {{ reg.age }})</td>
-          </tr>
-          <tr>
-            <th>Mobile</th>
-            <td class="mono-font">{{ reg.mobile }}</td>
-          </tr>
-          <tr>
-            <th>Address</th>
-            <td style="font-size: 0.84rem; color: var(--text-secondary);">{{ reg.address }}</td>
-          </tr>
-          <tr>
-            <th>Assigned Exit</th>
-            <td class="gate-theme-color theme-{{ reg.gate_id }}" style="font-weight: 700;">{{ reg.assigned_gate }} ({{ reg.assigned_group }})</td>
-          </tr>
-        </tbody>
-      </table>
+    {% else %}
+      <!-- ══════════════════ STANDBY MODE ══════════════════ -->
+      <div id="standbyView" style="padding: 2.5rem 1.5rem; text-align: center;">
+        <div style="font-size: 3.2rem; margin-bottom: 0.75rem;">🛡️</div>
+        <h1 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary);">Terminal Ready</h1>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.4rem; max-width: 440px; margin-left: auto; margin-right: auto;">
+          Click <strong>"Start Camera Scanner"</strong> above to scan passes via camera, or enter a registration code below.
+        </p>
+      </div>
+    {% endif %}
 
-      {% if members %}
-        <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.65rem; font-weight: 700;">Accompanying Members ({{ members|length }})</h4>
+  </div>
+
+  <!-- ══════════════════ MANUAL LOOKUP BAR ══════════════════ -->
+  <div style="padding: 1.5rem 2rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.25);">
+    <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.75rem;">
+      Manual Passcode Lookup
+    </div>
+    <form onsubmit="handleManualLookup(); return false;" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <input
+        type="text"
+        id="manualRegCode"
+        class="form-control"
+        placeholder="Enter Pass Code (e.g. REG-A1B2C3)"
+        style="flex: 1; min-width: 220px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em;"
+        required
+      >
+      <button type="submit" class="btn btn-navy" style="white-space: nowrap;">
+        🔍 Look Up
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* ─────────────────────────── SOUND & HAPTIC SYNTHESIZER ─────────────────────────── */
+  let audioEnabled = true;
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        audioCtx = new AudioContext();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function toggleAudio() {
+    initAudio();
+    audioEnabled = !audioEnabled;
+    const btn = document.getElementById('toggleAudioBtn');
+    const icon = document.getElementById('audioIcon');
+    const text = document.getElementById('audioText');
+    if (audioEnabled) {
+      btn.className = 'pill-toggle active';
+      icon.textContent = '🔔';
+      text.textContent = 'Audio ON';
+      playChime();
+    } else {
+      btn.className = 'pill-toggle';
+      icon.textContent = '🔕';
+      text.textContent = 'Muted';
+    }
+  }
+
+  // Pleasant 2-tone rising chime (Valid Access)
+  function playChime() {
+    if (!audioEnabled) return;
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, now); // C5
+      gain1.gain.setValueAtTime(0.15, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.15);
+
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(783.99, now + 0.12); // G5
+      gain2.gain.setValueAtTime(0.18, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.35);
+    } catch (e) {
+      console.warn("Audio error:", e);
+    }
+  }
+
+  // Two warning pulses (Anti-Passback Alert)
+  function playWarningSound() {
+    if (!audioEnabled) return;
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      [0, 0.15].forEach(offset => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now + offset);
+        gain.gain.setValueAtTime(0.2, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.12);
+      });
+    } catch (e) {
+      console.warn("Audio error:", e);
+    }
+  }
+
+  // Low dramatic buzzer (Fraud / Invalid Signature)
+  function playFraudSound() {
+    if (!audioEnabled) return;
+    try {
+      initAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.linearRampToValueAtTime(110, now + 0.45);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } catch (e) {
+      console.warn("Audio error:", e);
+    }
+  }
+
+  function triggerHaptic(pattern = [100, 50, 100]) {
+    if ('vibrate' in navigator) {
+      try { navigator.vibrate(pattern); } catch (e) {}
+    }
+  }
+
+  /* ─────────────────────────── LIVE CAMERA SCANNER (html5-qrcode) ─────────────────────────── */
+  let html5QrCode = null;
+  let isCameraRunning = false;
+  let availableCameras = [];
+  let currentCameraId = null;
+  let lastScannedCode = null;
+  let scanCooldown = false;
+  let torchOn = false;
+
+  async function toggleCameraScanner() {
+    initAudio();
+    const btn = document.getElementById('cameraToggleBtn');
+    const viewfinder = document.getElementById('viewfinderWrapper');
+    const torchBtn = document.getElementById('torchBtn');
+
+    if (isCameraRunning) {
+      stopCameraScanner();
+      return;
+    }
+
+    try {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Starting Camera...';
+
+      // 1. CRITICAL: Make viewfinder visible FIRST so container has full clientWidth/clientHeight!
+      viewfinder.style.display = 'block';
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader", { verbose: false });
+      }
+
+      availableCameras = await Html5Qrcode.getCameras().catch(() => []);
+      const select = document.getElementById('cameraSelect');
+
+      if (availableCameras && availableCameras.length > 0) {
+        select.innerHTML = '';
+        availableCameras.forEach((cam, idx) => {
+          const opt = document.createElement('option');
+          opt.value = cam.id;
+          opt.textContent = cam.label || `Camera ${idx + 1}`;
+          select.appendChild(opt);
+        });
+
+        // Prefer rear/environment camera
+        const backCam = availableCameras.find(c =>
+          c.label.toLowerCase().includes('back') ||
+          c.label.toLowerCase().includes('rear') ||
+          c.label.toLowerCase().includes('environment')
+        );
+        currentCameraId = backCam ? backCam.id : availableCameras[0].id;
+        select.value = currentCameraId;
+        if (availableCameras.length > 1) {
+          select.style.display = 'inline-block';
+        }
+      }
+
+      const config = {
+        fps: 20,
+        aspectRatio: 1.0,
+        disableFlip: false
+      };
+
+      const cameraParam = currentCameraId ? currentCameraId : { facingMode: "environment" };
+
+      await html5QrCode.start(
+        cameraParam,
+        config,
+        onQrCodeScanned,
+        onQrScanError
+      );
+
+      isCameraRunning = true;
+      btn.disabled = false;
+      btn.className = 'btn btn-outline';
+      btn.innerHTML = '⏹️ Stop Camera';
+
+      // Check torch capability
+      try {
+        const capabilities = html5QrCode.getRunningTrackCapabilities();
+        if (capabilities && capabilities.torch) {
+          torchBtn.style.display = 'inline-flex';
+        }
+      } catch (e) {}
+
+    } catch (err) {
+      console.error("Camera start failed:", err);
+      btn.disabled = false;
+      btn.className = 'btn btn-primary';
+      btn.innerHTML = '📷 Start Camera Scanner';
+      alert("Camera access notice: Could not start video feed. " +
+            "Please ensure you allowed browser camera permissions, or use 'Scan Image / File' below: " +
+            (err.message || err));
+    }
+  }
+
+  async function stopCameraScanner() {
+    const btn = document.getElementById('cameraToggleBtn');
+    const viewfinder = document.getElementById('viewfinderWrapper');
+    const torchBtn = document.getElementById('torchBtn');
+
+    if (html5QrCode && isCameraRunning) {
+      try {
+        await html5QrCode.stop();
+      } catch (e) {}
+    }
+    isCameraRunning = false;
+    viewfinder.style.display = 'none';
+    torchBtn.style.display = 'none';
+    torchOn = false;
+    btn.disabled = false;
+    btn.className = 'btn btn-primary';
+    btn.innerHTML = '📷 Start Camera Scanner';
+  }
+
+  async function changeCamera(cameraId) {
+    if (!isCameraRunning) return;
+    try {
+      await html5QrCode.stop();
+      currentCameraId = cameraId;
+      const config = { fps: 20, aspectRatio: 1.0, disableFlip: false };
+      await html5QrCode.start(currentCameraId, config, onQrCodeScanned, onQrScanError);
+    } catch (e) {
+      console.error("Camera switch error:", e);
+    }
+  }
+
+  async function toggleTorch() {
+    if (!isCameraRunning || !html5QrCode) return;
+    try {
+      torchOn = !torchOn;
+      await html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+      document.getElementById('torchBtn').className = torchOn ? 'pill-toggle active' : 'pill-toggle';
+    } catch (e) {
+      console.warn("Torch not supported on this track:", e);
+    }
+  }
+
+  async function handleQrFileUpload(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    initAudio();
+    try {
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader", { verbose: false });
+      }
+      const decodedText = await html5QrCode.scanFile(file, true);
+      onQrCodeScanned(decodedText);
+    } catch (err) {
+      alert("No readable QR code found in selected photo. Please ensure QR code is clearly visible: " + (err.message || err));
+    } finally {
+      e.target.value = '';
+    }
+  }
+
+  function onQrScanError(err) {
+    // Silent regular frame drops
+  }
+
+  function extractRegCode(rawText) {
+    if (!rawText) return null;
+    rawText = rawText.trim();
+    // Look for /verify/REG-XXXXXX
+    const match = rawText.match(/verify\/([A-Za-z0-9\-_]+)/i);
+    if (match) return match[1].toUpperCase();
+
+    // Look for code query param ?code=REG-XXXXXX
+    const codeParam = rawText.match(/[?&]code=([A-Za-z0-9\-_]+)/i);
+    if (codeParam) return codeParam[1].toUpperCase();
+
+    // Look for REG-XXXXXX prefix
+    const directCode = rawText.match(/\b(REG-[A-Za-z0-9\-_]+)\b/i);
+    if (directCode) return directCode[1].toUpperCase();
+
+    // Default uppercase raw string
+    return rawText.toUpperCase();
+  }
+
+  function onQrCodeScanned(decodedText) {
+    if (scanCooldown) return;
+    const regCode = extractRegCode(decodedText);
+    if (!regCode) return;
+
+    if (regCode === lastScannedCode) {
+      return;
+    }
+
+    scanCooldown = true;
+    lastScannedCode = regCode;
+    setTimeout(() => { scanCooldown = false; }, 2000);
+
+    // Visual pulse on reticle
+    const reticle = document.getElementById('scannerReticle');
+    if (reticle) {
+      reticle.classList.add('detected');
+      setTimeout(() => reticle.classList.remove('detected'), 800);
+    }
+
+    verifyPassAjax(regCode);
+  }
+
+  /* ─────────────────────────── VERIFICATION AJAX & DYNAMIC RENDER ─────────────────────────── */
+  function handleManualLookup() {
+    initAudio();
+    const input = document.getElementById('manualRegCode');
+    const code = extractRegCode(input.value);
+    if (code) {
+      verifyPassAjax(code);
+    }
+  }
+
+  function verifyPassAjax(regCode) {
+    const container = document.getElementById('verificationResultContainer');
+    container.innerHTML = `
+      <div style="padding: 2.5rem 1.5rem; text-align: center;">
+        <span class="spinner" style="width: 36px; height: 36px; border-width: 3px;"></span>
+        <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+          Cryptographically Verifying <code style="color:var(--teal);">${regCode}</code>...
+        </div>
+      </div>
+    `;
+
+    fetch(`/api/verify/${encodeURIComponent(regCode)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success && data.tamper_reason) {
+          // Cryptographic Mismatch or Not Found
+          playFraudSound();
+          triggerHaptic([200, 100, 200]);
+          renderTamperedView(container, data.tamper_reason, regCode);
+        } else if (data.success && data.is_valid) {
+          if (data.is_already_checked_in) {
+            playWarningSound();
+            triggerHaptic([150, 75, 150]);
+          } else {
+            playChime();
+            triggerHaptic([80, 40, 80]);
+          }
+          renderValidView(container, data);
+        } else {
+          playFraudSound();
+          renderTamperedView(container, data.tamper_reason || "Verification failed.", regCode);
+        }
+      })
+      .catch(err => {
+        playFraudSound();
+        container.innerHTML = `
+          <div style="padding: 2rem; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+            <h3 style="color: var(--red);">Network Connection Error</h3>
+            <p style="color: var(--text-muted); margin-top: 0.4rem; font-size: 0.85rem;">Failed to connect to verification server.</p>
+            <button onclick="resetToStandby()" class="btn btn-navy" style="margin-top: 1rem;">Retry</button>
+          </div>
+        `;
+      });
+  }
+
+  function renderValidView(container, data) {
+    const reg = data.reg;
+    const members = data.members || [];
+    const isAdmitted = (reg.checked_in === 1);
+
+    let antiPassbackHtml = '';
+    if (data.is_already_checked_in) {
+      antiPassbackHtml = `
+        <div class="anti-passback-banner">
+          <div class="anti-passback-icon">⚠️</div>
+          <div>
+            <div class="anti-passback-title">ANTI-PASSBACK ALERT: PASS ALREADY ADMITTED</div>
+            <p class="anti-passback-desc">
+              This pass was already admitted at the gate. Confirm visitor identity to prevent pass-sharing fraud.
+            </p>
+            <span class="anti-passback-time">Admitted at: ${reg.checked_in_at || 'Earlier Today'}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    let membersRows = '';
+    if (members.length > 0) {
+      membersRows = `
+        <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.65rem; font-weight: 700;">
+          Accompanying Members (${members.length})
+        </h4>
         <div style="border: 1px solid var(--glass-border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1.5rem;">
           <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
             <thead>
@@ -103,86 +697,156 @@
               </tr>
             </thead>
             <tbody>
-              {% for m in members %}
+              ${members.map((m, i) => `
                 <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
-                  <td style="padding: 0.5rem 0.8rem; color: var(--text-muted);">{{ loop.index }}</td>
-                  <td style="padding: 0.5rem 0.8rem; font-weight: 600;">{{ m.member_name }}</td>
-                  <td style="padding: 0.5rem 0.8rem;">{{ m.member_age }}y</td>
-                  <td style="padding: 0.5rem 0.8rem;" class="mono-font">{{ m.member_mobile or '—' }}</td>
+                  <td style="padding: 0.5rem 0.8rem; color: var(--text-muted);">${i + 1}</td>
+                  <td style="padding: 0.5rem 0.8rem; font-weight: 600;">${escapeHtml(m.member_name)}</td>
+                  <td style="padding: 0.5rem 0.8rem;">${m.member_age}y</td>
+                  <td style="padding: 0.5rem 0.8rem;" class="mono-font">${escapeHtml(m.member_mobile) || '—'}</td>
                 </tr>
-              {% endfor %}
+              `).join('')}
             </tbody>
           </table>
         </div>
-      {% endif %}
+      `;
+    }
 
-      <!-- HMAC note -->
-      <div style="padding: 0.85rem 1rem; background: rgba(0,255,198,0.04); border: 1px solid rgba(0,255,198,0.12); border-radius: var(--radius-md); font-size: 0.76rem; color: var(--text-muted);">
-        🔐 <strong style="color: var(--teal);">HMAC:</strong>
-        <span class="mono-font" style="word-break: break-all; opacity: 0.65;">{{ reg.hmac_signature }}</span>
+    container.innerHTML = `
+      <div class="verification-status status-valid">
+        <div class="status-icon">✅</div>
+        <h1 class="status-title">VERIFIED ACCESS GRANTED</h1>
+        <p class="status-desc">HMAC-SHA256 Signature Authenticated · Single Entry Clearance</p>
       </div>
-    </div>
 
-  {% elif tamper_reason %}
-    <!-- ══════════════════ TAMPERED ══════════════════ -->
-    <div class="verification-status status-fraud">
-      <div class="status-icon">🚨</div>
-      <h1 class="status-title">FRAUD WARNING: INVALID ENTRY PASS</h1>
-      <p class="status-desc">CRYPTOGRAPHIC SIGNATURE MISMATCH — Data tampering detected. Access denied.</p>
-    </div>
-    <div class="terminal-body">
-      <div style="background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.25); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
-        <strong style="color: var(--red);">⚠️ Tamper Reason:</strong>
-        <p style="color: var(--text-secondary); margin-top: 0.35rem; font-size: 0.88rem;">{{ tamper_reason }}</p>
+      <div class="terminal-body">
+        ${antiPassbackHtml}
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
+          <div style="background: rgba(34,197,94,0.08); border: 1.5px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #4ADE80; font-weight: 700; margin-bottom: 0.3rem;">Authorized Headcount</div>
+            <div style="font-size: 2.4rem; font-weight: 900; color: #4ADE80; line-height: 1;">${reg.group_count}</div>
+            <div style="font-size: 0.76rem; color: rgba(74,222,128,0.75); font-weight: 600; margin-top: 0.2rem;">
+              ${reg.group_count === 1 ? 'Person Allowed' : 'Persons Allowed Together'}
+            </div>
+          </div>
+
+          <div class="gate-theme-border theme-${reg.gate_id}" style="background: rgba(255,255,255,0.04); border-width: 1.5px; border-style: solid; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+            <div class="gate-theme-color" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.3rem;">Assigned Exit</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">${escapeHtml(reg.assigned_gate)}</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(reg.assigned_group)}</div>
+          </div>
+
+          <div style="background: rgba(0,255,198,0.05); border: 1.5px solid rgba(0,255,198,0.18); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); font-weight: 700; margin-bottom: 0.3rem;">Pass Code</div>
+            <div class="mono-font" style="font-size: 1rem; font-weight: 700; color: var(--teal);">${escapeHtml(reg.reg_code)}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">${escapeHtml(reg.created_at)}</div>
+          </div>
+        </div>
+
+        <!-- Admission Toggle Button -->
+        <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;">
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem; margin-bottom: 0.25rem;">Gate Admission Status</div>
+            <div id="checkInStatusText" style="font-size: 0.84rem;">
+              ${isAdmitted
+                ? `<span style="color: #4ADE80; font-weight: 700;">● Admitted at ${reg.checked_in_at}</span>`
+                : `<span style="color: var(--amber); font-weight: 700;">⏳ Pending physical entry at gate</span>`
+              }
+            </div>
+          </div>
+          <button
+            id="checkInBtn"
+            onclick="toggleCheckIn('${reg.reg_code}')"
+            class="btn ${isAdmitted ? 'btn-outline btn-admitted' : 'btn-primary'}"
+          >
+            <span id="checkInBtnIcon">${isAdmitted ? '↩️ Undo Admission' : '🚪 Mark as Admitted'}</span>
+          </button>
+        </div>
+
+        <!-- Visitor Details -->
+        <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
+          Primary Visitor & Group Details
+        </h3>
+
+        <table class="pass-details-table" style="margin-bottom: 1.5rem;">
+          <tbody>
+            <tr>
+              <th>Pass Code</th>
+              <td class="mono-font" style="color: var(--teal);">${escapeHtml(reg.reg_code)}</td>
+            </tr>
+            <tr>
+              <th>Primary Visitor</th>
+              <td>${escapeHtml(reg.primary_name)} (Age: ${reg.age})</td>
+            </tr>
+            <tr>
+              <th>Mobile</th>
+              <td class="mono-font">${escapeHtml(reg.mobile)}</td>
+            </tr>
+            <tr>
+              <th>Address</th>
+              <td style="font-size: 0.84rem; color: var(--text-secondary);">${escapeHtml(reg.address)}</td>
+            </tr>
+            <tr>
+              <th>Assigned Exit</th>
+              <td class="gate-theme-color theme-${reg.gate_id}" style="font-weight: 700;">${escapeHtml(reg.assigned_gate)} (${escapeHtml(reg.assigned_group)})</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${membersRows}
+
+        <button onclick="resetToStandby()" class="btn btn-navy btn-block" style="box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+          🔄 Ready for Next Visitor
+        </button>
       </div>
-      <ul style="font-size: 0.88rem; color: var(--text-secondary); padding-left: 1.5rem; line-height: 2;">
-        <li>Do NOT allow this visitor to enter.</li>
-        <li>Alert security supervisor immediately.</li>
-        <li>Direct them to scan the official entrance QR to re-register a valid pass.</li>
-      </ul>
-    </div>
+    `;
+  }
 
-  {% else %}
-    <!-- ══════════════════ STANDBY ══════════════════ -->
-    <div style="padding: 2.5rem 1.5rem; text-align: center; border-bottom: 1px solid var(--glass-border);">
-      <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔍</div>
-      <h1 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary);">Security Guard Terminal</h1>
-      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.4rem;">Scan a visitor QR code or enter a pass code manually to verify access.</p>
-    </div>
-    <div class="terminal-body">
-      <div style="padding: 0.85rem 1rem; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius-md); font-size: 0.84rem; color: #93C5FD; margin-bottom: 1.75rem;">
-        ℹ️ Scan the visitor's digital pass QR code using a barcode scanner, or type the code below.
+  function renderTamperedView(container, reason, regCode) {
+    container.innerHTML = `
+      <div class="verification-status status-fraud">
+        <div class="status-icon">🚨</div>
+        <h1 class="status-title">FRAUD WARNING: INVALID ENTRY PASS</h1>
+        <p class="status-desc">CRYPTOGRAPHIC SIGNATURE MISMATCH — Data tampering detected. Access denied.</p>
       </div>
-    </div>
-  {% endif %}
+      <div class="terminal-body">
+        <div style="background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.25); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+          <strong style="color: var(--red);">⚠️ Tamper Reason:</strong>
+          <p style="color: var(--text-secondary); margin-top: 0.35rem; font-size: 0.88rem;">${escapeHtml(reason)}</p>
+        </div>
+        <ul style="font-size: 0.88rem; color: var(--text-secondary); padding-left: 1.5rem; line-height: 2; margin-bottom: 1.5rem;">
+          <li>Do NOT allow this visitor to enter.</li>
+          <li>Alert security supervisor immediately.</li>
+          <li>Direct them to scan the official entrance QR to register a legitimate pass.</li>
+        </ul>
+        <button onclick="resetToStandby()" class="btn btn-navy btn-block">
+          🔄 Scan Next Pass
+        </button>
+      </div>
+    `;
+  }
 
-  <!-- Manual Lookup -->
-  <div style="padding: 1.5rem 2rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.15);">
-    <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.75rem;">Manual Code Lookup</div>
-    <form onsubmit="manualLookup(); return false;" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-      <input type="text" id="manualRegCode" class="form-control"
-        placeholder="Enter code (e.g. REG-A1B2C3)"
-        style="flex: 1; min-width: 200px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;"
-        required>
-      <button type="submit" class="btn btn-navy" style="white-space: nowrap;">
-        🔍 Verify
-      </button>
-    </form>
-  </div>
-
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  function manualLookup() {
-    const code = document.getElementById('manualRegCode').value.trim();
-    if (code) {
-      window.location.href = `/verify/${encodeURIComponent(code)}`;
+  function resetToStandby() {
+    lastScannedCode = null;
+    const container = document.getElementById('verificationResultContainer');
+    container.innerHTML = `
+      <div id="standbyView" style="padding: 2.5rem 1.5rem; text-align: center;">
+        <div style="font-size: 3.2rem; margin-bottom: 0.75rem;">🛡️</div>
+        <h1 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary);">Terminal Ready</h1>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.4rem; max-width: 440px; margin-left: auto; margin-right: auto;">
+          Click <strong>"Start Camera Scanner"</strong> above to scan passes via camera, or enter a registration code below.
+        </p>
+      </div>
+    `;
+    const input = document.getElementById('manualRegCode');
+    if (input) {
+      input.value = '';
+      input.focus();
     }
   }
 
   function toggleCheckIn(regCode) {
+    initAudio();
     const btn        = document.getElementById('checkInBtn');
     const statusText = document.getElementById('checkInStatusText');
     const iconSpan   = document.getElementById('checkInBtnIcon');
@@ -190,7 +854,7 @@
     btn.disabled = true;
     iconSpan.innerHTML = '<span class="spinner"></span>';
 
-    fetch(`/api/check-in/${regCode}`, {
+    fetch(`/api/check-in/${encodeURIComponent(regCode)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     })
@@ -199,6 +863,7 @@
       btn.disabled = false;
       if (data.success) {
         if (data.checked_in === 1) {
+          playChime();
           statusText.innerHTML = `<span style="color:#4ADE80;font-weight:700;">● Admitted at ${data.checked_in_at}</span>`;
           iconSpan.textContent = '↩️ Undo Admission';
           btn.className = 'btn btn-outline btn-admitted';
@@ -217,6 +882,16 @@
       iconSpan.textContent = btn.classList.contains('btn-admitted') ? '↩️ Undo Admission' : '🚪 Mark as Admitted';
       alert('Network error. Please try again.');
     });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 </script>
 {% endblock %}

@@ -59,6 +59,8 @@ if not _hmac_key:
 HMAC_SECRET_KEY = _hmac_key.encode("utf-8")
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+GUARD_PIN = os.environ.get("GUARD_PIN", "guard123")
+GUARD_PIN_REQUIRED = os.environ.get("GUARD_PIN_REQUIRED", "false").lower() in ("true", "1")
 
 # Database Configuration
 DB_TYPE = os.environ.get("DB_TYPE", "sqlite").lower()
@@ -258,6 +260,10 @@ def ensure_db_ready():
         init_db()
         _db_ready = True
 
+@app.context_processor
+def inject_server_mode():
+    return {"is_flask_backend": True}
+
 # ----------------- SECURITY & HELPER FUNCTIONS -----------------
 
 def generate_hmac_signature(reg_code: str, name: str, mobile: str, gate: str) -> str:
@@ -327,9 +333,19 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def guard_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if GUARD_PIN_REQUIRED and not (session.get("guard_logged_in") or session.get("is_admin")):
+            flash("Guard PIN authentication required to operate terminal.", "warning")
+            return redirect(url_for("guard_login", next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # ----------------- APPLICATION ROUTES -----------------
 
 @app.route("/")
+@app.route("/index.html")
 def index():
     """Visitor registration form & language selection page."""
     lang = request.args.get("lang", "en")
@@ -462,11 +478,67 @@ def view_pass(reg_code):
         gate_info=gate_info
     )
 
+@app.route("/pass.html")
+def pass_html_redirect():
+    code = request.args.get("code")
+    if code:
+        return redirect(url_for("view_pass", reg_code=code))
+    return redirect(url_for("index"))
+
+# ----------------- SECURITY GUARD TERMINAL & VERIFICATION -----------------
+
+@app.route("/guard/login", methods=["GET", "POST"])
+def guard_login():
+    """Guard PIN authentication terminal."""
+    if session.get("guard_logged_in") or session.get("is_admin"):
+        return redirect(url_for("verify_terminal"))
+        
+    next_url = request.args.get("next") or url_for("verify_terminal")
+    if request.method == "POST":
+        pin = request.form.get("pin", "").strip()
+        if pin == GUARD_PIN:
+            session["guard_logged_in"] = True
+            session.permanent = True
+            flash("Guard terminal unlocked. Scanner active.", "success")
+            return redirect(next_url)
+        else:
+            flash("Invalid Guard Access PIN. Entry denied.", "error")
+            
+    return render_template("guard_login.html")
+
+@app.route("/guard/logout")
+def guard_logout():
+    """Lock Guard Terminal."""
+    session.pop("guard_logged_in", None)
+    flash("Guard terminal locked successfully.", "info")
+    return redirect(url_for("verify_terminal"))
+
+@app.route("/verify", strict_slashes=False)
+@app.route("/verify.html")
+@app.route("/guard", strict_slashes=False)
+@guard_required
+def verify_terminal():
+    """
+    Standby Security Guard Scanner & Verification Terminal.
+    Loads camera scanner ready to scan passes in real time.
+    """
+    return render_template(
+        "verify.html",
+        is_valid=None,
+        tamper_reason=None,
+        reg=None,
+        members=[],
+        gate_info=None,
+        is_already_checked_in=False,
+        guard_active=bool(session.get("guard_logged_in") or session.get("is_admin"))
+    )
+
 @app.route("/verify/<reg_code>")
+@guard_required
 def verify_pass(reg_code):
     """
     Security Guard Verification Terminal:
-    Performs cryptographic HMAC recalculation and checks pass validity.
+    Performs cryptographic HMAC recalculation, anti-passback check, and displays full pass details.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -481,7 +553,10 @@ def verify_pass(reg_code):
             is_valid=False,
             tamper_reason="REGISTRATION CODE NOT FOUND IN DATABASE. POTENTIAL COUNTERFEIT PASS.",
             reg=None,
-            members=[]
+            members=[],
+            gate_info=None,
+            is_already_checked_in=False,
+            guard_active=bool(session.get("guard_logged_in") or session.get("is_admin"))
         )
         
     cursor.execute("SELECT * FROM group_members WHERE reg_id = ?", (reg["id"],))
@@ -498,6 +573,7 @@ def verify_pass(reg_code):
     )
     
     gate_info = next((g for g in GATES_CONFIG if g["gate_id"] == reg["gate_id"]), GATES_CONFIG[0])
+    is_already_checked_in = (reg["checked_in"] == 1)
     
     if not is_hmac_valid:
         return render_template(
@@ -506,7 +582,9 @@ def verify_pass(reg_code):
             tamper_reason="CRYPTOGRAPHIC SIGNATURE MISMATCH! DATA TAMPERING DETECTED.",
             reg=reg,
             members=members,
-            gate_info=gate_info
+            gate_info=gate_info,
+            is_already_checked_in=is_already_checked_in,
+            guard_active=bool(session.get("guard_logged_in") or session.get("is_admin"))
         )
         
     return render_template(
@@ -515,8 +593,94 @@ def verify_pass(reg_code):
         tamper_reason=None,
         reg=reg,
         members=members,
-        gate_info=gate_info
+        gate_info=gate_info,
+        is_already_checked_in=is_already_checked_in,
+        guard_active=bool(session.get("guard_logged_in") or session.get("is_admin"))
     )
+
+@app.route("/api/verify/<reg_code>", methods=["GET"])
+def api_verify_pass(reg_code):
+    """
+    Real-time JSON Verification API:
+    Allows the in-browser camera scanner to verify passes instantly without full page reloads.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM registrations WHERE reg_code = ?", (reg_code,))
+    reg = cursor.fetchone()
+    
+    if not reg:
+        conn.close()
+        return jsonify({
+            "success": False,
+            "is_valid": False,
+            "tamper_reason": "REGISTRATION CODE NOT FOUND IN DATABASE. POTENTIAL COUNTERFEIT PASS."
+        }), 404
+        
+    cursor.execute("SELECT * FROM group_members WHERE reg_id = ?", (reg["id"],))
+    members_raw = cursor.fetchall()
+    conn.close()
+    
+    members = [
+        {
+            "member_name": m["member_name"],
+            "member_age": m["member_age"],
+            "member_mobile": m["member_mobile"] or ""
+        }
+        for m in members_raw
+    ]
+    
+    is_hmac_valid = verify_hmac_signature(
+        reg["reg_code"],
+        reg["primary_name"],
+        reg["mobile"],
+        reg["assigned_gate"],
+        reg["hmac_signature"]
+    )
+    
+    gate_info = next((g for g in GATES_CONFIG if g["gate_id"] == reg["gate_id"]), GATES_CONFIG[0])
+    is_already_checked_in = (reg["checked_in"] == 1)
+    
+    reg_dict = {
+        "id": reg["id"],
+        "reg_code": reg["reg_code"],
+        "primary_name": reg["primary_name"],
+        "mobile": reg["mobile"],
+        "age": reg["age"],
+        "address": reg["address"],
+        "group_count": reg["group_count"],
+        "assigned_group": reg["assigned_group"],
+        "assigned_gate": reg["assigned_gate"],
+        "gate_id": reg["gate_id"],
+        "checked_in": reg["checked_in"],
+        "checked_in_at": reg["checked_in_at"] or "",
+        "created_at": reg["created_at"],
+        "hmac_signature": reg["hmac_signature"]
+    }
+    
+    if not is_hmac_valid:
+        return jsonify({
+            "success": True,
+            "is_valid": False,
+            "is_hmac_valid": False,
+            "tamper_reason": "CRYPTOGRAPHIC SIGNATURE MISMATCH! DATA TAMPERING DETECTED.",
+            "reg": reg_dict,
+            "members": members,
+            "gate_info": gate_info,
+            "is_already_checked_in": is_already_checked_in
+        })
+        
+    return jsonify({
+        "success": True,
+        "is_valid": True,
+        "is_hmac_valid": True,
+        "tamper_reason": None,
+        "reg": reg_dict,
+        "members": members,
+        "gate_info": gate_info,
+        "is_already_checked_in": is_already_checked_in
+    })
 
 @app.route("/api/check-in/<reg_code>", methods=["POST"])
 def api_check_in(reg_code):
@@ -574,7 +738,8 @@ def admin_logout():
     flash("Successfully logged out from Admin Panel.", "info")
     return redirect(url_for("admin_login"))
 
-@app.route("/admin")
+@app.route("/admin", strict_slashes=False)
+@app.route("/admin.html")
 @login_required
 def admin_dashboard():
     """Private Admin Dashboard with real-time crowd analytics and registration table."""
