@@ -16,6 +16,10 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         from app import set_guard_password
         set_guard_password('guard123')
 
+    def tearDown(self):
+        from app import set_guard_password
+        set_guard_password('1234')
+
     def test_01_index_page(self):
         """Test registration page loads in both English and Hindi."""
         res_en = self.client.get('/?lang=en')

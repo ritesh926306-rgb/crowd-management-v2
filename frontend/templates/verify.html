@@ -62,8 +62,15 @@
         <button id="cameraToggleBtn" class="btn btn-primary" onclick="toggleCameraScanner()" style="font-size: 0.82rem; padding: 0.45rem 1rem;">
           📷 Start Camera Scanner
         </button>
+        <label for="qrFileInput" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;" title="Upload QR screenshot or pass photo">
+          <span>📁</span> Upload QR Image
+        </label>
+        <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleQrFileUpload(event)">
       </div>
     </div>
+
+    <!-- Hidden dedicated file QR reader to prevent conflict with camera reader -->
+    <div id="fileReaderWrapper" style="display: none;"></div>
 
     <!-- Viewfinder Box (shown when camera is running) -->
     <div id="viewfinderWrapper" style="display: none; margin-top: 1rem;">
@@ -86,10 +93,6 @@
         <p id="scannerNotice" style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
           Hold pass steadily inside the target reticle box.
         </p>
-        <label for="qrFileInput" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.3rem 0.75rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
-          <span>📁</span> Scan Image / File
-        </label>
-        <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleQrFileUpload(event)">
       </div>
     </div>
   </div>
@@ -549,16 +552,45 @@
     }
   }
 
+  let fileScannerInstance = null;
+
   async function handleQrFileUpload(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     initAudio();
-    try {
-      if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader", { verbose: false });
+
+    // If live camera is actively scanning, cleanly stop it first to prevent ongoing camera scan conflict
+    if (isCameraRunning && html5QrCode) {
+      try {
+        await stopCameraScanner();
+      } catch (cameraErr) {
+        console.warn("Failed to stop camera before file scan:", cameraErr);
       }
-      const decodedText = await html5QrCode.scanFile(file, true);
-      onQrCodeScanned(decodedText);
+    }
+
+    try {
+      if (!fileScannerInstance) {
+        fileScannerInstance = new Html5Qrcode("fileReaderWrapper", { verbose: false });
+      }
+
+      let decodedText = null;
+      try {
+        // Try with image enhancement
+        decodedText = await fileScannerInstance.scanFile(file, true);
+      } catch (err1) {
+        // Fallback without enhancement (for inverted / border contrast / high-res)
+        try {
+          decodedText = await fileScannerInstance.scanFile(file, false);
+        } catch (err2) {
+          throw err1;
+        }
+      }
+
+      if (decodedText) {
+        onQrCodeScanned(decodedText);
+      } else {
+        throw new Error("No QR code detected in the selected image.");
+      }
     } catch (err) {
       alert("No readable QR code found in selected photo. Please ensure QR code is clearly visible: " + (err.message || err));
     } finally {
@@ -573,6 +605,7 @@
   function extractRegCode(rawText) {
     if (!rawText) return null;
     rawText = rawText.trim();
+
     // Look for /verify/REG-XXXXXX
     const match = rawText.match(/verify\/([A-Za-z0-9\-_]+)/i);
     if (match) return match[1].toUpperCase();
@@ -581,7 +614,11 @@
     const codeParam = rawText.match(/[?&]code=([A-Za-z0-9\-_]+)/i);
     if (codeParam) return codeParam[1].toUpperCase();
 
-    // Look for REG-XXXXXX prefix
+    // Look for custom prefix like VENUEGUARD:REG-XXXXXX or VG:REG-XXXXXX
+    const prefixMatch = rawText.match(/(?:VENUEGUARD|VG|PASS)[:\-_ ]+([A-Za-z0-9\-_]+)/i);
+    if (prefixMatch) return prefixMatch[1].toUpperCase();
+
+    // Look for REG-XXXXXX pattern
     const directCode = rawText.match(/\b(REG-[A-Za-z0-9\-_]+)\b/i);
     if (directCode) return directCode[1].toUpperCase();
 

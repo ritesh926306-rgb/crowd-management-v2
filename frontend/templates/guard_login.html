@@ -19,6 +19,12 @@
       </p>
     </div>
 
+    {% if request.args.get('next') %}
+    <div style="margin-bottom: 1.25rem; padding: 0.75rem 1rem; background: rgba(0,255,198,0.08); border: 1px solid rgba(0,255,198,0.25); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--teal); text-align: center;">
+      🔒 <strong>Official Gate Security Only:</strong> This entry pass can ONLY be verified by authorized venue security on this Guard Terminal. Third-party scanner apps and unauthorized devices are rejected.
+    </div>
+    {% endif %}
+
     <!-- PIN Form -->
     <form action="{{ url_for('guard_login', next=request.args.get('next')) }}" method="POST" id="guardLoginForm">
       <div class="form-group" style="margin-bottom: 1.5rem;">
