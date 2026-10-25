@@ -13,6 +13,8 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         app.config['WTF_CSRF_ENABLED'] = False
         self.client = app.test_client()
         init_db()
+        from app import set_guard_password
+        set_guard_password('guard123')
 
     def test_01_index_page(self):
         """Test registration page loads in both English and Hindi."""
@@ -59,7 +61,8 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         redirect_url = res.headers['Location']
         reg_code = redirect_url.split('/')[-1]
 
-        # 2. Test valid verification terminal
+        # 2. Test valid verification terminal (requires guard authentication)
+        self.client.post('/guard/login', data={'pin': 'guard123'})
         verify_res = self.client.get(f'/verify/{reg_code}')
         self.assertEqual(verify_res.status_code, 200)
         self.assertIn(b'VERIFIED ACCESS GRANTED', verify_res.data)
@@ -97,17 +100,30 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         self.assertIn(b'Registration Code', csv_res.data)
 
     def test_05_guard_verify_terminal(self):
-        """Test guard terminal standby page and guard PIN login."""
-        # 1. Test standby terminal loads
-        res = self.client.get('/verify')
-        self.assertEqual(res.status_code, 200)
-        self.assertIn(b'Guard Gate Terminal', res.data)
-        self.assertIn(b'Start Camera Scanner', res.data)
+        """Test guard terminal password protection and auto-logout."""
+        # 1. Unauthenticated request to /verify redirects to /guard/login
+        res = self.client.get('/verify', follow_redirects=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/guard/login', res.headers['Location'])
 
-        # 2. Test guard login with PIN
+        # 2. Invalid password rejected
+        bad_res = self.client.post('/guard/login', data={'pin': 'wrongpass'}, follow_redirects=True)
+        self.assertIn(b'Invalid Guard Access Password', bad_res.data)
+
+        # 3. Test guard login with PIN
         login_res = self.client.post('/guard/login', data={'pin': 'guard123'}, follow_redirects=True)
         self.assertEqual(login_res.status_code, 200)
-        self.assertIn(b'Guard terminal unlocked', login_res.data)
+        self.assertIn(b'Guard Gate Terminal', login_res.data)
+        self.assertIn(b'Start Camera Scanner', login_res.data)
+
+        # 4. Test guard logout / lock (POST or GET)
+        logout_res = self.client.post('/guard/logout', follow_redirects=False)
+        self.assertEqual(logout_res.status_code, 200)
+
+        # 5. Accessing /verify after logout redirects back to /guard/login
+        locked_res = self.client.get('/verify', follow_redirects=False)
+        self.assertEqual(locked_res.status_code, 302)
+        self.assertIn('/guard/login', locked_res.headers['Location'])
 
     def test_06_api_verify_and_anti_passback(self):
         """Test real-time JSON verification API and anti-passback duplicate detection."""
@@ -122,6 +138,9 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         res = self.client.post('/register', data=data, follow_redirects=False)
         reg_code = res.headers['Location'].split('/')[-1]
 
+        # Authenticate guard session
+        self.client.post('/guard/login', data={'pin': 'guard123'})
+
         # 2. Test API verify before admission
         api_res = self.client.get(f'/api/verify/{reg_code}')
         self.assertEqual(api_res.status_code, 200)
@@ -130,7 +149,7 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         self.assertFalse(json_data['is_already_checked_in'])
         self.assertEqual(json_data['reg']['primary_name'], 'Kavita Roy')
 
-        # 3. Check in visitor
+        # 3. Check in visitor (marks entry in visitor registry)
         checkin_res = self.client.post(f'/api/check-in/{reg_code}')
         self.assertEqual(checkin_res.status_code, 200)
         self.assertEqual(checkin_res.get_json()['checked_in'], 1)
@@ -141,6 +160,28 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         json_data2 = api_res2.get_json()
         self.assertTrue(json_data2['is_valid'])
         self.assertTrue(json_data2['is_already_checked_in'])
+
+    def test_07_admin_change_guard_password(self):
+        """Test admin can view, change guard password anytime, and guard must use new password."""
+        # 1. Login as admin
+        self.client.post('/admin/login', data={'password': 'admin123'})
+        
+        # 2. Update guard password
+        update_res = self.client.post('/admin/update-guard-password', data={'guard_password': 'securegate888'}, follow_redirects=True)
+        self.assertEqual(update_res.status_code, 200)
+        self.assertIn(b'securegate888', update_res.data)
+        
+        # 3. Admin logs out
+        self.client.get('/admin/logout')
+        
+        # 4. Old guard password fails
+        old_login = self.client.post('/guard/login', data={'pin': 'guard123'}, follow_redirects=True)
+        self.assertIn(b'Invalid Guard Access Password', old_login.data)
+        
+        # 5. New guard password succeeds
+        new_login = self.client.post('/guard/login', data={'pin': 'securegate888'}, follow_redirects=True)
+        self.assertEqual(new_login.status_code, 200)
+        self.assertIn(b'Guard terminal unlocked', new_login.data)
 
 if __name__ == '__main__':
     unittest.main()

@@ -58,6 +58,80 @@
     </div>
   </div>
 
+  <!-- ── GUARD PORTAL SECURITY & PASSWORD MANAGEMENT ── -->
+  <div class="card" style="margin-bottom: 1.75rem; border: 1px solid rgba(0,255,198,0.22); background: linear-gradient(135deg, rgba(17,29,43,0.7) 0%, rgba(10,16,26,0.9) 100%); box-shadow: var(--shadow-card), 0 0 35px rgba(0,255,198,0.04);">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span style="font-size: 1.35rem;">🛡️</span>
+        <div>
+          <h3 class="card-title" style="font-size: 1.12rem; color: #fff;">Guard Portal Access & Password Management</h3>
+          <p class="card-desc">Admin control over security guard checkpoint credentials. Guards must authenticate to scan and admit visitors.</p>
+        </div>
+      </div>
+      <span class="badge badge-teal" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">
+        🔒 Password Protection Active
+      </span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem; padding-top: 1rem;">
+      <!-- Active Password Display -->
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.5rem;">
+          Current Active Guard Password
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <input
+            type="password"
+            id="currentGuardPasswordDisplay"
+            value="{{ guard_password }}"
+            readonly
+            class="form-control mono-font"
+            style="font-size: 1.15rem; font-weight: 700; color: var(--teal); background: rgba(0,255,198,0.06); border-color: rgba(0,255,198,0.25); letter-spacing: 0.15em; max-width: 220px;"
+          >
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="toggleAdminGuardPass()"
+            id="togglePassBtn"
+            style="padding: 0.45rem 0.85rem; font-size: 0.82rem; white-space: nowrap;"
+            title="Reveal / Hide Password"
+          >
+            👁️ Reveal
+          </button>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.6rem;">
+          Provide this password to security personnel stationed at entry gates.
+        </div>
+      </div>
+
+      <!-- Update Password Form -->
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); font-weight: 700; margin-bottom: 0.5rem;">
+          Change Guard Password Anytime
+        </div>
+        <form action="{{ url_for('update_guard_password') }}" method="POST" style="margin: 0;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <input
+              type="text"
+              name="guard_password"
+              class="form-control mono-font"
+              placeholder="New password (e.g. guard456)"
+              required
+              minlength="4"
+              style="flex: 1; min-width: 170px; font-size: 0.95rem; font-weight: 600;"
+            >
+            <button type="submit" class="btn btn-primary" style="white-space: nowrap; font-size: 0.85rem; padding: 0.45rem 1rem;">
+              💾 Save New Password
+            </button>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.6rem;">
+            Instant update: Guard portal requires this new password immediately upon update.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- ── GATE CAPACITY ── -->
   <div class="card" style="margin-bottom: 1.75rem;">
     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
@@ -199,6 +273,19 @@
 
 {% block scripts %}
 <script>
+  function toggleAdminGuardPass() {
+    const input = document.getElementById('currentGuardPasswordDisplay');
+    const btn   = document.getElementById('togglePassBtn');
+    if (!input || !btn) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.innerHTML = '🙈 Hide';
+    } else {
+      input.type = 'password';
+      btn.innerHTML = '👁️ Reveal';
+    }
+  }
+
   function filterTable() {
     const filter = document.getElementById('tableSearchInput').value.toLowerCase();
     const rows   = document.querySelectorAll('#registrationsTable tbody tr');

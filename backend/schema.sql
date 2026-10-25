@@ -55,7 +55,17 @@ CREATE TABLE IF NOT EXISTS `group_members` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------
--- 3. Initial Gate Capacity Views / Summary
+-- 3. Table: system_settings
+-- Stores administrative settings like dynamic Guard Access Password
+-- ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `system_settings` (
+    `setting_key` VARCHAR(100) NOT NULL PRIMARY KEY,
+    `setting_value` TEXT NOT NULL,
+    `updated_at` DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------
+-- 4. Initial Gate Capacity Views / Summary
 -- ---------------------------------------------------------------
 CREATE OR REPLACE VIEW `v_gate_congestion` AS
 SELECT 

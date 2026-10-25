@@ -60,7 +60,7 @@ HMAC_SECRET_KEY = _hmac_key.encode("utf-8")
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 GUARD_PIN = os.environ.get("GUARD_PIN", "guard123")
-GUARD_PIN_REQUIRED = os.environ.get("GUARD_PIN_REQUIRED", "false").lower() in ("true", "1")
+GUARD_PIN_REQUIRED = os.environ.get("GUARD_PIN_REQUIRED", "true").lower() in ("true", "1")
 
 # Database Configuration
 DB_TYPE = os.environ.get("DB_TYPE", "sqlite").lower()
@@ -215,6 +215,13 @@ def init_db():
             FOREIGN KEY (reg_id) REFERENCES registrations (id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS system_settings (
+            setting_key VARCHAR(100) PRIMARY KEY,
+            setting_value TEXT NOT NULL,
+            updated_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
     else:
         # SQLite Tables
         cursor.execute("""
@@ -246,7 +253,48 @@ def init_db():
             FOREIGN KEY (reg_id) REFERENCES registrations (id) ON DELETE CASCADE
         )
         """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS system_settings (
+            setting_key TEXT PRIMARY KEY,
+            setting_value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """)
     
+    conn.commit()
+    conn.close()
+
+def get_guard_password():
+    """Retrieve current Guard Portal access password from database or fallback to GUARD_PIN."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT setting_value FROM system_settings WHERE setting_key = ?", ("guard_password",))
+        row = cursor.fetchone()
+        conn.close()
+        if row and row["setting_value"]:
+            return str(row["setting_value"]).strip()
+    except Exception as e:
+        print(f"[SETTINGS WARNING] Unable to fetch guard password: {e}")
+    return os.environ.get("GUARD_PIN", GUARD_PIN)
+
+def set_guard_password(new_password):
+    """Update Guard Portal access password in database."""
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT setting_key FROM system_settings WHERE setting_key = ?", ("guard_password",))
+    row = cursor.fetchone()
+    if row:
+        cursor.execute(
+            "UPDATE system_settings SET setting_value = ?, updated_at = ? WHERE setting_key = ?",
+            (new_password, now_str, "guard_password")
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO system_settings (setting_key, setting_value, updated_at) VALUES (?, ?, ?)",
+            ("guard_password", new_password, now_str)
+        )
     conn.commit()
     conn.close()
 
@@ -337,7 +385,7 @@ def guard_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if GUARD_PIN_REQUIRED and not (session.get("guard_logged_in") or session.get("is_admin")):
-            flash("Guard PIN authentication required to operate terminal.", "warning")
+            flash("Guard password authentication required to operate terminal.", "warning")
             return redirect(url_for("guard_login", next=request.path))
         return f(*args, **kwargs)
     return decorated_function
@@ -489,29 +537,32 @@ def pass_html_redirect():
 
 @app.route("/guard/login", methods=["GET", "POST"])
 def guard_login():
-    """Guard PIN authentication terminal."""
-    if session.get("guard_logged_in") or session.get("is_admin"):
+    """Guard password authentication terminal."""
+    if session.get("guard_logged_in"):
         return redirect(url_for("verify_terminal"))
         
     next_url = request.args.get("next") or url_for("verify_terminal")
     if request.method == "POST":
         pin = request.form.get("pin", "").strip()
-        if pin == GUARD_PIN:
+        current_password = get_guard_password()
+        if pin == current_password:
             session["guard_logged_in"] = True
             session.permanent = True
             flash("Guard terminal unlocked. Scanner active.", "success")
             return redirect(next_url)
         else:
-            flash("Invalid Guard Access PIN. Entry denied.", "error")
+            flash("Invalid Guard Access Password. Entry denied.", "error")
             
     return render_template("guard_login.html")
 
-@app.route("/guard/logout")
+@app.route("/guard/logout", methods=["GET", "POST"])
 def guard_logout():
-    """Lock Guard Terminal."""
+    """Lock Guard Terminal and auto-logout guard session."""
     session.pop("guard_logged_in", None)
-    flash("Guard terminal locked successfully.", "info")
-    return redirect(url_for("verify_terminal"))
+    if request.method == "POST" or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"success": True, "message": "Guard session locked."})
+    flash("Guard terminal locked successfully. Password required to re-enter.", "info")
+    return redirect(url_for("guard_login"))
 
 @app.route("/verify", strict_slashes=False)
 @app.route("/verify.html")
@@ -603,7 +654,14 @@ def api_verify_pass(reg_code):
     """
     Real-time JSON Verification API:
     Allows the in-browser camera scanner to verify passes instantly without full page reloads.
+    Requires active Guard or Admin session.
     """
+    if GUARD_PIN_REQUIRED and not (session.get("guard_logged_in") or session.get("is_admin")):
+        return jsonify({
+            "success": False,
+            "is_valid": False,
+            "tamper_reason": "UNAUTHORIZED: Guard login required to scan/verify passes."
+        }), 401
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -684,7 +742,9 @@ def api_verify_pass(reg_code):
 
 @app.route("/api/check-in/<reg_code>", methods=["POST"])
 def api_check_in(reg_code):
-    """Security guard check-in confirmation toggle."""
+    """Security guard check-in confirmation toggle into visitor registry."""
+    if GUARD_PIN_REQUIRED and not (session.get("guard_logged_in") or session.get("is_admin")):
+        return jsonify({"success": False, "message": "UNAUTHORIZED: Guard login required to admit visitors."}), 401
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -794,6 +854,8 @@ def admin_dashboard():
     entrance_url = f"{host_url}/"
     entrance_qr_base64 = generate_qr_base64(entrance_url)
     
+    guard_password = get_guard_password()
+    
     return render_template(
         "admin.html",
         registrations=registrations,
@@ -802,8 +864,26 @@ def admin_dashboard():
         admitted_people=admitted_people,
         gate_analytics=gate_analytics,
         entrance_url=entrance_url,
-        entrance_qr=entrance_qr_base64
+        entrance_qr=entrance_qr_base64,
+        guard_password=guard_password
     )
+
+@app.route("/admin/update-guard-password", methods=["POST"])
+@login_required
+def update_guard_password():
+    """Admin dynamically updates Guard Portal access password anytime."""
+    new_password = request.form.get("guard_password", "").strip()
+    if not new_password:
+        flash("Guard password cannot be empty.", "error")
+        return redirect(url_for("admin_dashboard"))
+        
+    if len(new_password) < 4:
+        flash("Guard password must be at least 4 characters for security.", "error")
+        return redirect(url_for("admin_dashboard"))
+        
+    set_guard_password(new_password)
+    flash(f"Guard Portal password successfully updated to '{new_password}'. Guards must now enter this password to unlock their terminal.", "success")
+    return redirect(url_for("admin_dashboard"))
 
 @app.route("/admin/entrance-poster")
 @login_required
@@ -889,6 +969,20 @@ def delete_registration(reg_id):
         conn.close()
     flash(f"Registration #{reg_id} deleted successfully.", "info")
     return redirect(url_for("admin_dashboard"))
+
+# ----------------- SECURITY HEADERS & ANTI-CACHE -----------------
+
+@app.after_request
+def add_terminal_security_headers(response):
+    """
+    Prevent browser from caching sensitive guard terminal pages.
+    Ensures back-navigation forces fresh session validation.
+    """
+    if request.path.startswith("/guard") or request.path.startswith("/verify"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # ----------------- ERROR HANDLERS -----------------
 

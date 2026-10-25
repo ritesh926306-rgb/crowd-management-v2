@@ -32,11 +32,20 @@
       </button>
 
       {% if guard_active %}
-        <a href="{{ url_for('guard_logout') }}" class="pill-toggle" style="color: var(--amber);" title="Lock Gate Terminal">
-          🔒 Lock Terminal
+        <a href="{{ url_for('guard_logout') }}" class="pill-toggle" style="color: var(--amber); font-weight: 700; border-color: rgba(245,158,11,0.35); display: inline-flex; align-items: center; gap: 0.35rem;" title="Exit and Lock Gate Terminal">
+          <span>🔒</span> Exit / Lock Portal
         </a>
       {% endif %}
     </div>
+  </div>
+
+  <!-- ══════════════════ STRICT GATE SECURITY PROTOCOL BANNER ══════════════════ -->
+  <div style="margin: 1rem 1.25rem 0; padding: 0.75rem 1.1rem; background: rgba(0,255,198,0.06); border: 1px solid rgba(0,255,198,0.22); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem; font-size: 0.82rem;">
+    <div style="display: flex; align-items: center; gap: 0.6rem; color: var(--text-primary);">
+      <span style="color: var(--teal); font-size: 1.15rem;">🛡️</span>
+      <span><strong>Gate Admission Protocol:</strong> Only official cryptographically signed visitor ID cards are verified. Admitted visitors are automatically recorded into the visitor registry.</span>
+    </div>
+    <span class="badge badge-teal" style="font-size: 0.7rem; padding: 0.2rem 0.55rem;">HMAC SHA-256 Anti-Tamper</span>
   </div>
 
   <!-- ══════════════════ LIVE CAMERA SCANNER VIEWPORT ══════════════════ -->
@@ -893,5 +902,43 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+
+  /* ─────────────────────────── GUARD AUTO-LOGOUT ON BACK / NAVIGATE ─────────────────────────── */
+  (function initGuardSecurityAutoLogout() {
+    // Push an initial history state to trap browser back button navigation
+    try {
+      history.pushState({ guardTerminal: true }, document.title, window.location.href);
+    } catch (e) {}
+
+    // When guard clicks browser back button (popstate):
+    window.addEventListener('popstate', function (event) {
+      // Guard pressed back button! Send logout beacon/fetch and redirect to login
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon("{{ url_for('guard_logout') }}");
+      } else {
+        fetch("{{ url_for('guard_logout') }}", { method: 'POST', keepalive: true });
+      }
+      window.location.replace("{{ url_for('guard_login') }}");
+    });
+
+    // Detect if page was loaded from browser BFCache (back/forward cache)
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    });
+
+    // If guard clicks any navigation link that leaves the guard terminal, logout automatically
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (!link) return;
+      const href = link.getAttribute('href');
+      if (href && !href.startsWith('#') && !href.startsWith('javascript:') && !href.includes('/verify') && !href.includes('/guard/logout')) {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon("{{ url_for('guard_logout') }}");
+        }
+      }
+    });
+  })();
 </script>
 {% endblock %}

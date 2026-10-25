@@ -109,13 +109,16 @@ def build():
                 {"gate_id": "exit_4", "name": "Exit 4 (South)", "group": "Group D", "zone": "Zone Delta (South Gate)","count": 0, "percentage": 0},
             ],
             "registrations": DEMO_REGISTRATIONS,
+            "guard_password": "guard123",
         }),
+        ("guard_login.html", "guard_login.html", {}),
         ("verify.html", "verify.html", {
             "is_valid":     True,
             "tamper_reason": None,
             "reg":          DEMO_REG,
             "members":      DEMO_MEMBERS,
             "gate_info":    GATES_CONFIG[0],
+            "guard_active": True,
         }),
         ("entrance_poster.html", "entrance_poster.html", {
             "entrance_url": "https://ritesh926306-rgb.github.io/crowd-management-v2/",
