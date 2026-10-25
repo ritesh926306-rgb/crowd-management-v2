@@ -18,7 +18,24 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, Response, jsonify
 )
-from dotenv import load_dotenv
+# Optional python-dotenv with built-in .env parser fallback
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(dotenv_path=None):
+        if not dotenv_path or not os.path.exists(dotenv_path):
+            return
+        try:
+            with open(dotenv_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k, v = k.strip(), v.strip().strip('"').strip("'")
+                        if k not in os.environ:
+                            os.environ[k] = v
+        except Exception:
+            pass
 
 # Optional PyMySQL for MySQL database connections
 try:
