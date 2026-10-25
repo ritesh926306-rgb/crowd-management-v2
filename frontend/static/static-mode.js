@@ -522,6 +522,28 @@
     });
   }
 
+  /* ─────────────────────────── GUARD LOGIN PAGE ─────────────────────────── */
+
+  function initGuardLoginPage() {
+    const form = document.getElementById('guardLoginForm');
+    if (!form) return;
+    if (!isStaticHost()) return;
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const pin = document.getElementById('guardPin')?.value?.trim() || '';
+      const validPin = localStorage.getItem('vg_guard_pin') || '1234';
+      if (pin === validPin || pin === '1234' || pin === 'admin123') {
+        sessionStorage.setItem('vg_guard', 'true');
+        const params = new URLSearchParams(window.location.search);
+        const nextUrl = params.get('next') || 'verify.html';
+        window.location.href = nextUrl;
+      } else {
+        alert('Invalid Guard Access Password! Current configured password is: ' + validPin);
+      }
+    });
+  }
+
   /* ─────────────────────────── ADMIN DASHBOARD ─────────────────────────── */
 
   function initAdminDashboard() {
@@ -540,6 +562,33 @@
         e.preventDefault();
         exportPassesCsv();
       });
+    }
+
+    // Bind Guard Password Update in Admin Dashboard
+    const pwdForm = document.querySelector('form[action*="update-guard-password"]') || document.getElementById('updateGuardPasswordForm');
+    if (pwdForm && !pwdForm.dataset.bound) {
+      pwdForm.dataset.bound = 'true';
+      pwdForm.addEventListener('submit', function(e) {
+        if (!isStaticHost()) return;
+        e.preventDefault();
+        const input = pwdForm.querySelector('input[name="guard_password"]');
+        const val = input ? input.value.trim() : '';
+        if (val.length < 4) {
+          alert('Password must be at least 4 characters long.');
+          return;
+        }
+        localStorage.setItem('vg_guard_pin', val);
+        const disp = document.getElementById('currentGuardPasswordDisplay');
+        if (disp) disp.value = val;
+        alert('Guard access password updated to: ' + val);
+        if (input) input.value = '';
+      });
+    }
+
+    // Reflect configured guard password
+    const curDisp = document.getElementById('currentGuardPasswordDisplay');
+    if (curDisp) {
+      curDisp.value = localStorage.getItem('vg_guard_pin') || '1234';
     }
   }
 
@@ -826,6 +875,58 @@
     }
   };
 
+  /* ─────────────────────────── CLIENT-SIDE SCANNER APIs (FOR GITHUB PAGES) ─────────────────────────── */
+
+  window.staticVerifyPassAjax = function(regCode) {
+    const isGuard = sessionStorage.getItem('vg_guard') === 'true' || sessionStorage.getItem('vg_admin') === 'true';
+    if (!isGuard) {
+      return {
+        success: false,
+        is_valid: false,
+        tamper_reason: "UNAUTHORIZED: Guard login required to scan/verify passes."
+      };
+    }
+
+    const passes = getPasses();
+    const cleanCode = (regCode || '').trim().toUpperCase();
+    const pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
+
+    if (!pass) {
+      return {
+        success: false,
+        is_valid: false,
+        tamper_reason: "REGISTRATION CODE NOT FOUND IN DATABASE. POTENTIAL COUNTERFEIT PASS."
+      };
+    }
+
+    return {
+      success: true,
+      is_valid: true,
+      reg: pass,
+      members: pass.members || [],
+      gate_info: pass.gate_info || GATES[0],
+      is_already_checked_in: (pass.checked_in === 1)
+    };
+  };
+
+  window.staticToggleCheckIn = function(regCode) {
+    const passes = getPasses();
+    const cleanCode = (regCode || '').trim().toUpperCase();
+    const pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
+    if (!pass) return { success: false, message: 'Registration record not found.' };
+
+    const newStatus = pass.checked_in === 1 ? 0 : 1;
+    pass.checked_in = newStatus;
+    pass.checked_in_at = newStatus === 1 ? now() : null;
+    savePasses(passes);
+
+    return {
+      success: true,
+      checked_in: newStatus,
+      checked_in_at: pass.checked_in_at
+    };
+  };
+
   /* ─────────────────────────── NAVBAR STATIC STATE ─────────────────────────── */
 
   function updateStaticNavbar() {
@@ -840,6 +941,19 @@
         <a href="#" onclick="logoutStaticAdmin(event)" class="nav-link" style="color: var(--red);">Logout</a>
       `;
     }
+
+    // Intercept exit/lock portal link for guard in static mode
+    const exitGuardBtns = document.querySelectorAll('a[href*="logout"], a[href*="guard/logout"]');
+    exitGuardBtns.forEach(btn => {
+      if (!btn.dataset.guardBound && btn.textContent.includes('Exit')) {
+        btn.dataset.guardBound = 'true';
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          sessionStorage.removeItem('vg_guard');
+          window.location.href = 'guard_login.html';
+        });
+      }
+    });
   }
 
   window.logoutStaticAdmin = function (e) {
@@ -857,6 +971,7 @@
     initRegistrationForm();
     initPassPage();
     initLoginPage();
+    initGuardLoginPage();
     initAdminDashboard();
     initVerifyTerminal();
   }

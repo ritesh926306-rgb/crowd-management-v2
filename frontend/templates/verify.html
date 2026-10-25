@@ -670,6 +670,31 @@
       </div>
     `;
 
+    // Static mode fallback for GitHub Pages
+    if (typeof window.staticVerifyPassAjax === 'function' && (!window.IS_FLASK_BACKEND || window.IS_STATIC_BUILD)) {
+      setTimeout(() => {
+        const data = window.staticVerifyPassAjax(regCode);
+        if (!data.success && data.tamper_reason) {
+          playFraudSound();
+          triggerHaptic([200, 100, 200]);
+          renderTamperedView(container, data.tamper_reason, regCode);
+        } else if (data.success && data.is_valid) {
+          if (data.is_already_checked_in) {
+            playWarningSound();
+            triggerHaptic([150, 75, 150]);
+          } else {
+            playChime();
+            triggerHaptic([80, 40, 80]);
+          }
+          renderValidView(container, data);
+        } else {
+          playFraudSound();
+          renderTamperedView(container, data.tamper_reason || "Verification failed.", regCode);
+        }
+      }, 200);
+      return;
+    }
+
     fetch(`/api/verify/${encodeURIComponent(regCode)}`)
       .then(res => res.json())
       .then(data => {
@@ -900,6 +925,30 @@
     btn.disabled = true;
     iconSpan.innerHTML = '<span class="spinner"></span>';
 
+    // Static mode fallback for GitHub Pages
+    if (typeof window.staticToggleCheckIn === 'function' && (!window.IS_FLASK_BACKEND || window.IS_STATIC_BUILD)) {
+      setTimeout(() => {
+        btn.disabled = false;
+        const data = window.staticToggleCheckIn(regCode);
+        if (data.success) {
+          if (data.checked_in === 1) {
+            playChime();
+            statusText.innerHTML = `<span style="color:#4ADE80;font-weight:700;">● Admitted at ${data.checked_in_at}</span>`;
+            iconSpan.textContent = '↩️ Undo Admission';
+            btn.className = 'btn btn-outline btn-admitted';
+          } else {
+            statusText.innerHTML = `<span style="color:var(--amber);font-weight:700;">⏳ Pending physical entry at gate</span>`;
+            iconSpan.textContent = '🚪 Mark as Admitted';
+            btn.className = 'btn btn-primary';
+          }
+        } else {
+          iconSpan.textContent = btn.classList.contains('btn-admitted') ? '↩️ Undo Admission' : '🚪 Mark as Admitted';
+          alert('Check-in update failed: ' + (data.message || 'Unknown error'));
+        }
+      }, 150);
+      return;
+    }
+
     fetch(`/api/check-in/${encodeURIComponent(regCode)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -949,7 +998,11 @@
 
     // When guard clicks browser back button (popstate):
     window.addEventListener('popstate', function (event) {
-      // Guard pressed back button! Send logout beacon/fetch and redirect to login
+      if (typeof window.IS_STATIC_BUILD !== 'undefined' && window.IS_STATIC_BUILD) {
+        sessionStorage.removeItem('vg_guard');
+        window.location.replace("guard_login.html");
+        return;
+      }
       if (navigator.sendBeacon) {
         navigator.sendBeacon("{{ url_for('guard_logout') }}");
       } else {
@@ -971,7 +1024,9 @@
       if (!link) return;
       const href = link.getAttribute('href');
       if (href && !href.startsWith('#') && !href.startsWith('javascript:') && !href.includes('/verify') && !href.includes('/guard/logout')) {
-        if (navigator.sendBeacon) {
+        if (typeof window.IS_STATIC_BUILD !== 'undefined' && window.IS_STATIC_BUILD) {
+          sessionStorage.removeItem('vg_guard');
+        } else if (navigator.sendBeacon) {
           navigator.sendBeacon("{{ url_for('guard_logout') }}");
         }
       }
