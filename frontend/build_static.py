@@ -124,6 +124,7 @@ def build():
             "entrance_url": "https://ritesh926306-rgb.github.io/crowd-management-v2/",
             "entrance_qr":  f"{QR_BASE}&data=https://ritesh926306-rgb.github.io/crowd-management-v2/",
         }),
+        ("404.html", "404.html", {}),
     ]
 
     for template_name, output_filename, context in pages:

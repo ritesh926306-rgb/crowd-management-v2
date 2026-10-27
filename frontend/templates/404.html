@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}404 — Page Not Found · VenueGuard{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 680px; margin: 3rem auto; text-align: center; padding: 2rem 1.5rem;">
+  <div style="font-size: 4.5rem; margin-bottom: 0.5rem; animation: float 3s ease-in-out infinite;">🛡️</div>
+  <div class="badge badge-amber" style="font-size: 0.85rem; padding: 0.4rem 1rem; margin-bottom: 1.25rem;">
+    404 · PAGE NOT FOUND
+  </div>
+  <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.75rem; letter-spacing: -0.02em;">
+    Resource Not Found
+  </h1>
+  <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; max-width: 520px; margin-left: auto; margin-right: auto;">
+    The page you are trying to access does not exist or was moved. If you were looking for visitor registration, guard terminal, or admin dashboard, use the quick links below.
+  </p>
+
+  <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
+    <a href="{{ url_for('index') }}" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.95rem;">
+      🏠 Visitor Registration
+    </a>
+    <a href="{{ url_for('verify_pass') }}" class="btn btn-outline" style="padding: 0.75rem 1.5rem; font-size: 0.95rem;">
+      🔍 Guard Scanner
+    </a>
+    <a href="{{ url_for('admin_login') }}" class="btn btn-navy" style="padding: 0.75rem 1.5rem; font-size: 0.95rem;">
+      🔐 Admin Portal
+    </a>
+  </div>
+
+  <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1rem; font-size: 0.82rem; color: var(--text-muted);">
+    💡 <strong>Tip for GitHub Pages:</strong> Make sure your URL includes the repository path:<br>
+    <code style="color: var(--teal); background: rgba(0,255,198,0.1); padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.4rem;">
+      https://ritesh926306-rgb.github.io/crowd-management-v2/
+    </code>
+  </div>
+</div>
+
+<script>
+  // Smart Client-Side GitHub Pages SPA Router
+  (function() {
+    const path = window.location.pathname;
+    const base = 'https://ritesh926306-rgb.github.io/crowd-management-v2/';
+    
+    // Check if visiting root without repo name
+    if (window.location.hostname.endsWith('github.io') && (path === '/' || path === '')) {
+      window.location.replace(base);
+      return;
+    }
+
+    // Auto-redirect clean routes to .html equivalents on static GitHub Pages
+    if (path.includes('/verify/')) {
+      const code = path.split('/verify/')[1]?.split('/')[0]?.split('?')[0];
+      if (code) {
+        window.location.replace('verify.html?code=' + encodeURIComponent(code));
+        return;
+      }
+    }
+    if (path.includes('/pass/')) {
+      const code = path.split('/pass/')[1]?.split('/')[0]?.split('?')[0];
+      if (code) {
+        window.location.replace('pass.html?code=' + encodeURIComponent(code));
+        return;
+      }
+    }
+    if (path.endsWith('/admin') || path.endsWith('/admin/')) {
+      window.location.replace('admin.html');
+      return;
+    }
+    if (path.endsWith('/login') || path.endsWith('/login/')) {
+      window.location.replace('login.html');
+      return;
+    }
+    if (path.endsWith('/guard') || path.endsWith('/guard-login')) {
+      window.location.replace('guard_login.html');
+      return;
+    }
+    if (path.endsWith('/verify') || path.endsWith('/verify/')) {
+      window.location.replace('verify.html');
+      return;
+    }
+    if (path.endsWith('/pass') || path.endsWith('/pass/')) {
+      window.location.replace('pass.html');
+      return;
+    }
+  })();
+</script>
+{% endblock %}
