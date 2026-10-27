@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login · VenueGuard</title>
+  <meta name="description" content="Smart Crowd Management System with cryptographic pass generation, dynamic exit routing, and anti-fraud security.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/style.css">
+  <script>
+    window.IS_FLASK_BACKEND = ("false" === "true");
+    window.IS_STATIC_BUILD = !window.IS_FLASK_BACKEND;
+  </script>
+  <script src="static/static-mode.js" defer></script>
+  
+</head>
+<body>
+
+  <!-- ═══════════════════════ HEADER ═══════════════════════ -->
+  <header class="app-header no-print">
+    <div class="header-container">
+      <a href="index.html" class="brand-wrapper">
+        <div class="brand-logo-icon">🛡️</div>
+        <div>
+          <div class="brand-title">VENUEGUARD</div>
+          <div class="brand-subtitle" data-i18n="system_subtitle">Smart Entry · Dynamic Load Balancing · Anti-Fraud</div>
+        </div>
+      </a>
+
+      <div class="header-actions">
+        <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Hindi / English">
+          🌐 <span id="langBtnText">हिंदी में बदलें</span>
+        </button>
+        <a href="index.html" class="nav-link" data-i18n="nav_register">Register</a>
+        <a href="verify_terminal.html" class="nav-link">Guard Portal</a>
+        
+          <a href="login.html" class="nav-link" data-i18n="nav_admin">Admin</a>
+        
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════ FLASH MESSAGES ═══════════════════════ -->
+  
+    
+  
+
+  <!-- ═══════════════════════ MAIN ═══════════════════════ -->
+  <main class="main-wrapper">
+    
+<div style="max-width: 420px; margin: 4rem auto;">
+  <div class="card" style="border: 1px solid var(--glass-border); box-shadow: var(--shadow-card), 0 0 60px rgba(0,255,198,0.04);">
+
+    <!-- Logo -->
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(0,255,198,0.15), rgba(123,47,190,0.15)); border: 1px solid rgba(0,255,198,0.25); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1.1rem; box-shadow: 0 0 30px rgba(0,255,198,0.12);">
+        🔐
+      </div>
+      <h1 style="font-size: 1.4rem; font-weight: 800; background: linear-gradient(90deg, #fff 0%, var(--teal) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        Command Center
+      </h1>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
+        Restricted — Authorized Venue Administrators Only
+      </p>
+    </div>
+
+    <form action="login.html" method="POST" id="adminLoginForm">
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label for="password">Administrator Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="Enter administrator password"
+          required
+          autofocus
+          style="font-size: 1rem; letter-spacing: 0.05em;"
+        >
+        <span class="input-helper">Default: <code style="background: rgba(0,255,198,0.1); color: var(--teal); padding: 0.1rem 0.4rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">admin123</code></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg">
+        Unlock Dashboard →
+      </button>
+    </form>
+
+    <div style="margin-top: 1.5rem; text-align: center;">
+      <a href="index.html" style="font-size: 0.82rem; color: var(--text-muted); text-decoration: none;">
+        ← Back to Visitor Registration
+      </a>
+    </div>
+
+  </div>
+</div>
+
+  </main>
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer class="no-print">
+    <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div>
+        <strong style="color: var(--text-secondary);">VenueGuard &nbsp;·&nbsp;</strong>
+        <span>Cryptographic Anti-Fraud Engine &nbsp;&bull;&nbsp; HMAC-SHA256 Protected</span>
+      </div>
+      <div style="color: var(--text-muted);">
+        1 Entry Gate &nbsp;&bull;&nbsp; 4 Smart Exits &nbsp;&bull;&nbsp; Gate 5 Emergency
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════ I18N ═══════════════════════ -->
+  <script>
+    const translations = {
+      en: {
+        system_subtitle: "Smart Entry · Dynamic Load Balancing · Anti-Fraud",
+        lang_btn: "हिंदी में बदलें",
+        nav_register: "Register",
+        nav_admin: "Admin",
+        form_title: "Venue Entry Pass Registration",
+        form_subtitle: "Fill in your details to generate a cryptographically verified entry pass with smart exit gate assignment.",
+        sec_primary: "1. Primary Visitor Details",
+        name_label: "Full Name",
+        name_placeholder: "e.g., Rajesh Sharma",
+        phone_label: "Mobile (10 Digits)",
+        phone_placeholder: "e.g., 9876543210",
+        age_label: "Age",
+        age_placeholder: "e.g., 34",
+        address_label: "Common Home Address",
+        address_placeholder: "House No, Street, City, State, PIN",
+        sec_group: "2. Group Members",
+        sec_group_desc: "Add accompanying members. All will be on this single verified pass.",
+        btn_add_member: "+ Add Member",
+        member_name_placeholder: "Member Full Name",
+        member_age_placeholder: "Age",
+        member_mobile_placeholder: "Mobile (Optional)",
+        btn_submit_pass: "Generate Official Entry Pass & Exit Route",
+        venue_summary_title: "Venue Architecture & Smart Routing",
+        entry_gate_desc: "Strict QR Pass Verification required at single entry gate.",
+        exit_routing_desc: "System auto-assigns least-loaded exit: West, North, East, or South.",
+        gate5_desc: "Gate 5 restricted — Venue Staff & Emergency Evacuation only.",
+        pass_title: "OFFICIAL DIGITAL ENTRY PASS",
+        pass_verified_pill: "CRYPTOGRAPHICALLY VERIFIED",
+        pass_reg_code: "Pass Code",
+        pass_assigned_exit: "ASSIGNED EXIT ROUTE",
+        pass_total_count: "Total Group Count",
+        pass_primary_person: "Primary Visitor",
+        pass_phone: "Mobile",
+        pass_age: "Age",
+        pass_address: "Address",
+        pass_members_list: "Group Members",
+        pass_no_members: "Solo Visitor",
+        pass_timestamp: "Issued At",
+        pass_hmac_hash: "HMAC Signature",
+        pass_print_btn: "Print / Save PDF",
+        pass_new_btn: "Register Another",
+        pass_scan_notice: "Show this QR to the security guard at the entrance gate."
+      },
+      hi: {
+        system_subtitle: "स्मार्ट प्रवेश · गतिशील भीड़ नियंत्रण · धोखाधड़ी-रोधी",
+        lang_btn: "Switch to English",
+        nav_register: "पंजीकरण",
+        nav_admin: "एडमिन",
+        form_title: "स्थल प्रवेश पास पंजीकरण",
+        form_subtitle: "आधिकारिक एन्क्रिप्टेड डिजिटल पास के लिए विवरण भरें।",
+        sec_primary: "१. मुख्य आगंतुक का विवरण",
+        name_label: "पूरा नाम",
+        name_placeholder: "उदा. राजेश शर्मा",
+        phone_label: "मोबाइल (१० अंक)",
+        phone_placeholder: "उदा. 9876543210",
+        age_label: "आयु",
+        age_placeholder: "उदा. 34",
+        address_label: "सामान्य पता",
+        address_placeholder: "मकान नं., गली, शहर, राज्य, पिन",
+        sec_group: "२. साथ के सदस्य",
+        sec_group_desc: "साथ आने वाले सदस्यों को जोड़ें।",
+        btn_add_member: "+ सदस्य जोड़ें",
+        member_name_placeholder: "सदस्य का पूरा नाम",
+        member_age_placeholder: "आयु",
+        member_mobile_placeholder: "मोबाइल (वैकल्पिक)",
+        btn_submit_pass: "प्रवेश पास और निकास मार्ग प्राप्त करें",
+        venue_summary_title: "स्थल वास्तुकला और स्मार्ट रूटिंग",
+        entry_gate_desc: "एकल प्रवेश द्वार पर अनिवार्य क्यूआर सत्यापन।",
+        exit_routing_desc: "न्यूनतम भीड़ वाले निकास द्वार पर स्वचालित मार्गन।",
+        gate5_desc: "गेट ५ केवल स्थल कर्मचारियों और आपातकाल हेतु।",
+        pass_title: "आधिकारिक डिजिटल प्रवेश पास",
+        pass_verified_pill: "क्रिप्टोग्राफिक रूप से सत्यापित",
+        pass_reg_code: "पास कोड",
+        pass_assigned_exit: "आवंटित निकास मार्ग",
+        pass_total_count: "कुल समूह संख्या",
+        pass_primary_person: "मुख्य आगंतुक",
+        pass_phone: "मोबाइल",
+        pass_age: "आयु",
+        pass_address: "पता",
+        pass_members_list: "साथ के सदस्य",
+        pass_no_members: "एकल आगंतुक",
+        pass_timestamp: "जारी होने का समय",
+        pass_hmac_hash: "एचएमएसी हस्ताक्षर",
+        pass_print_btn: "प्रिंट / पीडीएफ सहेजें",
+        pass_new_btn: "नया पंजीकरण",
+        pass_scan_notice: "प्रवेश द्वार पर सुरक्षा गार्ड को यह क्यूआर कोड दिखाएं।"
+      }
+    };
+
+    let currentLang = localStorage.getItem('venue_lang') || 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('venue_lang', lang);
+      document.documentElement.lang = lang;
+      const langText = document.getElementById('langBtnText');
+      if (langText) langText.textContent = translations[lang].lang_btn;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang]?.[key]) el.textContent = translations[lang][key];
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (translations[lang]?.[key]) el.placeholder = translations[lang][key];
+      });
+      const hiddenLang = document.getElementById('formLanguageChoice');
+      if (hiddenLang) hiddenLang.value = lang;
+    }
+
+    function toggleLanguage() {
+      setLanguage(currentLang === 'en' ? 'hi' : 'en');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
+  </script>
+  
+</body>
+</html>

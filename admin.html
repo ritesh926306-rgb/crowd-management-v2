@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard · VenueGuard</title>
+  <meta name="description" content="Smart Crowd Management System with cryptographic pass generation, dynamic exit routing, and anti-fraud security.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/style.css">
+  <script>
+    window.IS_FLASK_BACKEND = ("false" === "true");
+    window.IS_STATIC_BUILD = !window.IS_FLASK_BACKEND;
+  </script>
+  <script src="static/static-mode.js" defer></script>
+  
+</head>
+<body>
+
+  <!-- ═══════════════════════ HEADER ═══════════════════════ -->
+  <header class="app-header no-print">
+    <div class="header-container">
+      <a href="index.html" class="brand-wrapper">
+        <div class="brand-logo-icon">🛡️</div>
+        <div>
+          <div class="brand-title">VENUEGUARD</div>
+          <div class="brand-subtitle" data-i18n="system_subtitle">Smart Entry · Dynamic Load Balancing · Anti-Fraud</div>
+        </div>
+      </a>
+
+      <div class="header-actions">
+        <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Hindi / English">
+          🌐 <span id="langBtnText">हिंदी में बदलें</span>
+        </button>
+        <a href="index.html" class="nav-link" data-i18n="nav_register">Register</a>
+        <a href="verify_terminal.html" class="nav-link">Guard Portal</a>
+        
+          <a href="login.html" class="nav-link" data-i18n="nav_admin">Admin</a>
+        
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════ FLASH MESSAGES ═══════════════════════ -->
+  
+    
+  
+
+  <!-- ═══════════════════════ MAIN ═══════════════════════ -->
+  <main class="main-wrapper">
+    
+<div class="admin-dashboard-container">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+    <div>
+      <h1 style="font-size: 1.8rem; font-weight: 800; background: linear-gradient(90deg, #fff 0%, var(--teal) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em;">
+        Venue Operations & Crowd Analytics
+      </h1>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.2rem;">
+        Real-time capacity tracking, smart split balancing & visitor registry
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="entrance_poster.html" target="_blank" class="btn btn-outline">
+        <span>🪧</span> Entrance Poster
+      </a>
+      <a href="#" class="btn btn-primary">
+        <span>📥</span> Export CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- ── KPI STATS ── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Headcount</div>
+      <div class="stat-number">9</div>
+      <div class="stat-indicator">Primary + group members</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Passes Issued</div>
+      <div class="stat-number">4</div>
+      <div class="stat-indicator">Unique registration codes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Admitted</div>
+      <div class="stat-number" style="background: linear-gradient(135deg, #fff 0%, #22C55E 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">5</div>
+      <div class="stat-indicator">
+        
+          55.6% of total entered
+        
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">QR Checkpoint</div>
+      <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span class="pulse-dot"></span>
+        <span style="font-size: 1rem; font-weight: 700; color: var(--teal);">ACTIVE</span>
+      </div>
+      <div class="stat-indicator" style="margin-top: 0.4rem;">Single entry gate · capacity split ON</div>
+    </div>
+  </div>
+
+  <!-- ── GUARD PORTAL SECURITY & PASSWORD MANAGEMENT ── -->
+  <div class="card" style="margin-bottom: 1.75rem; border: 1px solid rgba(0,255,198,0.22); background: linear-gradient(135deg, rgba(17,29,43,0.7) 0%, rgba(10,16,26,0.9) 100%); box-shadow: var(--shadow-card), 0 0 35px rgba(0,255,198,0.04);">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span style="font-size: 1.35rem;">🛡️</span>
+        <div>
+          <h3 class="card-title" style="font-size: 1.12rem; color: #fff;">Guard Portal Access & Password Management</h3>
+          <p class="card-desc">Admin control over security guard checkpoint credentials. Guards must authenticate to scan and admit visitors.</p>
+        </div>
+      </div>
+      <span class="badge badge-teal" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">
+        🔒 Password Protection Active
+      </span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem; padding-top: 1rem;">
+      <!-- Active Password Display -->
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.5rem;">
+          Current Active Guard Password
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <input
+            type="password"
+            id="currentGuardPasswordDisplay"
+            value="guard123"
+            readonly
+            class="form-control mono-font"
+            style="font-size: 1.15rem; font-weight: 700; color: var(--teal); background: rgba(0,255,198,0.06); border-color: rgba(0,255,198,0.25); letter-spacing: 0.15em; max-width: 220px;"
+          >
+          <button
+            type="button"
+            class="btn btn-outline"
+            onclick="toggleAdminGuardPass()"
+            id="togglePassBtn"
+            style="padding: 0.45rem 0.85rem; font-size: 0.82rem; white-space: nowrap;"
+            title="Reveal / Hide Password"
+          >
+            👁️ Reveal
+          </button>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.6rem;">
+          Provide this password to security personnel stationed at entry gates.
+        </div>
+      </div>
+
+      <!-- Update Password Form -->
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); font-weight: 700; margin-bottom: 0.5rem;">
+          Change Guard Password Anytime
+        </div>
+        <form action="update_guard_password.html" method="POST" style="margin: 0;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <input
+              type="text"
+              name="guard_password"
+              class="form-control mono-font"
+              placeholder="New password (e.g. guard456)"
+              required
+              minlength="4"
+              style="flex: 1; min-width: 170px; font-size: 0.95rem; font-weight: 600;"
+            >
+            <button type="submit" class="btn btn-primary" style="white-space: nowrap; font-size: 0.85rem; padding: 0.45rem 1rem;">
+              💾 Save New Password
+            </button>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.6rem;">
+            Instant update: Guard portal requires this new password immediately upon update.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GATE CAPACITY ── -->
+  <div class="card" style="margin-bottom: 1.75rem;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div>
+        <h3 class="card-title" style="font-size: 1.1rem;">⚖️ Smart Exit Load Balancing</h3>
+        <p class="card-desc">Auto-allocates new registrants to the least congested exit corridor.</p>
+      </div>
+      <span class="badge badge-teal">Dynamic Balancing ON</span>
+    </div>
+
+    <div class="gate-capacity-grid">
+      
+        <div class="gate-stat-box theme-exit_1">
+          <div class="gate-stat-header">
+            <span>Exit 1 (West)</span>
+            <span class="gate-theme-color">4 pax</span>
+          </div>
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+            Group A · Zone Alpha (West Gate)
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: 44%;"></div>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 0.3rem;">
+            44% crowd share
+          </div>
+        </div>
+      
+        <div class="gate-stat-box theme-exit_2">
+          <div class="gate-stat-header">
+            <span>Exit 2 (North)</span>
+            <span class="gate-theme-color">3 pax</span>
+          </div>
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+            Group B · Zone Beta (North Gate)
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: 33%;"></div>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 0.3rem;">
+            33% crowd share
+          </div>
+        </div>
+      
+        <div class="gate-stat-box theme-exit_3">
+          <div class="gate-stat-header">
+            <span>Exit 3 (East)</span>
+            <span class="gate-theme-color">2 pax</span>
+          </div>
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+            Group C · Zone Gamma (East Gate)
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: 22%;"></div>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 0.3rem;">
+            22% crowd share
+          </div>
+        </div>
+      
+        <div class="gate-stat-box theme-exit_4">
+          <div class="gate-stat-header">
+            <span>Exit 4 (South)</span>
+            <span class="gate-theme-color">0 pax</span>
+          </div>
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+            Group D · Zone Delta (South Gate)
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: 0%;"></div>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 0.3rem;">
+            0% crowd share
+          </div>
+        </div>
+      
+    </div>
+
+    <!-- Gate 5 Notice -->
+    <div style="padding: 0.85rem 1.1rem; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.75rem; font-size: 0.84rem; color: var(--amber);">
+      <span style="font-size: 1.2rem;">🛡️</span>
+      <div>
+        <strong>Gate 5 Protocol:</strong> Hidden staff corridor reserved exclusively for incident response and emergency evacuation. No visitor passes routed via Gate 5.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REGISTRATIONS TABLE ── -->
+  <div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h3 class="card-title" style="font-size: 1.1rem;">📋 Visitor Registry</h3>
+        <p class="card-desc">All registrations with pass codes, gates, and admission status.</p>
+      </div>
+      <input type="text" id="tableSearchInput" onkeyup="filterTable()" class="form-control"
+        placeholder="🔍 Search name, code, gate…"
+        style="max-width: 260px; padding: 0.5rem 0.9rem; font-size: 0.85rem; border-radius: var(--radius-full);">
+    </div>
+
+    
+      <div class="table-responsive">
+        <table class="data-table" id="registrationsTable">
+          <thead>
+            <tr>
+              <th>Pass Code</th>
+              <th>Created</th>
+              <th>Primary Visitor</th>
+              <th>Mobile</th>
+              <th>Group</th>
+              <th>Members</th>
+              <th>Exit Gate</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td class="mono-font" style="font-weight: 700;">
+                  <a href="pass.html?code=REG-A1B2C3" target="_blank"
+                    style="color: var(--teal); text-decoration: none;">
+                    REG-A1B2C3
+                  </a>
+                </td>
+                <td style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">2026-10-18 19:30:00</td>
+                <td>
+                  <div style="font-weight: 600;">Rajesh Kumar</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);">Age: 34y</div>
+                </td>
+                <td class="mono-font" style="font-size: 0.85rem;">9876543210</td>
+                <td><span class="badge badge-teal">2 pax</span></td>
+                <td style="font-size: 0.8rem; max-width: 200px; color: var(--text-secondary);">
+                  
+                    Pooja Kumar (31y)
+                  
+                </td>
+                <td>
+                  <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--glass-border);">
+                    Exit 1 (West)
+                  </span>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">Group A</div>
+                </td>
+                <td>
+                  
+                    <span class="badge badge-success">✓ Admitted</span>
+                  
+                </td>
+                <td>
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <a href="verify.html?code=REG-A1B2C3"
+                      class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.76rem;"
+                      title="Security terminal">
+                      🛡️
+                    </a>
+                    <form action="#" method="POST"
+                      onsubmit="return confirm('Delete REG-A1B2C3?');" style="margin: 0;">
+                      <button type="submit" class="btn btn-danger-outline"
+                        style="padding: 0.3rem 0.65rem; font-size: 0.76rem;" title="Delete">
+                        🗑️
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            
+              <tr>
+                <td class="mono-font" style="font-weight: 700;">
+                  <a href="pass.html?code=REG-D4E5F6" target="_blank"
+                    style="color: var(--teal); text-decoration: none;">
+                    REG-D4E5F6
+                  </a>
+                </td>
+                <td style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">2026-10-18 19:40:00</td>
+                <td>
+                  <div style="font-weight: 600;">Anita Verma</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);">Age: 29y</div>
+                </td>
+                <td class="mono-font" style="font-size: 0.85rem;">9812345678</td>
+                <td><span class="badge badge-teal">3 pax</span></td>
+                <td style="font-size: 0.8rem; max-width: 200px; color: var(--text-secondary);">
+                  
+                    Aarav Verma (6y), Ravi Verma (32y)
+                  
+                </td>
+                <td>
+                  <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--glass-border);">
+                    Exit 2 (North)
+                  </span>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">Group B</div>
+                </td>
+                <td>
+                  
+                    <span class="badge badge-success">✓ Admitted</span>
+                  
+                </td>
+                <td>
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <a href="verify.html?code=REG-D4E5F6"
+                      class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.76rem;"
+                      title="Security terminal">
+                      🛡️
+                    </a>
+                    <form action="#" method="POST"
+                      onsubmit="return confirm('Delete REG-D4E5F6?');" style="margin: 0;">
+                      <button type="submit" class="btn btn-danger-outline"
+                        style="padding: 0.3rem 0.65rem; font-size: 0.76rem;" title="Delete">
+                        🗑️
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            
+              <tr>
+                <td class="mono-font" style="font-weight: 700;">
+                  <a href="pass.html?code=REG-7G8H9I" target="_blank"
+                    style="color: var(--teal); text-decoration: none;">
+                    REG-7G8H9I
+                  </a>
+                </td>
+                <td style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">2026-10-18 20:10:00</td>
+                <td>
+                  <div style="font-weight: 600;">Sunil Patel</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);">Age: 42y</div>
+                </td>
+                <td class="mono-font" style="font-size: 0.85rem;">9823456789</td>
+                <td><span class="badge badge-teal">4 pax</span></td>
+                <td style="font-size: 0.8rem; max-width: 200px; color: var(--text-secondary);">
+                  
+                    Geeta Patel (39y), Karan Patel (14y), Diya Patel (10y)
+                  
+                </td>
+                <td>
+                  <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--glass-border);">
+                    Exit 3 (East)
+                  </span>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">Group C</div>
+                </td>
+                <td>
+                  
+                    <span class="badge badge-warning">⏳ Pending</span>
+                  
+                </td>
+                <td>
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <a href="verify.html?code=REG-7G8H9I"
+                      class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.76rem;"
+                      title="Security terminal">
+                      🛡️
+                    </a>
+                    <form action="#" method="POST"
+                      onsubmit="return confirm('Delete REG-7G8H9I?');" style="margin: 0;">
+                      <button type="submit" class="btn btn-danger-outline"
+                        style="padding: 0.3rem 0.65rem; font-size: 0.76rem;" title="Delete">
+                        🗑️
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            
+              <tr>
+                <td class="mono-font" style="font-weight: 700;">
+                  <a href="pass.html?code=DEMO-SAMPLE-8899" target="_blank"
+                    style="color: var(--teal); text-decoration: none;">
+                    DEMO-SAMPLE-8899
+                  </a>
+                </td>
+                <td style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">2026-10-18 20:00:00</td>
+                <td>
+                  <div style="font-weight: 600;">Demo Visitor</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);">Age: 30y</div>
+                </td>
+                <td class="mono-font" style="font-size: 0.85rem;">9876543210</td>
+                <td><span class="badge badge-teal">2 pax</span></td>
+                <td style="font-size: 0.8rem; max-width: 200px; color: var(--text-secondary);">
+                  
+                    Accompanying Guest (28y)
+                  
+                </td>
+                <td>
+                  <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--glass-border);">
+                    Exit 1 (West)
+                  </span>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">Group A</div>
+                </td>
+                <td>
+                  
+                    <span class="badge badge-warning">⏳ Pending</span>
+                  
+                </td>
+                <td>
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <a href="verify.html?code=DEMO-SAMPLE-8899"
+                      class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.76rem;"
+                      title="Security terminal">
+                      🛡️
+                    </a>
+                    <form action="#" method="POST"
+                      onsubmit="return confirm('Delete DEMO-SAMPLE-8899?');" style="margin: 0;">
+                      <button type="submit" class="btn btn-danger-outline"
+                        style="padding: 0.3rem 0.65rem; font-size: 0.76rem;" title="Delete">
+                        🗑️
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    
+  </div>
+
+</div>
+
+  </main>
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer class="no-print">
+    <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div>
+        <strong style="color: var(--text-secondary);">VenueGuard &nbsp;·&nbsp;</strong>
+        <span>Cryptographic Anti-Fraud Engine &nbsp;&bull;&nbsp; HMAC-SHA256 Protected</span>
+      </div>
+      <div style="color: var(--text-muted);">
+        1 Entry Gate &nbsp;&bull;&nbsp; 4 Smart Exits &nbsp;&bull;&nbsp; Gate 5 Emergency
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════ I18N ═══════════════════════ -->
+  <script>
+    const translations = {
+      en: {
+        system_subtitle: "Smart Entry · Dynamic Load Balancing · Anti-Fraud",
+        lang_btn: "हिंदी में बदलें",
+        nav_register: "Register",
+        nav_admin: "Admin",
+        form_title: "Venue Entry Pass Registration",
+        form_subtitle: "Fill in your details to generate a cryptographically verified entry pass with smart exit gate assignment.",
+        sec_primary: "1. Primary Visitor Details",
+        name_label: "Full Name",
+        name_placeholder: "e.g., Rajesh Sharma",
+        phone_label: "Mobile (10 Digits)",
+        phone_placeholder: "e.g., 9876543210",
+        age_label: "Age",
+        age_placeholder: "e.g., 34",
+        address_label: "Common Home Address",
+        address_placeholder: "House No, Street, City, State, PIN",
+        sec_group: "2. Group Members",
+        sec_group_desc: "Add accompanying members. All will be on this single verified pass.",
+        btn_add_member: "+ Add Member",
+        member_name_placeholder: "Member Full Name",
+        member_age_placeholder: "Age",
+        member_mobile_placeholder: "Mobile (Optional)",
+        btn_submit_pass: "Generate Official Entry Pass & Exit Route",
+        venue_summary_title: "Venue Architecture & Smart Routing",
+        entry_gate_desc: "Strict QR Pass Verification required at single entry gate.",
+        exit_routing_desc: "System auto-assigns least-loaded exit: West, North, East, or South.",
+        gate5_desc: "Gate 5 restricted — Venue Staff & Emergency Evacuation only.",
+        pass_title: "OFFICIAL DIGITAL ENTRY PASS",
+        pass_verified_pill: "CRYPTOGRAPHICALLY VERIFIED",
+        pass_reg_code: "Pass Code",
+        pass_assigned_exit: "ASSIGNED EXIT ROUTE",
+        pass_total_count: "Total Group Count",
+        pass_primary_person: "Primary Visitor",
+        pass_phone: "Mobile",
+        pass_age: "Age",
+        pass_address: "Address",
+        pass_members_list: "Group Members",
+        pass_no_members: "Solo Visitor",
+        pass_timestamp: "Issued At",
+        pass_hmac_hash: "HMAC Signature",
+        pass_print_btn: "Print / Save PDF",
+        pass_new_btn: "Register Another",
+        pass_scan_notice: "Show this QR to the security guard at the entrance gate."
+      },
+      hi: {
+        system_subtitle: "स्मार्ट प्रवेश · गतिशील भीड़ नियंत्रण · धोखाधड़ी-रोधी",
+        lang_btn: "Switch to English",
+        nav_register: "पंजीकरण",
+        nav_admin: "एडमिन",
+        form_title: "स्थल प्रवेश पास पंजीकरण",
+        form_subtitle: "आधिकारिक एन्क्रिप्टेड डिजिटल पास के लिए विवरण भरें।",
+        sec_primary: "१. मुख्य आगंतुक का विवरण",
+        name_label: "पूरा नाम",
+        name_placeholder: "उदा. राजेश शर्मा",
+        phone_label: "मोबाइल (१० अंक)",
+        phone_placeholder: "उदा. 9876543210",
+        age_label: "आयु",
+        age_placeholder: "उदा. 34",
+        address_label: "सामान्य पता",
+        address_placeholder: "मकान नं., गली, शहर, राज्य, पिन",
+        sec_group: "२. साथ के सदस्य",
+        sec_group_desc: "साथ आने वाले सदस्यों को जोड़ें।",
+        btn_add_member: "+ सदस्य जोड़ें",
+        member_name_placeholder: "सदस्य का पूरा नाम",
+        member_age_placeholder: "आयु",
+        member_mobile_placeholder: "मोबाइल (वैकल्पिक)",
+        btn_submit_pass: "प्रवेश पास और निकास मार्ग प्राप्त करें",
+        venue_summary_title: "स्थल वास्तुकला और स्मार्ट रूटिंग",
+        entry_gate_desc: "एकल प्रवेश द्वार पर अनिवार्य क्यूआर सत्यापन।",
+        exit_routing_desc: "न्यूनतम भीड़ वाले निकास द्वार पर स्वचालित मार्गन।",
+        gate5_desc: "गेट ५ केवल स्थल कर्मचारियों और आपातकाल हेतु।",
+        pass_title: "आधिकारिक डिजिटल प्रवेश पास",
+        pass_verified_pill: "क्रिप्टोग्राफिक रूप से सत्यापित",
+        pass_reg_code: "पास कोड",
+        pass_assigned_exit: "आवंटित निकास मार्ग",
+        pass_total_count: "कुल समूह संख्या",
+        pass_primary_person: "मुख्य आगंतुक",
+        pass_phone: "मोबाइल",
+        pass_age: "आयु",
+        pass_address: "पता",
+        pass_members_list: "साथ के सदस्य",
+        pass_no_members: "एकल आगंतुक",
+        pass_timestamp: "जारी होने का समय",
+        pass_hmac_hash: "एचएमएसी हस्ताक्षर",
+        pass_print_btn: "प्रिंट / पीडीएफ सहेजें",
+        pass_new_btn: "नया पंजीकरण",
+        pass_scan_notice: "प्रवेश द्वार पर सुरक्षा गार्ड को यह क्यूआर कोड दिखाएं।"
+      }
+    };
+
+    let currentLang = localStorage.getItem('venue_lang') || 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('venue_lang', lang);
+      document.documentElement.lang = lang;
+      const langText = document.getElementById('langBtnText');
+      if (langText) langText.textContent = translations[lang].lang_btn;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang]?.[key]) el.textContent = translations[lang][key];
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (translations[lang]?.[key]) el.placeholder = translations[lang][key];
+      });
+      const hiddenLang = document.getElementById('formLanguageChoice');
+      if (hiddenLang) hiddenLang.value = lang;
+    }
+
+    function toggleLanguage() {
+      setLanguage(currentLang === 'en' ? 'hi' : 'en');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
+  </script>
+  
+<script>
+  function toggleAdminGuardPass() {
+    const input = document.getElementById('currentGuardPasswordDisplay');
+    const btn   = document.getElementById('togglePassBtn');
+    if (!input || !btn) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.innerHTML = '🙈 Hide';
+    } else {
+      input.type = 'password';
+      btn.innerHTML = '👁️ Reveal';
+    }
+  }
+
+  function filterTable() {
+    const filter = document.getElementById('tableSearchInput').value.toLowerCase();
+    const rows   = document.querySelectorAll('#registrationsTable tbody tr');
+    rows.forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+    });
+  }
+</script>
+
+</body>
+</html>
