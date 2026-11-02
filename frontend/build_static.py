@@ -77,6 +77,14 @@ def build():
     env.globals["get_flashed_messages"] = lambda **kwargs: []
     env.globals["session"]              = {}
     env.globals["is_static_build"]      = True
+    env.globals["is_flask_backend"]     = False
+    env.globals["event_config"]         = {
+        "event_name": "Event 2026",
+        "event_venue": "Main Venue",
+        "event_date": "2026-12-31",
+        "event_capacity": "5000",
+        "event_description": "Smart crowd management for your event.",
+    }
 
     class MockRequest:
         args     = {"lang": "en"}

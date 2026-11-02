@@ -13,12 +13,13 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         app.config['WTF_CSRF_ENABLED'] = False
         self.client = app.test_client()
         init_db()
-        from app import set_guard_password
+        from app import get_guard_password, set_guard_password
+        self.orig_guard_pass = get_guard_password()
         set_guard_password('guard123')
 
     def tearDown(self):
         from app import set_guard_password
-        set_guard_password('1234')
+        set_guard_password(self.orig_guard_pass)
 
     def test_01_index_page(self):
         """Test registration page loads in both English and Hindi."""

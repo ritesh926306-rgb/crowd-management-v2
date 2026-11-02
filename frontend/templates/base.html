@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}VenueGuard — Smart Crowd Management{% endblock %}</title>
+  <title>{% block title %}VenueGuard — {{ (event_config.event_name if event_config else '') | default('Event Management') }}{% endblock %}</title>
   <meta name="description" content="Smart Crowd Management System with cryptographic pass generation, dynamic exit routing, and anti-fraud security.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,8 +24,16 @@
       <a href="{{ url_for('index') }}" class="brand-wrapper">
         <div class="brand-logo-icon">🛡️</div>
         <div>
-          <div class="brand-title">VENUEGUARD</div>
-          <div class="brand-subtitle" data-i18n="system_subtitle">Smart Entry · Dynamic Load Balancing · Anti-Fraud</div>
+          <div class="brand-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            VENUEGUARD
+            {% if session.get('is_admin') %}
+              <span style="display: inline-flex; align-items: center; gap: 0.25rem; background: rgba(0,255,198,0.12); border: 1px solid rgba(0,255,198,0.35); border-radius: 4px; padding: 0.1rem 0.45rem; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em; color: var(--teal); animation: livePulse 2s ease-in-out infinite;">
+                <span style="width: 5px; height: 5px; background: var(--teal); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite;"></span>
+                LIVE
+              </span>
+            {% endif %}
+          </div>
+          <div class="brand-subtitle" data-i18n="system_subtitle">{{ (event_config.event_name if event_config else '') | default('Event Management') }}</div>
         </div>
       </a>
 
@@ -50,9 +58,9 @@
   <!-- ═══════════════════════ FLASH MESSAGES ═══════════════════════ -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="flash-container no-print">
+      <div class="flash-container no-print" id="flashContainer">
         {% for category, message in messages %}
-          <div class="alert alert-{{ 'error' if category == 'error' else ('success' if category == 'success' else 'info') }}">
+          <div class="alert alert-{{ 'error' if category == 'error' else ('success' if category == 'success' else 'info') }} flash-auto-dismiss">
             <span>{{ '⚠️' if category == 'error' else ('✅' if category == 'success' else 'ℹ️') }}</span>
             <span>{{ message }}</span>
           </div>
@@ -74,10 +82,25 @@
         <span>Cryptographic Anti-Fraud Engine &nbsp;&bull;&nbsp; HMAC-SHA256 Protected</span>
       </div>
       <div style="color: var(--text-muted);">
-        1 Entry Gate &nbsp;&bull;&nbsp; 4 Smart Exits &nbsp;&bull;&nbsp; Gate 5 Emergency
+        {{ (event_config.event_name if event_config else '') | default('Event Management') }} &nbsp;&bull;&nbsp; {{ (event_config.event_venue if event_config else '') | default('') }}
       </div>
     </div>
   </footer>
+
+  <!-- ═══════════════════════ FLASH AUTO-DISMISS ═══════════════════════ -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const flashes = document.querySelectorAll('.flash-auto-dismiss');
+      flashes.forEach(function (el) {
+        setTimeout(function () {
+          el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-8px)';
+          setTimeout(function () { el.remove(); }, 500);
+        }, 5000);
+      });
+    });
+  </script>
 
   <!-- ═══════════════════════ I18N ═══════════════════════ -->
   <script>
@@ -87,7 +110,7 @@
         lang_btn: "हिंदी में बदलें",
         nav_register: "Register",
         nav_admin: "Admin",
-        form_title: "Venue Entry Pass Registration",
+        form_title: "Event Entry Pass Registration",
         form_subtitle: "Fill in your details to generate a cryptographically verified entry pass with smart exit gate assignment.",
         sec_primary: "1. Primary Visitor Details",
         name_label: "Full Name",
@@ -107,8 +130,7 @@
         btn_submit_pass: "Generate Official Entry Pass & Exit Route",
         venue_summary_title: "Venue Architecture & Smart Routing",
         entry_gate_desc: "Strict QR Pass Verification required at single entry gate.",
-        exit_routing_desc: "System auto-assigns least-loaded exit: West, North, East, or South.",
-        gate5_desc: "Gate 5 restricted — Venue Staff & Emergency Evacuation only.",
+        exit_routing_desc: "System auto-assigns least-loaded exit: Gate A, B, C, or D.",
         pass_title: "OFFICIAL DIGITAL ENTRY PASS",
         pass_verified_pill: "CRYPTOGRAPHICALLY VERIFIED",
         pass_reg_code: "Pass Code",
@@ -131,7 +153,7 @@
         lang_btn: "Switch to English",
         nav_register: "पंजीकरण",
         nav_admin: "एडमिन",
-        form_title: "स्थल प्रवेश पास पंजीकरण",
+        form_title: "आयोजन प्रवेश पास पंजीकरण",
         form_subtitle: "आधिकारिक एन्क्रिप्टेड डिजिटल पास के लिए विवरण भरें।",
         sec_primary: "१. मुख्य आगंतुक का विवरण",
         name_label: "पूरा नाम",
@@ -152,7 +174,6 @@
         venue_summary_title: "स्थल वास्तुकला और स्मार्ट रूटिंग",
         entry_gate_desc: "एकल प्रवेश द्वार पर अनिवार्य क्यूआर सत्यापन।",
         exit_routing_desc: "न्यूनतम भीड़ वाले निकास द्वार पर स्वचालित मार्गन।",
-        gate5_desc: "गेट ५ केवल स्थल कर्मचारियों और आपातकाल हेतु।",
         pass_title: "आधिकारिक डिजिटल प्रवेश पास",
         pass_verified_pill: "क्रिप्टोग्राफिक रूप से सत्यापित",
         pass_reg_code: "पास कोड",

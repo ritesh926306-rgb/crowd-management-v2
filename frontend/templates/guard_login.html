@@ -2,87 +2,196 @@
 
 {% block title %}Guard Terminal Access · VenueGuard{% endblock %}
 
+{% block head %}
+<style>
+  /* ── Hide main nav header on this lock-screen page ── */
+  .app-header { display: none !important; }
+
+  /* ── Full-screen dark background ── */
+  body {
+    background: radial-gradient(ellipse 80% 60% at 50% 30%, rgba(0,255,198,0.06) 0%, transparent 70%), #040D18;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Lock icon pulse ── */
+  @keyframes lockPulse {
+    0%, 100% { box-shadow: 0 0 30px var(--teal-glow), 0 0 0 0 rgba(0,255,198,0.35); }
+    50%       { box-shadow: 0 0 50px var(--teal-glow), 0 0 0 14px rgba(0,255,198,0); }
+  }
+
+  .lock-icon-wrap {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, rgba(0,255,198,0.18), rgba(30,62,98,0.3));
+    border: 1.5px solid rgba(0,255,198,0.4);
+    border-radius: var(--radius-lg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.6rem;
+    margin: 0 auto 1.1rem;
+    animation: lockPulse 2.4s ease-in-out infinite;
+  }
+
+  /* ── Shake animation on failed attempt ── */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    15%       { transform: translateX(-8px); }
+    30%       { transform: translateX(8px); }
+    45%       { transform: translateX(-6px); }
+    60%       { transform: translateX(6px); }
+    75%       { transform: translateX(-4px); }
+    90%       { transform: translateX(4px); }
+  }
+  .shake { animation: shake 0.5s ease-in-out; }
+
+  /* ── Success flash ── */
+  @keyframes successFlash {
+    0%, 100% { background: rgba(34,197,94,0); }
+    40%       { background: rgba(34,197,94,0.15); }
+  }
+  .success-flash { animation: successFlash 0.6s ease-in-out; }
+
+  /* ── PIN dots display ── */
+  .pin-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    min-height: 14px;
+  }
+  .pin-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--teal);
+    opacity: 0.85;
+    transition: transform 0.1s ease;
+    transform: scale(1.15);
+  }
+  .pin-dot-empty {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.15);
+  }
+
+  /* ── Submit button loading ── */
+  .btn-loading { opacity: 0.75; pointer-events: none; }
+
+  /* ── Error message ── */
+  .error-msg {
+    background: rgba(255,77,109,0.1);
+    border: 1px solid rgba(255,77,109,0.3);
+    border-radius: var(--radius-md);
+    color: var(--red);
+    font-size: 0.84rem;
+    padding: 0.65rem 1rem;
+    text-align: center;
+    margin-bottom: 1.1rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 440px; margin: 3.5rem auto;">
-  <div class="card" style="border: 1px solid rgba(0,255,198,0.2); box-shadow: var(--shadow-card), 0 0 50px rgba(0,255,198,0.06);">
+<div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; min-height: calc(100vh - 0px);">
+  <div style="width: 100%; max-width: 420px;">
+    <div class="card" id="loginCard" style="border: 1px solid rgba(0,255,198,0.2); box-shadow: var(--shadow-card), 0 0 60px rgba(0,255,198,0.07);">
 
-    <!-- Guard Icon -->
-    <div style="text-align: center; margin-bottom: 1.75rem;">
-      <div style="width: 68px; height: 68px; background: linear-gradient(135deg, rgba(0,255,198,0.18), rgba(30,62,98,0.3)); border: 1.5px solid rgba(0,255,198,0.35); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 1rem; box-shadow: 0 0 30px var(--teal-glow);">
-        🛡️
+      <!-- Lock Icon -->
+      <div style="text-align: center; margin-bottom: 1.75rem;">
+        <div class="lock-icon-wrap">🔒</div>
+        <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; margin-bottom: 0.4rem;">
+          Guard Terminal
+        </h1>
+        <p style="font-size: 0.83rem; color: var(--text-muted); max-width: 300px; margin: 0 auto; line-height: 1.5;">
+          Authentication required to access the security portal
+        </p>
       </div>
-      <h1 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
-        Guard Verification Terminal
-      </h1>
-      <p style="font-size: 0.83rem; color: var(--text-muted); margin-top: 0.35rem;">
-        Single Entry Gate · Strict Security Clearance · Authorized Guards Only
-      </p>
-    </div>
 
-    {% if request.args.get('next') %}
-    <div style="margin-bottom: 1.25rem; padding: 0.75rem 1rem; background: rgba(0,255,198,0.08); border: 1px solid rgba(0,255,198,0.25); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--teal); text-align: center;">
-      🔒 <strong>Official Gate Security Only:</strong> This entry pass can ONLY be verified by authorized venue security on this Guard Terminal. Third-party scanner apps and unauthorized devices are rejected.
-    </div>
-    {% endif %}
+      {% if request.args.get('next') %}
+      <div style="margin-bottom: 1.25rem; padding: 0.75rem 1rem; background: rgba(0,255,198,0.08); border: 1px solid rgba(0,255,198,0.25); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--teal); text-align: center;">
+        🔒 <strong>Official Gate Security Only:</strong> This entry pass can ONLY be verified by authorized venue security on this Guard Terminal.
+      </div>
+      {% endif %}
 
-    <!-- PIN Form -->
-    <form action="{{ url_for('guard_login', next=request.args.get('next')) }}" method="POST" id="guardLoginForm">
-      <div class="form-group" style="margin-bottom: 1.5rem;">
-        <label for="guardPin" style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 600;">Enter Guard Access Password</span>
-          <span style="font-size: 0.74rem; color: var(--text-muted);"><span style="color: var(--teal);">●</span> Admin Controlled</span>
-        </label>
-        <div style="position: relative;">
-          <input
-            type="password"
-            id="guardPin"
-            name="pin"
-            class="form-control"
-            placeholder="Enter password..."
-            required
-            autofocus
-            style="font-size: 1.3rem; letter-spacing: 0.15em; text-align: center; font-family: 'JetBrains Mono', monospace;"
-          >
-          <button
-            type="button"
-            onclick="togglePinVisibility()"
-            style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem;"
-            title="Toggle Visibility"
-          >
-            👁️
-          </button>
+      <!-- Flash messages (base.html handles these but we add a targeted error area too) -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="error-msg" id="flashMsg">
+            ⚠️ {{ message }}
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      <!-- PIN Form -->
+      <form action="{{ url_for('guard_login', next=request.args.get('next')) }}" method="POST" id="guardLoginForm" onsubmit="handleSubmit(event)">
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="guardPin" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-weight: 600;">Enter Guard Access Password</span>
+            <span style="font-size: 0.74rem; color: var(--text-muted);"><span style="color: var(--teal);">●</span> Admin Controlled</span>
+          </label>
+          <div style="position: relative;">
+            <input
+              type="password"
+              id="guardPin"
+              name="pin"
+              class="form-control"
+              placeholder="Enter password..."
+              required
+              autofocus
+              oninput="updatePinDots()"
+              style="font-size: 1.3rem; letter-spacing: 0.15em; text-align: center; font-family: 'JetBrains Mono', monospace; padding-right: 3rem;"
+            >
+            <button
+              type="button"
+              onclick="togglePinVisibility()"
+              id="visibilityToggle"
+              style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 0; line-height: 1;"
+              title="Toggle Visibility"
+            >
+              👁️
+            </button>
+          </div>
+          <!-- PIN character dots -->
+          <div class="pin-dots" id="pinDots" aria-hidden="true"></div>
+        </div>
+
+        <!-- Numeric Keypad (good for gate tablets / mobile) -->
+        <div class="guard-keypad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
+          {% for digit in ['1','2','3','4','5','6','7','8','9','C','0','⌫'] %}
+            <button
+              type="button"
+              class="btn btn-navy keypad-key"
+              onclick="handleKeypad('{{ digit }}')"
+              style="padding: 0.75rem 0; font-size: 1.15rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;"
+            >
+              {{ digit }}
+            </button>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn" style="box-shadow: 0 0 25px var(--teal-glow);">
+          <span id="submitBtnText">🔓 Unlock Guard Terminal</span>
+        </button>
+      </form>
+
+      <!-- Footer links + disclaimer -->
+      <div style="margin-top: 1.5rem; text-align: center; border-top: 1px solid var(--glass-border); padding-top: 1.25rem;">
+        <div style="margin-bottom: 0.85rem;">
+          <a href="{{ url_for('index') }}" style="font-size: 0.82rem; color: var(--text-muted); text-decoration: none;">
+            ← Back to Registration
+          </a>
+          &nbsp;·&nbsp;
+          <a href="{{ url_for('admin_login') }}" style="font-size: 0.82rem; color: var(--text-muted); text-decoration: none;">
+            Admin Portal
+          </a>
+        </div>
+        <div style="font-size: 0.72rem; color: rgba(255,255,255,0.25); font-style: italic;">
+          ⏱ Sessions expire after 15 minutes of inactivity
         </div>
       </div>
 
-      <!-- Quick Numeric Pad for Gate Tablets/Mobiles -->
-      <div class="guard-keypad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
-        {% for digit in ['1','2','3','4','5','6','7','8','9','C','0','⌫'] %}
-          <button
-            type="button"
-            class="btn btn-navy keypad-key"
-            onclick="handleKeypad('{{ digit }}')"
-            style="padding: 0.75rem 0; font-size: 1.15rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;"
-          >
-            {{ digit }}
-          </button>
-        {% endfor %}
-      </div>
-
-      <button type="submit" class="btn btn-primary btn-block btn-lg" style="box-shadow: 0 0 25px var(--teal-glow);">
-        🔓 Unlock Guard Terminal
-      </button>
-    </form>
-
-    <div style="margin-top: 1.5rem; text-align: center; border-top: 1px solid var(--glass-border); padding-top: 1.25rem;">
-      <a href="{{ url_for('index') }}" style="font-size: 0.82rem; color: var(--text-muted); text-decoration: none;">
-        ← Back to Visitor Registration
-      </a>
-      &nbsp;·&nbsp;
-      <a href="{{ url_for('admin_login') }}" style="font-size: 0.82rem; color: var(--text-muted); text-decoration: none;">
-        Admin Portal
-      </a>
     </div>
-
   </div>
 </div>
 {% endblock %}
@@ -90,7 +199,22 @@
 {% block scripts %}
 <script>
   const pinInput = document.getElementById('guardPin');
+  const pinDots  = document.getElementById('pinDots');
+  const loginCard = document.getElementById('loginCard');
 
+  /* ── PIN dot display ── */
+  function updatePinDots() {
+    const len = pinInput.value.length;
+    if (len === 0) {
+      pinDots.innerHTML = '';
+      return;
+    }
+    pinDots.innerHTML = Array.from({ length: len }, () =>
+      '<div class="pin-dot"></div>'
+    ).join('');
+  }
+
+  /* ── Keypad input ── */
   function handleKeypad(val) {
     if (val === 'C') {
       pinInput.value = '';
@@ -101,11 +225,35 @@
         pinInput.value += val;
       }
     }
+    updatePinDots();
     pinInput.focus();
   }
 
+  /* ── Show / hide password ── */
   function togglePinVisibility() {
+    const btn = document.getElementById('visibilityToggle');
     pinInput.type = pinInput.type === 'password' ? 'text' : 'password';
+    btn.textContent = pinInput.type === 'password' ? '👁️' : '🙈';
   }
+
+  /* ── Submit with loading state ── */
+  function handleSubmit(e) {
+    const btn  = document.getElementById('submitBtn');
+    const text = document.getElementById('submitBtnText');
+    btn.classList.add('btn-loading');
+    text.innerHTML = '<span class="spinner"></span> Authenticating...';
+    // Allow native form submit to proceed
+  }
+
+  /* ── On page load: shake card + clear pin if there was a failed flash ── */
+  window.addEventListener('DOMContentLoaded', function() {
+    const flashMsg = document.getElementById('flashMsg');
+    if (flashMsg) {
+      loginCard.classList.add('shake');
+      loginCard.addEventListener('animationend', () => loginCard.classList.remove('shake'), { once: true });
+      pinInput.value = '';
+      updatePinDots();
+    }
+  });
 </script>
 {% endblock %}

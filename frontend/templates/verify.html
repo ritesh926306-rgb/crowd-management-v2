@@ -4,6 +4,8 @@
 
 {% block head %}
 <script src="{{ url_for('static', filename='html5-qrcode.min.js') }}"></script>
+
+<!-- Guard portal auto-lock managed via 15-minute session countdown and server-side TTL -->
 {% endblock %}
 
 {% block content %}
@@ -30,6 +32,9 @@
       <button id="torchBtn" class="pill-toggle" onclick="toggleTorch()" style="display: none;" title="Toggle Flashlight">
         <span>⚡</span> Torch
       </button>
+
+      <!-- Session countdown timer -->
+      <span id="sessionTimer" style="font-size:0.76rem; color: var(--amber); font-family: 'JetBrains Mono', monospace; padding: 0.2rem 0.5rem; background: rgba(245,158,11,0.1); border-radius: 6px; border: 1px solid rgba(245,158,11,0.2);">⏱ 15:00</span>
 
       {% if guard_active %}
         <a href="{{ url_for('guard_logout') }}" class="pill-toggle" style="color: var(--amber); font-weight: 700; border-color: rgba(245,158,11,0.35); display: inline-flex; align-items: center; gap: 0.35rem;" title="Exit and Lock Gate Terminal">
@@ -170,7 +175,7 @@
 
         <!-- Visitor Details -->
         <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
-          Primary Visitor & Group Details
+          Primary Visitor &amp; Group Details
         </h3>
 
         <table class="pass-details-table" style="margin-bottom: 1.5rem;">
@@ -294,6 +299,44 @@
 
 {% block scripts %}
 <script>
+  /* ─────────────────────────── SESSION COUNTDOWN TIMER ─────────────────────────── */
+  (function initSessionTimer() {
+    const SESSION_MINUTES = 15;
+    let remaining = SESSION_MINUTES * 60; // seconds
+    const timerEl = document.getElementById('sessionTimer');
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return '⏱ ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function tick() {
+      remaining--;
+      if (timerEl) timerEl.textContent = formatTime(remaining);
+
+      // Warning color when under 2 minutes
+      if (remaining <= 120 && timerEl) {
+        timerEl.style.color = 'var(--red)';
+        timerEl.style.background = 'rgba(255,77,109,0.1)';
+        timerEl.style.borderColor = 'rgba(255,77,109,0.3)';
+      }
+
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        // Auto-lock: POST to lock endpoint then redirect
+        fetch('/api/guard/lock', { method: 'POST', credentials: 'same-origin' })
+          .catch(() => {})
+          .finally(() => {
+            window.location.href = '/guard/login';
+          });
+      }
+    }
+
+    if (timerEl) timerEl.textContent = formatTime(remaining);
+    const timerInterval = setInterval(tick, 1000);
+  })();
+
   /* ─────────────────────────── SOUND & HAPTIC SYNTHESIZER ─────────────────────────── */
   let audioEnabled = true;
   let audioCtx = null;
@@ -615,7 +658,7 @@
     if (codeParam) return codeParam[1].toUpperCase();
 
     // Look for custom prefix like VENUEGUARD:REG-XXXXXX or VG:REG-XXXXXX
-    const prefixMatch = rawText.match(/(?:VENUEGUARD|VG|PASS)[:\-_ ]+([A-Za-z0-9\-_]+)/i);
+    const prefixMatch = rawText.match(/(?:VENUEGUARD|VG|PASS)[\:\-_ ]+([A-Za-z0-9\-_]+)/i);
     if (prefixMatch) return prefixMatch[1].toUpperCase();
 
     // Look for REG-XXXXXX pattern
@@ -836,7 +879,7 @@
 
         <!-- Visitor Details -->
         <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
-          Primary Visitor & Group Details
+          Primary Visitor &amp; Group Details
         </h3>
 
         <table class="pass-details-table" style="margin-bottom: 1.5rem;">
