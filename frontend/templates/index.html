@@ -345,6 +345,9 @@
     </div>
   </div>
 
+  <form id="registrationForm" action="{{ url_for('register') }}" method="POST">
+    <input type="hidden" name="language" id="formLanguageChoice" value="{{ lang or 'en' }}">
+    <input type="hidden" name="group_count" id="f_group_count" value="1">
   <!-- ═══════════════ STEP 2: PRIMARY VISITOR DETAILS ═══════════════ -->
   <div class="wizard-step-panel" id="wizardStep2">
     <div class="card">
@@ -363,46 +366,46 @@
             <span data-i18n="name_label">Full Name</span>
             <span class="required-star">*</span>
           </label>
-          <input type="text" id="primary_name" name="primary_name_preview" class="form-control"
+          <input type="text" id="primary_name" name="primary_name" class="form-control"
             placeholder="e.g., Rajesh Sharma" data-i18n-ph="name_placeholder"
-            maxlength="80" autocomplete="name" oninput="wizardSyncReview()">
+            maxlength="80" autocomplete="name" oninput="wizardSyncReview()" required>
           <span class="input-helper" id="nameHelper" style="display:none; color: var(--red); font-size: 0.78rem;">Please enter your full name.</span>
         </div>
 
         <!-- Mobile -->
         <div class="form-group">
-          <label for="mobile_preview">
+          <label for="mobile">
             <span data-i18n="phone_label">Mobile (10 Digits)</span>
             <span class="required-star">*</span>
           </label>
-          <input type="tel" id="mobile_preview" name="mobile_preview" class="form-control"
+          <input type="tel" id="mobile" name="mobile" class="form-control"
             placeholder="e.g., 9876543210" data-i18n-ph="phone_placeholder"
             pattern="[0-9]{10}" maxlength="10"
-            oninput="this.value = this.value.replace(/[^0-9]/g, ''); wizardSyncReview()">
+            oninput="this.value = this.value.replace(/[^0-9]/g, ''); wizardSyncReview()" required>
           <span class="input-helper">10-digit number without country code</span>
           <span class="input-helper" id="mobileHelper" style="display:none; color: var(--red); font-size: 0.78rem;">Please enter a valid 10-digit mobile number.</span>
         </div>
 
         <!-- Age -->
         <div class="form-group">
-          <label for="age_preview">
+          <label for="age">
             <span data-i18n="age_label">Age</span>
             <span class="required-star">*</span>
           </label>
-          <input type="number" id="age_preview" name="age_preview" class="form-control"
+          <input type="number" id="age" name="age" class="form-control"
             placeholder="e.g., 34" data-i18n-ph="age_placeholder"
-            min="1" max="120" oninput="wizardSyncReview()">
+            min="1" max="120" oninput="wizardSyncReview()" required>
         </div>
 
         <!-- Address -->
         <div class="form-group full-width">
-          <label for="address_preview">
+          <label for="address">
             <span data-i18n="address_label">Common Home Address</span>
             <span class="required-star">*</span>
           </label>
-          <textarea id="address_preview" name="address_preview" class="form-control" rows="2"
+          <textarea id="address" name="address" class="form-control" rows="2"
             placeholder="House No, Street, City, State, PIN" data-i18n-ph="address_placeholder"
-            oninput="wizardSyncReview()"></textarea>
+            oninput="wizardSyncReview()" required></textarea>
           <span class="input-helper">Shared address for all group members on this pass</span>
         </div>
       </div>
@@ -463,57 +466,46 @@
         <p class="card-desc" style="margin-top: 0.35rem;">Please verify your details before generating your pass.</p>
       </div>
 
-      <!-- THE REAL FORM — hidden fields populated by JS -->
-      <form id="registrationForm" action="{{ url_for('register') }}" method="POST">
-        <input type="hidden" name="language" id="formLanguageChoice" value="en">
-        <input type="hidden" name="primary_name" id="f_primary_name">
-        <input type="hidden" name="mobile" id="f_mobile">
-        <input type="hidden" name="age" id="f_age">
-        <input type="hidden" name="address" id="f_address">
-        <input type="hidden" name="group_count" id="f_group_count" value="1">
-        <!-- member fields injected by JS before submit -->
-        <div id="hiddenMembersContainer"></div>
-
-        <!-- Review card -->
-        <div class="review-section" style="margin-top: 1.25rem;">
-          <div class="review-section-title">👤 Primary Visitor</div>
-          <div class="review-row">
-            <span class="review-label">Full Name</span>
-            <span class="review-value" id="review_name">—</span>
-          </div>
-          <div class="review-row">
-            <span class="review-label">Mobile</span>
-            <span class="review-value" id="review_mobile">—</span>
-          </div>
-          <div class="review-row">
-            <span class="review-label">Age</span>
-            <span class="review-value" id="review_age">—</span>
-          </div>
-          <div class="review-row">
-            <span class="review-label">Address</span>
-            <span class="review-value" id="review_address">—</span>
-          </div>
+      <!-- Review card -->
+      <div class="review-section" style="margin-top: 1.25rem;">
+        <div class="review-section-title">👤 Primary Visitor</div>
+        <div class="review-row">
+          <span class="review-label">Full Name</span>
+          <span class="review-value" id="review_name">—</span>
         </div>
-
-        <div class="review-section" id="reviewMembersSection">
-          <div class="review-section-title">👥 Group Members</div>
-          <div id="review_members_list" style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Solo visitor — no additional members.</div>
+        <div class="review-row">
+          <span class="review-label">Mobile</span>
+          <span class="review-value" id="review_mobile">—</span>
         </div>
-
-        <div style="background: rgba(0,255,198,0.04); border: 1px solid rgba(0,255,198,0.15); border-radius: var(--radius-md); padding: 0.85rem 1rem; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
-          🛡️ Your pass will be cryptographically signed with HMAC-SHA256 and assigned a smart exit gate automatically.
+        <div class="review-row">
+          <span class="review-label">Age</span>
+          <span class="review-value" id="review_age">—</span>
         </div>
-
-        <div class="wizard-nav">
-          <button type="button" class="btn btn-outline" onclick="wizardGoTo(3)">← Edit Members</button>
-          <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" onclick="handleSubmit(event)">
-            <span>✅</span>
-            <span id="submitBtnText">Confirm &amp; Generate Pass</span>
-          </button>
+        <div class="review-row">
+          <span class="review-label">Address</span>
+          <span class="review-value" id="review_address">—</span>
         </div>
-      </form>
+      </div>
+
+      <div class="review-section" id="reviewMembersSection">
+        <div class="review-section-title">👥 Group Members</div>
+        <div id="review_members_list" style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Solo visitor — no additional members.</div>
+      </div>
+
+      <div style="background: rgba(0,255,198,0.04); border: 1px solid rgba(0,255,198,0.15); border-radius: var(--radius-md); padding: 0.85rem 1rem; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        🛡️ Your pass will be cryptographically signed with HMAC-SHA256 and assigned a smart exit gate automatically.
+      </div>
+
+      <div class="wizard-nav">
+        <button type="button" class="btn btn-outline" onclick="wizardGoTo(3)">← Edit Members</button>
+        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+          <span>✅</span>
+          <span id="submitBtnText">Confirm &amp; Generate Pass</span>
+        </button>
+      </div>
     </div>
   </div>
+  </form>
 
 </div>
 {% endblock %}
@@ -560,37 +552,44 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function getInputValue(id, altId) {
+    const el = document.getElementById(id) || (altId ? document.getElementById(altId) : null);
+    return el ? el.value.trim() : '';
+  }
+
   function wizardStep2Next() {
-    const name = document.getElementById('primary_name').value.trim();
-    const mobile = document.getElementById('mobile_preview').value.trim();
-    const age = document.getElementById('age_preview').value.trim();
-    const address = document.getElementById('address_preview').value.trim();
+    const name = getInputValue('primary_name');
+    const mobile = getInputValue('mobile', 'mobile_preview');
+    const age = getInputValue('age', 'age_preview');
+    const address = getInputValue('address', 'address_preview');
 
     let valid = true;
     const nameHelper = document.getElementById('nameHelper');
     const mobileHelper = document.getElementById('mobileHelper');
 
-    nameHelper.style.display = name ? 'none' : 'block';
+    if (nameHelper) nameHelper.style.display = name ? 'none' : 'block';
     if (!name) valid = false;
 
     if (!/^\d{10}$/.test(mobile)) {
-      mobileHelper.style.display = 'block';
+      if (mobileHelper) mobileHelper.style.display = 'block';
       valid = false;
     } else {
-      mobileHelper.style.display = 'none';
+      if (mobileHelper) mobileHelper.style.display = 'none';
     }
 
-    if (!age || parseInt(age) < 1 || parseInt(age) > 120) {
+    const ageEl = document.getElementById('age') || document.getElementById('age_preview');
+    if (!age || parseInt(age, 10) < 1 || parseInt(age, 10) > 120) {
       valid = false;
-      document.getElementById('age_preview').style.borderColor = 'var(--red)';
+      if (ageEl) ageEl.style.borderColor = 'var(--red)';
     } else {
-      document.getElementById('age_preview').style.borderColor = '';
+      if (ageEl) ageEl.style.borderColor = '';
     }
 
     if (!address) valid = false;
 
-    if (valid) wizardGoTo(3);
-    else {
+    if (valid) {
+      wizardGoTo(3);
+    } else {
       document.querySelector('#wizardStep2 .card').style.animation = 'none';
       setTimeout(() => {
         const firstInvalid = document.querySelector('#wizardStep2 .form-control:invalid, #wizardStep2 input[style*="red"]');
@@ -600,10 +599,10 @@
   }
 
   function wizardSyncReview() {
-    const name = document.getElementById('primary_name')?.value.trim();
-    const mobile = document.getElementById('mobile_preview')?.value.trim();
-    const age = document.getElementById('age_preview')?.value.trim();
-    const address = document.getElementById('address_preview')?.value.trim();
+    const name = getInputValue('primary_name');
+    const mobile = getInputValue('mobile', 'mobile_preview');
+    const age = getInputValue('age', 'age_preview');
+    const address = getInputValue('address', 'address_preview');
     if (document.getElementById('review_name')) document.getElementById('review_name').textContent = name || '—';
     if (document.getElementById('review_mobile')) document.getElementById('review_mobile').textContent = mobile || '—';
     if (document.getElementById('review_age')) document.getElementById('review_age').textContent = age ? age + ' yrs' : '—';
@@ -634,37 +633,59 @@
     }
   }
 
-  function handleSubmit(e) {
-    // Populate real hidden form fields
-    document.getElementById('f_primary_name').value = document.getElementById('primary_name')?.value.trim() || '';
-    document.getElementById('f_mobile').value = document.getElementById('mobile_preview')?.value.trim() || '';
-    document.getElementById('f_age').value = document.getElementById('age_preview')?.value.trim() || '';
-    document.getElementById('f_address').value = document.getElementById('address_preview')?.value.trim() || '';
+  /* ─── FORM SUBMIT & ENTER KEY LISTENERS ─── */
+  document.addEventListener('DOMContentLoaded', function() {
+    const regForm = document.getElementById('registrationForm');
+    if (!regForm) return;
 
-    // Clone member inputs into hidden container
-    const hiddenContainer = document.getElementById('hiddenMembersContainer');
-    hiddenContainer.innerHTML = '';
-    const rows = document.querySelectorAll('#membersContainer .member-row');
-    rows.forEach(row => {
-      ['member_name[]', 'member_age[]', 'member_mobile[]'].forEach(name => {
-        const src = row.querySelector(`input[name="${name}"]`);
-        if (src) {
-          const inp = document.createElement('input');
-          inp.type = 'hidden';
-          inp.name = name;
-          inp.value = src.value;
-          hiddenContainer.appendChild(inp);
-        }
-      });
+    // Prevent accidental submit when pressing Enter on Steps 1, 2, or 3
+    regForm.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (currentStep === 2) wizardStep2Next();
+        else if (currentStep === 3) wizardGoTo(4);
+        return false;
+      }
     });
-    document.getElementById('f_group_count').value = 1 + rows.length;
 
-    // Show spinner
-    const btn = document.getElementById('submitBtn');
-    const btnText = document.getElementById('submitBtnText');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="btn-spinner"></span> Generating Pass…';
-  }
+    regForm.addEventListener('submit', function(e) {
+      // If on static host (GitHub Pages), static-mode.js handles pass generation and navigation
+      if (typeof isStaticHost === 'function' && isStaticHost()) {
+        return;
+      }
+
+      const name = getInputValue('primary_name');
+      const mobile = getInputValue('mobile', 'mobile_preview');
+      const age = getInputValue('age', 'age_preview');
+      const address = getInputValue('address', 'address_preview');
+
+      if (!name || !mobile || !age || !address) {
+        e.preventDefault();
+        alert('Please fill in all mandatory primary visitor fields.');
+        wizardGoTo(2);
+        return false;
+      }
+
+      if (!/^\d{10}$/.test(mobile)) {
+        e.preventDefault();
+        alert('Please enter a valid 10-digit mobile number.');
+        wizardGoTo(2);
+        return false;
+      }
+
+      // Update headcount hidden field
+      const rows = document.querySelectorAll('#membersContainer .member-row');
+      const groupCountInput = document.getElementById('f_group_count');
+      if (groupCountInput) groupCountInput.value = 1 + rows.length;
+
+      // Show spinner without immediately disabling button (disabling halts form submit!)
+      const btn = document.getElementById('submitBtn');
+      if (btn) {
+        btn.innerHTML = '<span class="btn-spinner"></span> Generating Pass…';
+        setTimeout(() => { btn.disabled = true; }, 100);
+      }
+    });
+  });
 
   /* ─── MEMBERS ─── */
   function addMemberRow() {

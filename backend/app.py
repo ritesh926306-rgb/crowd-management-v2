@@ -301,8 +301,14 @@ def get_db_connection():
             print(f"[DATABASE WARNING] Unable to connect to MySQL at {DB_HOST}:{DB_PORT} ({e}). Falling back to SQLite.")
 
     # --- SQLite fallback ---
-    conn = sqlite3.connect(SQLITE_PATH)
+    os.makedirs(os.path.dirname(SQLITE_PATH), exist_ok=True)
+    conn = sqlite3.connect(SQLITE_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA foreign_keys = ON;")
+    except Exception:
+        pass
     return UnifiedConnection(conn, db_kind="sqlite")
 
 
@@ -819,44 +825,64 @@ def register():
     created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     conn = get_db_connection()
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
 
-    if conn.db_kind == "postgresql":
-        cursor.execute("""
-            INSERT INTO registrations (
+        if conn.db_kind == "postgresql":
+            cursor.execute("""
+                INSERT INTO registrations (
+                    reg_code, language, primary_name, mobile, age, address,
+                    group_count, assigned_group, assigned_gate, gate_id,
+                    hmac_signature, created_at, checked_in
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                RETURNING id
+            """, (
                 reg_code, language, primary_name, mobile, age, address,
-                group_count, assigned_group, assigned_gate, gate_id,
-                hmac_signature, created_at, checked_in
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-            RETURNING id
-        """, (
-            reg_code, language, primary_name, mobile, age, address,
-            total_group_count, assigned["group"], assigned["name"], assigned["gate_id"],
-            hmac_sig, created_at
-        ))
-        reg_id = cursor.lastrowid
-    else:
-        cursor.execute("""
-            INSERT INTO registrations (
+                total_group_count, assigned["group"], assigned["name"], assigned["gate_id"],
+                hmac_sig, created_at
+            ))
+            reg_id = cursor.lastrowid
+        else:
+            cursor.execute("""
+                INSERT INTO registrations (
+                    reg_code, language, primary_name, mobile, age, address,
+                    group_count, assigned_group, assigned_gate, gate_id,
+                    hmac_signature, created_at, checked_in
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            """, (
                 reg_code, language, primary_name, mobile, age, address,
-                group_count, assigned_group, assigned_gate, gate_id,
-                hmac_signature, created_at, checked_in
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-        """, (
-            reg_code, language, primary_name, mobile, age, address,
-            total_group_count, assigned["group"], assigned["name"], assigned["gate_id"],
-            hmac_sig, created_at
-        ))
-        reg_id = cursor.lastrowid
+                total_group_count, assigned["group"], assigned["name"], assigned["gate_id"],
+                hmac_sig, created_at
+            ))
+            reg_id = cursor.lastrowid
 
-    for member in members_data:
-        cursor.execute("""
-            INSERT INTO group_members (reg_id, member_name, member_age, member_mobile)
-            VALUES (?, ?, ?, ?)
-        """, (reg_id, member["name"], member["age"], member["mobile"]))
+        # Fallback in case cursor.lastrowid is None
+        if not reg_id:
+            cursor.execute("SELECT id FROM registrations WHERE reg_code = ?", (reg_code,))
+            r_row = cursor.fetchone()
+            if r_row:
+                reg_id = r_row["id"]
 
-    conn.commit()
-    conn.close()
+        for member in members_data:
+            cursor.execute("""
+                INSERT INTO group_members (reg_id, member_name, member_age, member_mobile)
+                VALUES (?, ?, ?, ?)
+            """, (reg_id, member["name"], member["age"], member["mobile"]))
+
+        conn.commit()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(f"[REGISTRATION ERROR] Database insertion failed: {e}")
+        flash("A database error occurred while generating your pass. Please try again.", "error")
+        return redirect(url_for("index", lang=language))
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
     return redirect(url_for("view_pass", reg_code=reg_code))
 

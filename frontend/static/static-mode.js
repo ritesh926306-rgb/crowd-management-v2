@@ -235,10 +235,10 @@
         btn.innerHTML = '<span class="spinner"></span> <span>Generating Pass…</span>';
       }
 
-      const primaryName = document.getElementById('primary_name')?.value?.trim() || '';
-      const mobile      = document.getElementById('mobile')?.value?.trim() || '';
-      const age         = document.getElementById('age')?.value?.trim() || '';
-      const address     = document.getElementById('address')?.value?.trim() || '';
+      const primaryName = (document.getElementById('primary_name')?.value || document.getElementById('f_primary_name')?.value || '').trim();
+      const mobile      = (document.getElementById('mobile')?.value || document.getElementById('mobile_preview')?.value || document.getElementById('f_mobile')?.value || '').trim();
+      const age         = (document.getElementById('age')?.value || document.getElementById('age_preview')?.value || document.getElementById('f_age')?.value || '').trim();
+      const address     = (document.getElementById('address')?.value || document.getElementById('address_preview')?.value || document.getElementById('f_address')?.value || '').trim();
 
       if (!primaryName || !mobile || !age || !address) {
         alert('Please fill in all mandatory fields.');
