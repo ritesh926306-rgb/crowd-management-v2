@@ -16,17 +16,18 @@ DIST_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "dist"))
 
 # ─── Gate Configuration ───────────────────────────────────────────────────────
 GATES_CONFIG = [
-    { "group": "Group A", "gate_id": "exit_1", "name": "Exit 1 (West)",  "zone": "Zone Alpha (West Gate)",  "color": "#00FFC6", "description": "Proceed West towards West Boulevard & Transit Hub 1"     },
-    { "group": "Group B", "gate_id": "exit_2", "name": "Exit 2 (North)", "zone": "Zone Beta (North Gate)",  "color": "#3B82F6", "description": "Proceed North towards Main Highway & North Parking"       },
-    { "group": "Group C", "gate_id": "exit_3", "name": "Exit 3 (East)",  "zone": "Zone Gamma (East Gate)",  "color": "#F59E0B", "description": "Proceed East towards East Plaza & Metro Shuttle"           },
-    { "group": "Group D", "gate_id": "exit_4", "name": "Exit 4 (South)", "zone": "Zone Delta (South Gate)", "color": "#A855F7", "description": "Proceed South towards South Promenade & Taxi Stand"        },
+    { "group": "Group A", "gate_id": "exit_a", "name": "Exit Gate A (North Promenade)", "zone": "Zone Alpha (North)",  "color": "#00FFC6", "description": "North Exit towards Main Boulevard & North Transit Plaza" },
+    { "group": "Group B", "gate_id": "exit_b", "name": "Exit Gate B (East Corridor)",   "zone": "Zone Beta (East)",    "color": "#3B82F6", "description": "East Exit towards Eastern Metro Station & Shuttle"     },
+    { "group": "Group C", "gate_id": "exit_c", "name": "Exit Gate C (South Plaza)",     "zone": "Zone Gamma (South)",  "color": "#F59E0B", "description": "South Exit towards Parking Lot B & Ring Road"           },
+    { "group": "Group D", "gate_id": "exit_d", "name": "Exit Gate D (West Concourse)",  "zone": "Zone Delta (West)",   "color": "#A855F7", "description": "West Exit towards City Center & Ride-share Zone"      },
 ]
 
 DEMO_REG = {
     "reg_code": "DEMO-SAMPLE-8899", "primary_name": "Demo Visitor",
     "mobile": "9876543210", "age": 30, "address": "123 Venue Boulevard, Central City",
-    "assigned_gate": "Exit 1 (West)", "assigned_group": "Group A",
-    "gate_id": "exit_1", "group_count": 2, "checked_in": 0, "checked_in_at": None,
+    "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A",
+    "gate_id": "exit_a", "group_count": 2, "checked_in": 0, "checked_in_at": None,
+    "checked_out": 0, "checked_out_at": None,
     "created_at": "2026-10-18 20:00:00",
     "hmac_signature": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 }
@@ -34,10 +35,10 @@ DEMO_REG = {
 DEMO_MEMBERS = [{"member_name": "Accompanying Guest", "member_age": 28, "member_mobile": "9876543211"}]
 
 DEMO_REGISTRATIONS = [
-    { "id": 1, "reg_code": "REG-A1B2C3", "primary_name": "Rajesh Kumar",     "mobile": "9876543210", "age": 34, "address": "45 MG Road, Civil Lines",          "group_count": 2, "assigned_gate": "Exit 1 (West)",  "assigned_group": "Group A", "gate_id": "exit_1", "checked_in": 1, "created_at": "2026-10-18 19:30:00", "checked_in_at": "2026-10-18 19:45:00", "members_summary": "Pooja Kumar (31y)" },
-    { "id": 2, "reg_code": "REG-D4E5F6", "primary_name": "Anita Verma",      "mobile": "9812345678", "age": 29, "address": "12 Lake View Apt, Sector 4",        "group_count": 3, "assigned_gate": "Exit 2 (North)", "assigned_group": "Group B", "gate_id": "exit_2", "checked_in": 1, "created_at": "2026-10-18 19:40:00", "checked_in_at": "2026-10-18 20:00:00", "members_summary": "Aarav Verma (6y), Ravi Verma (32y)" },
-    { "id": 3, "reg_code": "REG-7G8H9I", "primary_name": "Sunil Patel",      "mobile": "9823456789", "age": 42, "address": "88 Sunrise Colony, Bhopal",         "group_count": 4, "assigned_gate": "Exit 3 (East)",  "assigned_group": "Group C", "gate_id": "exit_3", "checked_in": 0, "created_at": "2026-10-18 20:10:00", "checked_in_at": None,                  "members_summary": "Geeta Patel (39y), Karan Patel (14y), Diya Patel (10y)" },
-    { "id": 4, "reg_code": "DEMO-SAMPLE-8899", "primary_name": "Demo Visitor","mobile": "9876543210", "age": 30, "address": "123 Venue Boulevard, Central City", "group_count": 2, "assigned_gate": "Exit 1 (West)",  "assigned_group": "Group A", "gate_id": "exit_1", "checked_in": 0, "created_at": "2026-10-18 20:00:00", "checked_in_at": None,                  "members_summary": "Accompanying Guest (28y)" },
+    { "id": 1, "reg_code": "REG-A1B2C3", "primary_name": "Rajesh Kumar",     "mobile": "9876543210", "age": 34, "address": "45 MG Road, Civil Lines",          "group_count": 2, "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A", "gate_id": "exit_a", "checked_in": 1, "checked_out": 0, "created_at": "2026-10-18 19:30:00", "checked_in_at": "2026-10-18 19:45:00", "members_summary": "Pooja Kumar (31y)" },
+    { "id": 2, "reg_code": "REG-D4E5F6", "primary_name": "Anita Verma",      "mobile": "9812345678", "age": 29, "address": "12 Lake View Apt, Sector 4",        "group_count": 3, "assigned_gate": "Exit Gate B (East Corridor)",   "assigned_group": "Group B", "gate_id": "exit_b", "checked_in": 1, "checked_out": 1, "created_at": "2026-10-18 19:40:00", "checked_in_at": "2026-10-18 20:00:00", "members_summary": "Aarav Verma (6y), Ravi Verma (32y)" },
+    { "id": 3, "reg_code": "REG-7G8H9I", "primary_name": "Sunil Patel",      "mobile": "9823456789", "age": 42, "address": "88 Sunrise Colony, Bhopal",         "group_count": 4, "assigned_gate": "Exit Gate C (South Plaza)",     "assigned_group": "Group C", "gate_id": "exit_c", "checked_in": 0, "checked_out": 0, "created_at": "2026-10-18 20:10:00", "checked_in_at": None,                  "members_summary": "Geeta Patel (39y), Karan Patel (14y), Diya Patel (10y)" },
+    { "id": 4, "reg_code": "DEMO-SAMPLE-8899", "primary_name": "Demo Visitor","mobile": "9876543210", "age": 30, "address": "123 Venue Boulevard, Central City", "group_count": 2, "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A", "gate_id": "exit_a", "checked_in": 0, "checked_out": 0, "created_at": "2026-10-18 20:00:00", "checked_in_at": None,                  "members_summary": "Accompanying Guest (28y)" },
 ]
 
 def build():
@@ -58,9 +59,15 @@ def build():
         mapping = {
             "index":               "index.html",
             "register":            "pass.html",
+            "check_registration":  "check_registration.html",
+            "venue_info":          "venue_info.html",
+            "help_page":           "help_contact.html",
+            "contact_page":        "help_contact.html",
             "admin_login":         "login.html",
+            "guard_login":         "guard_login.html",
             "admin_dashboard":     "admin.html",
             "admin_logout":        "login.html",
+            "guard_logout":        "guard_login.html",
             "entrance_poster":     "entrance_poster.html",
             "export_csv":          "#",
             "delete_registration": "#",
@@ -79,11 +86,11 @@ def build():
     env.globals["is_static_build"]      = True
     env.globals["is_flask_backend"]     = False
     env.globals["event_config"]         = {
-        "event_name": "Event 2026",
-        "event_venue": "Main Venue",
-        "event_date": "2026-12-31",
-        "event_capacity": "5000",
-        "event_description": "Smart crowd management for your event.",
+        "event_name": "Community Cultural & Exhibition Gathering",
+        "event_venue": "City Grand Grounds & Exhibition Center",
+        "event_date": "2026-11-25",
+        "event_capacity": "1000",
+        "event_description": "Smart crowd management, zoned queuing, and visitor safety system.",
     }
 
     class MockRequest:
@@ -98,7 +105,11 @@ def build():
     # ─── Pages ────────────────────────────────────────────────────────────────
     pages = [
         ("index.html", "index.html", {"lang": "en", "gates": GATES_CONFIG}),
+        ("check_registration.html", "check_registration.html", {}),
+        ("venue_info.html", "venue_info.html", {"gates": GATES_CONFIG}),
+        ("help_contact.html", "help_contact.html", {}),
         ("login.html", "login.html", {}),
+        ("guard_login.html", "guard_login.html", {}),
         ("pass.html",  "pass.html",  {
             "reg":              DEMO_REG,
             "gate_info":        GATES_CONFIG[0],
@@ -110,16 +121,25 @@ def build():
             "total_people":   9,
             "total_passes":   4,
             "admitted_people": 5,
+            "current_occupancy": 2,
+            "exited_people": 3,
+            "remaining_capacity": 998,
             "gate_analytics": [
-                {"gate_id": "exit_1", "name": "Exit 1 (West)",  "group": "Group A", "zone": "Zone Alpha (West Gate)",  "count": 4, "percentage": 44},
-                {"gate_id": "exit_2", "name": "Exit 2 (North)", "group": "Group B", "zone": "Zone Beta (North Gate)",  "count": 3, "percentage": 33},
-                {"gate_id": "exit_3", "name": "Exit 3 (East)",  "group": "Group C", "zone": "Zone Gamma (East Gate)", "count": 2, "percentage": 22},
-                {"gate_id": "exit_4", "name": "Exit 4 (South)", "group": "Group D", "zone": "Zone Delta (South Gate)","count": 0, "percentage": 0},
+                {"gate_id": "exit_a", "name": "Exit Gate A (North Promenade)", "group": "Group A", "zone": "Zone Alpha (North)", "count": 4, "percentage": 44},
+                {"gate_id": "exit_b", "name": "Exit Gate B (East Corridor)",   "group": "Group B", "zone": "Zone Beta (East)",   "count": 3, "percentage": 33},
+                {"gate_id": "exit_c", "name": "Exit Gate C (South Plaza)",     "group": "Group C", "zone": "Zone Gamma (South)",  "count": 2, "percentage": 22},
+                {"gate_id": "exit_d", "name": "Exit Gate D (West Concourse)",  "group": "Group D", "zone": "Zone Delta (West)",   "count": 0, "percentage": 0},
             ],
             "registrations": DEMO_REGISTRATIONS,
-            "guard_password": "guard123",
+            "audit_logs": [
+                {"id": 1, "actor": "system", "action": "SYSTEM_START", "details": "System started with capacity 1000", "created_at": "2026-10-18 19:00:00"},
+                {"id": 2, "actor": "guard_1", "action": "CHECK_IN", "details": "Admitted REG-A1B2C3 at Exit A", "created_at": "2026-10-18 19:45:00"},
+            ],
+            "guard_accounts": [
+                {"id": 1, "username": "guard_north", "gate_id": "exit_a", "full_name": "North Gate Lead", "is_active": 1, "created_at": "2026-10-18 18:00:00"}
+            ],
+            "emergency_active": False,
         }),
-        ("guard_login.html", "guard_login.html", {}),
         ("verify.html", "verify.html", {
             "is_valid":     True,
             "tamper_reason": None,

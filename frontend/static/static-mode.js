@@ -149,10 +149,73 @@
    * Build a QR image URL using the qrserver.com public API.
    * Encodes the verification deep-link for this pass.
    */
-  function buildQrUrl(regCode, size) {
+  function encodePassPayload(pass) {
+    if (!pass) return '';
+    try {
+      const p = {
+        c: pass.reg_code,
+        n: pass.primary_name,
+        m: pass.mobile,
+        a: pass.age,
+        d: pass.address,
+        g: pass.group_count || 1,
+        ag: pass.assigned_group || 'Group A',
+        gt: pass.assigned_gate || 'Exit A (West)',
+        gi: pass.gate_id || 'exit_1',
+        mb: (pass.members || []).map(m => [m.member_name, m.member_age, m.member_mobile || '']),
+        h: pass.hmac_signature,
+        t: pass.created_at
+      };
+      return btoa(unescape(encodeURIComponent(JSON.stringify(p))));
+    } catch(e) {
+      return '';
+    }
+  }
+
+  function decodePassPayload(b64) {
+    try {
+      const raw = JSON.parse(decodeURIComponent(escape(atob(b64))));
+      return {
+        reg_code: raw.c,
+        primary_name: raw.n,
+        mobile: raw.m,
+        age: raw.a,
+        address: raw.d,
+        group_count: raw.g || 1,
+        assigned_group: raw.ag,
+        assigned_gate: raw.gt,
+        gate_id: raw.gi,
+        gate_info: GATES.find(x => x.gate_id === raw.gi) || GATES[0],
+        members: (raw.mb || []).map(m => ({ member_name: m[0], member_age: m[1], member_mobile: m[2] })),
+        hmac_signature: raw.h,
+        created_at: raw.t,
+        checked_in: 0,
+        checked_in_at: null,
+        checked_out: 0,
+        checked_out_at: null
+      };
+    } catch(e) {
+      return null;
+    }
+  }
+
+  function buildQrUrl(passOrCode, size) {
     size = size || 200;
     const base = getBaseUrl();
-    const verifyUrl = base + 'verify.html?code=' + encodeURIComponent(regCode);
+    let regCode = '';
+    let dataPayload = '';
+
+    if (typeof passOrCode === 'object' && passOrCode !== null) {
+      regCode = passOrCode.reg_code;
+      dataPayload = encodePassPayload(passOrCode);
+    } else {
+      regCode = passOrCode;
+      const passes = getPasses();
+      const p = passes.find(x => x.reg_code === regCode);
+      if (p) dataPayload = encodePassPayload(p);
+    }
+
+    const verifyUrl = base + 'verify.html?code=' + encodeURIComponent(regCode) + (dataPayload ? '&data=' + encodeURIComponent(dataPayload) : '');
     return 'https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size +
            '&format=png&ecc=M&color=0-0-0&bgcolor=255-255-255' +
            '&data=' + encodeURIComponent(verifyUrl);
@@ -162,10 +225,10 @@
    * Inject a QR image into a container element.
    * Shows a loading spinner first, then replaces with QR image.
    */
-  function injectQrCode(containerEl, regCode, size) {
+  function injectQrCode(containerEl, regCodeOrPass, size) {
     if (!containerEl) return;
     size = size || 200;
-    const url = buildQrUrl(regCode, size);
+    const url = buildQrUrl(regCodeOrPass, size);
 
     containerEl.innerHTML = `
       <div id="qrLoadingInner" style="width:${size}px;height:${size}px;background:rgba(255,255,255,0.05);
@@ -513,11 +576,12 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       const pwd = document.getElementById('password')?.value || '';
-      if (pwd === 'admin123') {
+      const configuredAdmin = localStorage.getItem('vg_admin_pin') || 'admin123';
+      if (pwd === configuredAdmin) {
         sessionStorage.setItem('vg_admin', 'true');
         window.location.href = 'admin.html';
       } else {
-        alert('Invalid password! Default password is: admin123');
+        alert('Invalid administrator password. Access denied.');
       }
     });
   }
@@ -532,14 +596,14 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       const pin = document.getElementById('guardPin')?.value?.trim() || '';
-      const validPin = localStorage.getItem('vg_guard_pin') || '1234';
-      if (pin === validPin || pin === '1234' || pin === 'admin123') {
+      const validPin = localStorage.getItem('vg_guard_pin') || 'guard123';
+      if (pin === validPin) {
         sessionStorage.setItem('vg_guard', 'true');
         const params = new URLSearchParams(window.location.search);
         const nextUrl = params.get('next') || 'verify.html';
         window.location.href = nextUrl;
       } else {
-        alert('Invalid Guard Access Password! Current configured password is: ' + validPin);
+        alert('Invalid Guard Access Password. Entry denied.');
       }
     });
   }
@@ -889,7 +953,21 @@
 
     const passes = getPasses();
     const cleanCode = (regCode || '').trim().toUpperCase();
-    const pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
+    let pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
+
+    // Cross-device recovery: if pass not in this device's storage, unpack from URL data param
+    if (!pass) {
+      const params = new URLSearchParams(window.location.search);
+      const b64Data = params.get('data');
+      if (b64Data) {
+        const unpacked = decodePassPayload(b64Data);
+        if (unpacked && unpacked.reg_code.toUpperCase() === cleanCode) {
+          pass = unpacked;
+          passes.unshift(pass);
+          savePasses(passes);
+        }
+      }
+    }
 
     if (!pass) {
       return {
@@ -905,9 +983,54 @@
       reg: pass,
       members: pass.members || [],
       gate_info: pass.gate_info || GATES[0],
-      is_already_checked_in: (pass.checked_in === 1)
+      is_already_checked_in: (pass.checked_in === 1),
+      is_checked_out: (pass.checked_out === 1)
     };
   };
+
+  window.staticToggleCheckOut = function(regCode) {
+    const passes = getPasses();
+    const cleanCode = (regCode || '').trim().toUpperCase();
+    const pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
+    if (!pass) return { success: false, message: 'Registration record not found.' };
+
+    pass.checked_out = 1;
+    pass.checked_out_at = now();
+    savePasses(passes);
+
+    return {
+      success: true,
+      checked_out: 1,
+      checked_out_at: pass.checked_out_at
+    };
+  };
+
+  function initCheckRegistrationPage() {
+    const form = document.getElementById('checkPassForm');
+    if (!form || !isStaticHost()) return;
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const code = (document.getElementById('lookup_reg_code')?.value || '').trim().toUpperCase();
+      const mob = (document.getElementById('lookup_mobile')?.value || '').trim();
+
+      const passes = getPasses();
+      const match = passes.find(p => p.reg_code.toUpperCase() === code);
+      if (!match) {
+        alert('No pass found matching Registration Code: ' + code);
+        return;
+      }
+      const cleanInputMob = mob.replace(/\D/g, '');
+      const cleanStoredMob = String(match.mobile).replace(/\D/g, '');
+      if (cleanInputMob.slice(-10) !== cleanStoredMob.slice(-10)) {
+        alert('Verification Failed: Mobile number does not match this Registration Code.');
+        return;
+      }
+
+      saveCurrentPass(match);
+      window.location.href = 'pass.html?code=' + encodeURIComponent(code);
+    });
+  }
 
   window.staticToggleCheckIn = function(regCode) {
     const passes = getPasses();
@@ -974,6 +1097,7 @@
     initGuardLoginPage();
     initAdminDashboard();
     initVerifyTerminal();
+    initCheckRegistrationPage();
   }
 
   if (document.readyState === 'loading') {

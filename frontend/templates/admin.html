@@ -1,271 +1,362 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard · VenueGuard{% endblock %}
+{% block title %}Admin Command Center · VenueGuard{% endblock %}
 
 {% block content %}
-<div class="admin-dashboard-container">
+<div class="admin-dashboard-container" style="max-width: 1220px; margin: 0 auto; padding: 1rem 1rem 3rem;">
 
-  <!-- Header -->
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-    <div>
-      <h1 style="font-size: 1.8rem; font-weight: 800; background: linear-gradient(90deg, #fff 0%, var(--teal) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em;">
-        {{ 'Venue Operations & Crowd Analytics'|safe }}
-      </h1>
-      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.2rem;">
-        Real-time capacity tracking, smart split balancing & visitor registry
-      </p>
-    </div>
-    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-      <a href="{{ url_for('entrance_poster') }}" target="_blank" class="btn btn-outline">
-        <span>🪧</span> Entrance Poster
-      </a>
-      <a href="{{ url_for('export_csv') }}" class="btn btn-primary">
-        <span>📥</span> Export CSV
-      </a>
+  <!-- Header & Live Mode Banner -->
+  <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(7,16,29,0.98)); border: 1px solid var(--glass-border);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.5rem;">⚙️</span>
+          <h1 style="font-size: 1.35rem; font-weight: 800; color: #fff; margin: 0;">Venue Operations &amp; Crowd Analytics</h1>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.35rem 0 0;">
+          Real-time event surveillance, capacity control, gate load balancing, and emergency response.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <span class="badge {{ 'badge-danger' if is_emergency else 'badge-teal' }}" id="emergencyStatusBadge" style="font-size: 0.76rem; padding: 0.35rem 0.75rem;">
+          {{ '🚨 EMERGENCY MODE ACTIVE' if is_emergency else '● NORMAL OPERATIONS' }}
+        </span>
+        <a href="{{ url_for('export_csv') }}" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
+          📥 Export CSV
+        </a>
+        <a href="{{ url_for('entrance_poster') }}" target="_blank" class="btn btn-navy" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
+          🖨️ Entrance Poster
+        </a>
+      </div>
     </div>
   </div>
 
-  <!-- ── KPI STATS ── -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">Total Headcount</div>
-      <div class="stat-number">{{ total_people }}</div>
-      <div class="stat-indicator">Primary + group members</div>
+  <!-- ── REAL-TIME OCCUPANCY & CAPACITY METRICS ── -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.25rem; margin-bottom: 1.75rem;">
+    <!-- Currently Inside -->
+    <div class="card" style="border-top: 3px solid var(--teal); padding: 1.25rem;">
+      <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.35rem;">
+        Currently Inside
+      </div>
+      <div style="font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1;">
+        <span id="statCurrentInside">{{ current_inside | default(0) }}</span>
+      </div>
+      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Admitted visitors not yet exited
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Passes Issued</div>
-      <div class="stat-number">{{ total_passes }}</div>
-      <div class="stat-indicator">Unique registration codes</div>
+
+    <!-- Remaining Capacity -->
+    <div class="card" style="border-top: 3px solid #3B82F6; padding: 1.25rem;">
+      <div style="font-size: 0.74rem; text-transform: uppercase; color: #60A5FA; font-weight: 700; margin-bottom: 0.35rem;">
+        Remaining Capacity
+      </div>
+      <div style="font-size: 2.2rem; font-weight: 900; color: #60A5FA; line-height: 1;">
+        <span id="statRemainingCapacity">{{ remaining_capacity | default(1000) }}</span>
+      </div>
+      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Of {{ capacity | default(1000) }} maximum permitted
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Admitted</div>
-      <div class="stat-number" style="background: linear-gradient(135deg, #fff 0%, #22C55E 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ admitted_people }}</div>
-      <div class="stat-indicator">
-        {% if total_people > 0 %}
-          {{ ((admitted_people / total_people) * 100)|round(1) }}% of total entered
+
+    <!-- Total Registered -->
+    <div class="card" style="border-top: 3px solid #F59E0B; padding: 1.25rem;">
+      <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--amber); font-weight: 700; margin-bottom: 0.35rem;">
+        Total Registrations
+      </div>
+      <div style="font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1;">
+        <span id="statTotalPeople">{{ total_people | default(0) }}</span>
+      </div>
+      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Across {{ total_passes | default(0) }} digital passes
+      </div>
+    </div>
+
+    <!-- Total Exited -->
+    <div class="card" style="border-top: 3px solid #A855F7; padding: 1.25rem;">
+      <div style="font-size: 0.74rem; text-transform: uppercase; color: #A855F7; font-weight: 700; margin-bottom: 0.35rem;">
+        Exited Visitors
+      </div>
+      <div style="font-size: 2.2rem; font-weight: 900; color: #A855F7; line-height: 1;">
+        <span id="statExitedPeople">{{ exited_people | default(0) }}</span>
+      </div>
+      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Recorded departures at exit gates
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EMERGENCY INCIDENT MANAGEMENT PANEL ── -->
+  <div class="card" style="margin-bottom: 1.75rem; border: 1px solid {{ 'rgba(239,68,68,0.4)' if is_emergency else 'rgba(255,255,255,0.08)' }}; background: {{ 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(15,23,42,0.9))' if is_emergency else 'rgba(15,23,42,0.6)' }}; padding: 1.25rem 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.3rem;">🚨</span>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0;">Venue Emergency Management</h3>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0 0;">
+          When activated: online registrations are restricted, guards are alerted, exit routes are broadcast, and hardware alarms trigger.
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <input
+          type="text"
+          id="emergencyReasonInput"
+          placeholder="Reason for protocol (e.g. Inclement Weather Evacuation)"
+          class="form-control"
+          style="font-size: 0.82rem; min-width: 260px;"
+        >
+        {% if is_emergency %}
+          <button type="button" onclick="toggleEmergency('resolve')" class="btn btn-outline" style="border-color: #4ADE80; color: #4ADE80; font-weight: 700;">
+            ✅ Clear / Resolve Emergency
+          </button>
         {% else %}
-          0% entered
+          <button type="button" onclick="toggleEmergency('activate')" class="btn btn-danger" style="background: #DC2626; border-color: #DC2626; color: #fff; font-weight: 700;">
+            🚨 Activate Emergency Mode
+          </button>
         {% endif %}
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">QR Checkpoint</div>
-      <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-        <span class="pulse-dot"></span>
-        <span style="font-size: 1rem; font-weight: 700; color: var(--teal);">ACTIVE</span>
-      </div>
-      <div class="stat-indicator" style="margin-top: 0.4rem;">Single entry gate · capacity split ON</div>
-    </div>
   </div>
 
-  <!-- ── GUARD PORTAL SECURITY & PASSWORD MANAGEMENT ── -->
-  <div class="card" style="margin-bottom: 1.75rem; border: 1px solid rgba(0,255,198,0.22); background: linear-gradient(135deg, rgba(17,29,43,0.7) 0%, rgba(10,16,26,0.9) 100%); box-shadow: var(--shadow-card), 0 0 35px rgba(0,255,198,0.04);">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+  <!-- ── GUARD PORTAL CREDENTIALS & MULTI-ACCOUNT MANAGEMENT ── -->
+  <div class="card" style="margin-bottom: 1.75rem; border: 1px solid rgba(0,255,198,0.22); padding: 1.5rem;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0 0 1rem 0; border-bottom: 1px solid var(--glass-border);">
       <div style="display: flex; align-items: center; gap: 0.65rem;">
         <span style="font-size: 1.35rem;">🛡️</span>
         <div>
-          <h3 class="card-title" style="font-size: 1.12rem; color: #fff;">Guard Portal Access & Password Management</h3>
-          <p class="card-desc">Admin control over security guard checkpoint credentials. Guards must authenticate to scan and admit visitors.</p>
+          <h3 class="card-title" style="font-size: 1.12rem; color: #fff;">Guard Portal Security &amp; Checkpoint Credentials</h3>
+          <p class="card-desc">Control access to the security guard verification scanner. Stored securely with bcrypt password hashing.</p>
         </div>
       </div>
       <span class="badge badge-teal" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">
-        🔒 Password Protection Active
+        🔒 Hash Protection Active
       </span>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem; padding-top: 1rem;">
-      <!-- Active Password Display -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; padding-top: 1.25rem;">
+      <!-- Master Guard Password Update (No Plaintext Leakage!) -->
       <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
-        <div style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.5rem;">
-          Current Active Guard Password
+        <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.4rem;">
+          Change Master Guard Password
         </div>
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <input
-            type="password"
-            id="currentGuardPasswordDisplay"
-            value="{{ guard_password }}"
-            readonly
-            class="form-control mono-font"
-            style="font-size: 1.15rem; font-weight: 700; color: var(--teal); background: rgba(0,255,198,0.06); border-color: rgba(0,255,198,0.25); letter-spacing: 0.15em; max-width: 220px;"
-          >
-          <button
-            type="button"
-            class="btn btn-outline"
-            onclick="toggleAdminGuardPass()"
-            id="togglePassBtn"
-            style="padding: 0.45rem 0.85rem; font-size: 0.82rem; white-space: nowrap;"
-            title="Reveal / Hide Password"
-          >
-            👁️ Reveal
-          </button>
-        </div>
-        <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.6rem;">
-          Provide this password to security personnel stationed at entry gates.
-        </div>
-      </div>
-
-      <!-- Update Password Form -->
-      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
-        <div style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); font-weight: 700; margin-bottom: 0.5rem;">
-          Change Guard Password Anytime
-        </div>
-        <form action="{{ url_for('update_guard_password') }}" method="POST" style="margin: 0;">
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Guards entering this password gain immediate scanner access at checkpoints.
+        </p>
+        <form action="{{ url_for('update_guard_password') }}" method="POST" id="updateGuardPasswordForm" style="margin: 0;">
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <input
               type="text"
               name="guard_password"
               class="form-control mono-font"
-              placeholder="New password (e.g. guard456)"
+              placeholder="New guard password (min 4 chars)"
               required
               minlength="4"
               style="flex: 1; min-width: 170px; font-size: 0.95rem; font-weight: 600;"
             >
             <button type="submit" class="btn btn-primary" style="white-space: nowrap; font-size: 0.85rem; padding: 0.45rem 1rem;">
-              💾 Save New Password
+              💾 Save
             </button>
           </div>
-          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.6rem;">
-            Instant update: Guard portal requires this new password immediately upon update.
+        </form>
+      </div>
+
+      <!-- Add Guard Account Form -->
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; color: #60A5FA; font-weight: 700; margin-bottom: 0.4rem;">
+          Add Checkpoint Guard Account
+        </div>
+        <form onsubmit="handleCreateGuardAccount(event); return false;" style="margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <input type="text" id="newGuardUsername" placeholder="Username (e.g. guard_west)" class="form-control" required style="font-size: 0.84rem;">
+            <input type="text" id="newGuardFullName" placeholder="Guard Name" class="form-control" required style="font-size: 0.84rem;">
           </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <input type="password" id="newGuardPassword" placeholder="PIN / Password" class="form-control" required style="font-size: 0.84rem;">
+            <select id="newGuardGate" class="form-control" style="font-size: 0.84rem;">
+              <option value="all">All Checkpoints</option>
+              <option value="gate_1">Gate 1 (Entrance)</option>
+              <option value="exit_1">Exit A (West)</option>
+              <option value="exit_2">Exit B (North)</option>
+              <option value="exit_3">Exit C (East)</option>
+              <option value="exit_4">Exit D (South)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.4rem 0.8rem; align-self: flex-start;">
+            + Register Guard Account
+          </button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ── GATE CAPACITY ── -->
-  <div class="card" style="margin-bottom: 1.75rem;">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+  <!-- ── GATE CAPACITY & CORRIDOR LOAD BALANCING ── -->
+  <div class="card" style="margin-bottom: 1.75rem; padding: 1.5rem;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0 0 1rem 0; border-bottom: 1px solid var(--glass-border);">
       <div>
-        <h3 class="card-title" style="font-size: 1.1rem;">⚖️ Smart Exit Load Balancing</h3>
-        <p class="card-desc">Auto-allocates new registrants to the least congested exit corridor.</p>
+        <h3 class="card-title" style="font-size: 1.1rem;">⚖️ Safe Exit Gate Load Distribution</h3>
+        <p class="card-desc">Real-time visitor routing across normal exit corridors. Gate E is strictly staff-only.</p>
       </div>
-      <span class="badge badge-teal">Dynamic Balancing ON</span>
+      <span class="badge badge-teal">Automatic Load Balancing Active</span>
     </div>
 
-    <div class="gate-capacity-grid">
+    <div class="gate-capacity-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; padding-top: 1.25rem;">
       {% for gate in gate_analytics %}
-        <div class="gate-stat-box theme-{{ gate.gate_id }}">
-          <div class="gate-stat-header">
-            <span>{{ gate.name }}</span>
-            <span class="gate-theme-color">{{ gate.count }} pax</span>
+        <div class="card" style="border-left: 4px solid {{ gate.color }}; padding: 1rem; background: rgba(0,0,0,0.25);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <strong style="color: #fff; font-size: 0.95rem;">{{ gate.name }}</strong>
+            <span style="font-weight: 800; color: {{ gate.color }};">{{ gate.count }} pax</span>
           </div>
           <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.6rem;">
             {{ gate.group }} · {{ gate.zone }}
           </div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width: {{ gate.percentage }}%;"></div>
+          <div class="progress-bar-bg" style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 3px; overflow: hidden;">
+            <div class="progress-bar-fill" style="width: {{ gate.percentage }}%; background: {{ gate.color }}; height: 100%;"></div>
           </div>
           <div style="font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 0.3rem;">
-            {{ gate.percentage }}% crowd share
+            {{ gate.percentage }}% total crowd share
           </div>
         </div>
       {% endfor %}
     </div>
+  </div>
 
-    <!-- Gate 5 Notice -->
-    <div style="padding: 0.85rem 1.1rem; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-md); display: flex; align-items: center; gap: 0.75rem; font-size: 0.84rem; color: var(--amber);">
-      <span style="font-size: 1.2rem;">🛡️</span>
+  <!-- ── VISITOR REGISTRY TABLE (SEARCH & FILTER) ── -->
+  <div class="card" style="margin-bottom: 1.75rem; padding: 1.5rem;">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 0 0 1rem 0; border-bottom: 1px solid var(--glass-border);">
       <div>
-        <strong>Gate 5 Protocol:</strong> Hidden staff corridor reserved exclusively for incident response and emergency evacuation. No visitor passes routed via Gate 5.
+        <h3 class="card-title" style="font-size: 1.15rem;">📋 Master Visitor Registry</h3>
+        <p class="card-desc">All registered passes, group headcounts, assigned gates, and gate admission records.</p>
       </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <input type="text" id="registrySearchInput" placeholder="Search name, phone, code..." class="form-control" style="font-size: 0.84rem; min-width: 220px;" oninput="filterRegistryTable()">
+      </div>
+    </div>
+
+    <div style="overflow-x: auto; margin-top: 1rem;">
+      <table class="table" id="masterRegistryTable" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--glass-border); text-align: left; color: var(--text-muted); font-size: 0.74rem; text-transform: uppercase;">
+            <th style="padding: 0.6rem;">Pass Code</th>
+            <th style="padding: 0.6rem;">Primary Visitor</th>
+            <th style="padding: 0.6rem;">Mobile</th>
+            <th style="padding: 0.6rem;">Headcount</th>
+            <th style="padding: 0.6rem;">Assigned Exit</th>
+            <th style="padding: 0.6rem;">Status</th>
+            <th style="padding: 0.6rem;">Issued At</th>
+            <th style="padding: 0.6rem; text-align: center;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in registrations %}
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <td style="padding: 0.6rem;">
+              <a href="{{ url_for('view_pass', reg_code=r.reg_code) }}" target="_blank" class="mono-font" style="color: var(--teal); font-weight: 700; text-decoration: none;">
+                {{ r.reg_code }}
+              </a>
+            </td>
+            <td style="padding: 0.6rem; font-weight: 600; color: #fff;">
+              {{ r.primary_name }}
+              {% if r.accompanying_count and r.accompanying_count > 0 %}
+                <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">+{{ r.accompanying_count }} members</span>
+              {% endif %}
+            </td>
+            <td style="padding: 0.6rem;" class="mono-font">{{ r.mobile }}</td>
+            <td style="padding: 0.6rem;">
+              <span class="badge badge-teal" style="font-size: 0.74rem; padding: 0.15rem 0.5rem;">
+                {{ r.group_count }} pax
+              </span>
+            </td>
+            <td style="padding: 0.6rem; color: var(--text-secondary);">{{ r.assigned_gate }}</td>
+            <td style="padding: 0.6rem;">
+              {% if r.checked_out == 1 %}
+                <span style="color: #A855F7; font-weight: 700; font-size: 0.78rem;">● EXITED</span>
+              {% elif r.checked_in == 1 %}
+                <span style="color: #4ADE80; font-weight: 700; font-size: 0.78rem;">● ADMITTED</span>
+              {% else %}
+                <span style="color: var(--amber); font-weight: 600; font-size: 0.78rem;">⏳ PENDING</span>
+              {% endif %}
+            </td>
+            <td style="padding: 0.6rem; font-size: 0.76rem; color: var(--text-muted);" class="mono-font">{{ r.created_at[:16] }}</td>
+            <td style="padding: 0.6rem; text-align: center;">
+              <form action="{{ url_for('delete_registration', reg_id=r.id) }}" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Permanently delete registration {{ r.reg_code }}?');">
+                <button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.74rem; color: var(--red); border-color: rgba(239,68,68,0.3);">
+                  🗑️ Delete
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+              No registrations recorded in database yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- ── REGISTRATIONS TABLE ── -->
-  <div class="card">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-      <div>
-        <h3 class="card-title" style="font-size: 1.1rem;">📋 Visitor Registry</h3>
-        <p class="card-desc">All registrations with pass codes, gates, and admission status.</p>
-      </div>
-      <input type="text" id="tableSearchInput" onkeyup="filterTable()" class="form-control"
-        placeholder="🔍 Search name, code, gate…"
-        style="max-width: 260px; padding: 0.5rem 0.9rem; font-size: 0.85rem; border-radius: var(--radius-full);">
+  <!-- ── EVENT CONFIGURATION & AUDIT TRAIL ── -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+    <!-- Event Settings -->
+    <div class="card" style="padding: 1.5rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">⚙️ Event &amp; Venue Settings</h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Update public venue information and prototype capacity.</p>
+      
+      <form action="{{ url_for('update_event_settings') }}" method="POST" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div>
+          <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Event Name</label>
+          <input type="text" name="event_name" value="{{ event_config.event_name }}" class="form-control" required style="font-size: 0.86rem;">
+        </div>
+        <div>
+          <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Venue Location</label>
+          <input type="text" name="event_venue" value="{{ event_config.event_venue }}" class="form-control" required style="font-size: 0.86rem;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Event Date</label>
+            <input type="date" name="event_date" value="{{ event_config.event_date }}" class="form-control" style="font-size: 0.86rem;">
+          </div>
+          <div>
+            <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Venue Capacity</label>
+            <input type="number" name="event_capacity" value="{{ event_config.event_capacity }}" class="form-control" required min="100" style="font-size: 0.86rem;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Event Description</label>
+          <textarea name="event_description" class="form-control" rows="2" style="font-size: 0.84rem;">{{ event_config.event_description }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem; align-self: flex-start; font-size: 0.85rem; padding: 0.45rem 1rem;">
+          💾 Save Settings
+        </button>
+      </form>
     </div>
 
-    {% if registrations %}
-      <div class="table-responsive">
-        <table class="data-table" id="registrationsTable">
-          <thead>
-            <tr>
-              <th>Pass Code</th>
-              <th>Created</th>
-              <th>Primary Visitor</th>
-              <th>Mobile</th>
-              <th>Group</th>
-              <th>Members</th>
-              <th>Exit Gate</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in registrations %}
-              <tr>
-                <td class="mono-font" style="font-weight: 700;">
-                  <a href="{{ url_for('view_pass', reg_code=r.reg_code) }}" target="_blank"
-                    style="color: var(--teal); text-decoration: none;">
-                    {{ r.reg_code }}
-                  </a>
-                </td>
-                <td style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">{{ r.created_at }}</td>
-                <td>
-                  <div style="font-weight: 600;">{{ r.primary_name }}</div>
-                  <div style="font-size: 0.74rem; color: var(--text-muted);">Age: {{ r.age }}y</div>
-                </td>
-                <td class="mono-font" style="font-size: 0.85rem;">{{ r.mobile }}</td>
-                <td><span class="badge badge-teal">{{ r.group_count }} pax</span></td>
-                <td style="font-size: 0.8rem; max-width: 200px; color: var(--text-secondary);">
-                  {% if r.members_summary %}
-                    {{ r.members_summary }}
-                  {% else %}
-                    <span style="color: var(--text-muted); font-style: italic;">Solo</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--glass-border);">
-                    {{ r.assigned_gate }}
-                  </span>
-                  <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">{{ r.assigned_group }}</div>
-                </td>
-                <td>
-                  {% if r.checked_in == 1 %}
-                    <span class="badge badge-success">✓ Admitted</span>
-                  {% else %}
-                    <span class="badge badge-warning">⏳ Pending</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-                    <a href="{{ url_for('verify_pass', reg_code=r.reg_code) }}"
-                      class="btn btn-outline" style="padding: 0.3rem 0.65rem; font-size: 0.76rem;"
-                      title="Security terminal">
-                      🛡️
-                    </a>
-                    <form action="{{ url_for('delete_registration', reg_id=r.id) }}" method="POST"
-                      onsubmit="return confirm('Delete {{ r.reg_code }}?');" style="margin: 0;">
-                      <button type="submit" class="btn btn-danger-outline"
-                        style="padding: 0.3rem 0.65rem; font-size: 0.76rem;" title="Delete">
-                        🗑️
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
-        <div style="font-size: 3.5rem; margin-bottom: 0.75rem; opacity: 0.5;">📂</div>
-        <h3 style="font-size: 1.1rem; color: var(--text-secondary);">No Registrations Yet</h3>
-        <p style="font-size: 0.88rem; margin-top: 0.35rem;">Visitors who scan the entrance QR will appear here in real time.</p>
-        <div style="margin-top: 1.5rem;">
-          <a href="{{ url_for('index') }}" class="btn btn-primary">Open Registration Form</a>
+    <!-- Security Audit Logs -->
+    <div class="card" style="padding: 1.5rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">🛡️ Security Audit Log</h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Recent 15 security and administrative activities.</p>
+
+      <div style="max-height: 340px; overflow-y: auto;">
+        {% for log in audit_logs %}
+        <div style="padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: var(--teal);">{{ log.action }}</strong>
+            <span style="color: var(--text-muted); font-size: 0.72rem;" class="mono-font">{{ log.timestamp }}</span>
+          </div>
+          <p style="color: var(--text-secondary); margin: 0.2rem 0 0; font-size: 0.78rem;">{{ log.details }}</p>
         </div>
+        {% else %}
+        <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.84rem;">
+          No audit logs recorded yet.
+        </div>
+        {% endfor %}
       </div>
-    {% endif %}
+    </div>
   </div>
 
 </div>
@@ -273,24 +364,57 @@
 
 {% block scripts %}
 <script>
-  function toggleAdminGuardPass() {
-    const input = document.getElementById('currentGuardPasswordDisplay');
-    const btn   = document.getElementById('togglePassBtn');
-    if (!input || !btn) return;
-    if (input.type === 'password') {
-      input.type = 'text';
-      btn.innerHTML = '🙈 Hide';
-    } else {
-      input.type = 'password';
-      btn.innerHTML = '👁️ Reveal';
-    }
+  function toggleEmergency(action) {
+    const reason = document.getElementById('emergencyReasonInput')?.value || 'Emergency Evacuation Protocol';
+    const msg = action === 'activate'
+      ? 'Are you sure you want to ACTIVATE Venue Emergency Mode? Online registrations will be restricted and alarms triggered.'
+      : 'Resolve and clear emergency status?';
+
+    if (!confirm(msg)) return;
+
+    fetch('/api/admin/emergency', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action, reason: reason })
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message || 'Emergency status updated.');
+      window.location.reload();
+    })
+    .catch(err => alert('Failed to update emergency state: ' + err));
   }
 
-  function filterTable() {
-    const filter = document.getElementById('tableSearchInput').value.toLowerCase();
-    const rows   = document.querySelectorAll('#registrationsTable tbody tr');
-    rows.forEach(row => {
-      row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+  function handleCreateGuardAccount(e) {
+    e.preventDefault();
+    const u = document.getElementById('newGuardUsername').value.trim();
+    const n = document.getElementById('newGuardFullName').value.trim();
+    const p = document.getElementById('newGuardPassword').value.trim();
+    const g = document.getElementById('newGuardGate').value;
+
+    fetch('/api/admin/guard-accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, full_name: n, password: p, assigned_gate: g })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        window.location.reload();
+      } else {
+        alert('Error: ' + data.message);
+      }
+    })
+    .catch(err => alert('Network error creating guard: ' + err));
+  }
+
+  function filterRegistryTable() {
+    const q = document.getElementById('registrySearchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#masterRegistryTable tbody tr');
+    rows.forEach(r => {
+      const text = r.textContent.toLowerCase();
+      r.style.display = text.includes(q) ? '' : 'none';
     });
   }
 </script>

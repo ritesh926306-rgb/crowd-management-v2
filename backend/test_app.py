@@ -1,11 +1,13 @@
 """
 Automated Integration and Verification Test Suite
 Tests registration, dynamic members, HMAC signature generation,
-HMAC tampering detection, capacity-based split, and CSV export.
+HMAC tampering detection, capacity-based split, CSV export,
+check-registration, check-out/occupancy, emergency protocols,
+and IoT hardware telemetry authentication.
 """
 
 import unittest
-from app import app, init_db, get_db_connection, generate_hmac_signature, verify_hmac_signature
+from app import app, init_db, get_db_connection, generate_hmac_signature, verify_hmac_signature, _set_setting
 
 class VenueCrowdSystemTestCase(unittest.TestCase):
     def setUp(self):
@@ -16,20 +18,25 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         from app import get_guard_password, set_guard_password
         self.orig_guard_pass = get_guard_password()
         set_guard_password('guard123')
+        # Ensure clean operational state (emergency mode OFF)
+        _set_setting("emergency_mode", "0")
+        _set_setting("emergency_reason", "")
 
     def tearDown(self):
         from app import set_guard_password
         set_guard_password(self.orig_guard_pass)
+        _set_setting("emergency_mode", "0")
+        _set_setting("emergency_reason", "")
 
     def test_01_index_page(self):
         """Test registration page loads in both English and Hindi."""
         res_en = self.client.get('/?lang=en')
         self.assertEqual(res_en.status_code, 200)
-        self.assertIn(b'Venue Entry Pass Registration', res_en.data)
+        self.assertIn(b'VenueGuard', res_en.data)
 
         res_hi = self.client.get('/?lang=hi')
         self.assertEqual(res_hi.status_code, 200)
-        self.assertIn(b'Venue Entry Pass Registration', res_hi.data)
+        self.assertIn(b'VenueGuard', res_hi.data)
 
     def test_02_registration_and_pass_generation(self):
         """Test visitor registration with accompanying group members."""
@@ -96,7 +103,7 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         # Valid login
         login_res = self.client.post('/admin/login', data={'password': 'admin123'}, follow_redirects=True)
         self.assertEqual(login_res.status_code, 200)
-        self.assertIn(b'Venue Operations & Crowd Analytics', login_res.data)
+        self.assertIn(b'Admin Command Center', login_res.data)
 
         # CSV Export
         csv_res = self.client.get('/admin/export-csv')
@@ -167,7 +174,7 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         self.assertTrue(json_data2['is_already_checked_in'])
 
     def test_07_admin_change_guard_password(self):
-        """Test admin can view, change guard password anytime, and guard must use new password."""
+        """Test admin can update guard password and guard must use new password."""
         # 1. Login as admin
         self.client.post('/admin/login', data={'password': 'admin123'})
         
@@ -187,6 +194,122 @@ class VenueCrowdSystemTestCase(unittest.TestCase):
         new_login = self.client.post('/guard/login', data={'pin': 'securegate888'}, follow_redirects=True)
         self.assertEqual(new_login.status_code, 200)
         self.assertIn(b'Guard terminal unlocked', new_login.data)
+
+    def test_08_check_registration_self_service(self):
+        """Test visitor self-service pass lookup by registration ID and mobile."""
+        # 1. Register test user
+        data = {
+            'language': 'en',
+            'primary_name': 'Vikram Singh',
+            'mobile': '9876500001',
+            'age': '40',
+            'address': 'Civil Lines, Jaipur'
+        }
+        res = self.client.post('/register', data=data, follow_redirects=False)
+        reg_code = res.headers['Location'].split('/')[-1]
+
+        # 2. Check registration page loads
+        get_res = self.client.get('/check-registration')
+        self.assertEqual(get_res.status_code, 200)
+        self.assertIn(b'Check Registration Pass Status', get_res.data)
+
+        # 3. Post with wrong mobile fails
+        bad_post = self.client.post('/check-registration', data={
+            'reg_code': reg_code,
+            'mobile': '9999999999'
+        }, follow_redirects=True)
+        self.assertIn(b'Mobile number does not match', bad_post.data)
+
+        # 4. Post with correct mobile succeeds and redirects to pass
+        good_post = self.client.post('/check-registration', data={
+            'reg_code': reg_code,
+            'mobile': '9876500001'
+        }, follow_redirects=False)
+        self.assertEqual(good_post.status_code, 302)
+        self.assertIn(f'/pass/{reg_code}', good_post.headers['Location'])
+
+    def test_09_check_out_and_occupancy(self):
+        """Test check-out endpoint and verified occupancy calculation."""
+        # 1. Register user
+        data = {
+            'language': 'en',
+            'primary_name': 'Ritu Sharma',
+            'mobile': '9876500002',
+            'age': '27',
+            'address': 'South Extension, Delhi'
+        }
+        res = self.client.post('/register', data=data, follow_redirects=False)
+        reg_code = res.headers['Location'].split('/')[-1]
+
+        # Authenticate guard
+        self.client.post('/guard/login', data={'pin': 'guard123'})
+
+        # Check in visitor
+        self.client.post(f'/api/check-in/{reg_code}')
+
+        # Check out visitor
+        checkout_res = self.client.post(f'/api/check-out/{reg_code}')
+        self.assertEqual(checkout_res.status_code, 200)
+        out_json = checkout_res.get_json()
+        self.assertTrue(out_json['success'])
+        self.assertEqual(out_json['checked_out'], 1)
+
+    def test_10_public_crowd_status(self):
+        """Test public crowd status returns safe classification without exposing raw counts."""
+        res = self.client.get('/api/public-crowd-status')
+        self.assertEqual(res.status_code, 200)
+        json_data = res.get_json()
+        self.assertIn('status', json_data)
+        self.assertIn(json_data['status'].upper(), ['NORMAL', 'BUSY', 'HIGH', 'HIGH CROWD', 'TEMPORARILY FULL', 'FULL'])
+
+    def test_11_emergency_protocol(self):
+        """Test emergency activation by admin and emergency broadcast status."""
+        # 1. Admin login
+        self.client.post('/admin/login', data={'password': 'admin123'})
+
+        # 2. Activate emergency
+        em_res = self.client.post('/api/admin/emergency', json={'action': 'activate', 'reason': 'Evacuation Drill'})
+        self.assertEqual(em_res.status_code, 200)
+        self.assertTrue(em_res.get_json()['emergency_mode'])
+
+        # 3. Check public emergency status API
+        status_res = self.client.get('/api/emergency/status')
+        self.assertEqual(status_res.status_code, 200)
+        self.assertTrue(status_res.get_json()['is_emergency'])
+
+        # 4. Deactivate emergency
+        deact_res = self.client.post('/api/admin/emergency', json={'action': 'resolve'})
+        self.assertEqual(deact_res.status_code, 200)
+        self.assertFalse(deact_res.get_json()['emergency_mode'])
+
+    def test_12_hardware_telemetry_authentication(self):
+        """Test ESP8266 IoT telemetry endpoint security header validation."""
+        # 1. Request without X-Device-Key header fails (401)
+        bad_req = self.client.post('/api/hardware/telemetry', json={'gate_id': 'main_gate', 'count_delta': 1})
+        self.assertEqual(bad_req.status_code, 401)
+
+        # 2. Request with valid X-Device-Key succeeds (200)
+        good_req = self.client.post(
+            '/api/hardware/telemetry',
+            headers={'X-Device-Key': 'vg-device-key-2026'},
+            json={'gate_id': 'main_gate', 'distance_cm': 55}
+        )
+        self.assertEqual(good_req.status_code, 200)
+        res_json = good_req.get_json()
+        self.assertTrue(res_json['success'])
+        self.assertIn('current_occupancy', res_json)
+
+    def test_13_venue_info_and_safety_pages(self):
+        """Test venue info and safety pages load properly and staff Gate E is not shown to visitors."""
+        info_res = self.client.get('/venue-info')
+        self.assertEqual(info_res.status_code, 200)
+        self.assertIn(b'Venue Architecture', info_res.data)
+        # Gate E is staff only and must not be in public gate guides
+        self.assertNotIn(b'Exit Gate E', info_res.data)
+
+        help_res = self.client.get('/help')
+        self.assertEqual(help_res.status_code, 200)
+        self.assertIn(b'First Aid', help_res.data)
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}VenueGuard — {{ (event_config.event_name if event_config else '') | default('Event Management') }}{% endblock %}</title>
-  <meta name="description" content="Smart Crowd Management System with cryptographic pass generation, dynamic exit routing, and anti-fraud security.">
+  <title>{% block title %}VenueGuard — {{ (event_config.event_name if event_config else '') | default('Smart Crowd Management System') }}{% endblock %}</title>
+  <meta name="description" content="VenueGuard — Professional crowd safety and event entry management system with digital QR verification and smart multi-gate routing.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -18,50 +18,64 @@
 </head>
 <body>
 
-  <!-- ═══════════════════════ HEADER ═══════════════════════ -->
+  <!-- ═══════════════════════ EMERGENCY BROADCAST BANNER ═══════════════════════ -->
+  {% if is_emergency_active %}
+  <div class="emergency-banner no-print" style="background: linear-gradient(90deg, #DC2626, #991B1B); color: #fff; padding: 0.75rem 1.25rem; text-align: center; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.03em; box-shadow: 0 4px 15px rgba(220,38,38,0.4); display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+    <span style="font-size: 1.25rem; animation: pulse 1s infinite;">🚨</span>
+    <span>VENUE SAFETY ADVISORY ACTIVE: Please follow on-site security instructions and proceed calmly to designated exit gates.</span>
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════ PUBLIC HEADER & NAVIGATION ═══════════════════════ -->
   <header class="app-header no-print">
     <div class="header-container">
-      <a href="{{ url_for('index') }}" class="brand-wrapper">
+      <a href="{{ url_for('index') }}" class="brand-wrapper" title="VenueGuard Home">
         <div class="brand-logo-icon">🛡️</div>
         <div>
           <div class="brand-title" style="display: flex; align-items: center; gap: 0.5rem;">
             VENUEGUARD
             {% if session.get('is_admin') %}
-              <span style="display: inline-flex; align-items: center; gap: 0.25rem; background: rgba(0,255,198,0.12); border: 1px solid rgba(0,255,198,0.35); border-radius: 4px; padding: 0.1rem 0.45rem; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em; color: var(--teal); animation: livePulse 2s ease-in-out infinite;">
-                <span style="width: 5px; height: 5px; background: var(--teal); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite;"></span>
-                LIVE
-              </span>
+              <span class="badge badge-teal" style="font-size: 0.62rem; padding: 0.15rem 0.45rem; letter-spacing: 0.08em;">ADMIN ACTIVE</span>
+            {% elif session.get('guard_logged_in') %}
+              <span class="badge badge-teal" style="font-size: 0.62rem; padding: 0.15rem 0.45rem; letter-spacing: 0.08em; background: rgba(59,130,246,0.15); color: #60A5FA; border-color: rgba(59,130,246,0.3);">GUARD ACTIVE</span>
             {% endif %}
           </div>
-          <div class="brand-subtitle" data-i18n="system_subtitle">{{ (event_config.event_name if event_config else '') | default('Event Management') }}</div>
+          <div class="brand-subtitle" data-i18n="system_subtitle">{{ (event_config.event_name if event_config else '') | default('Smart Crowd Management System') }}</div>
         </div>
       </a>
 
-      <div class="header-actions">
+      <!-- Public Navigation Menu (Clean & Visitor-Focused) -->
+      <nav class="header-actions" aria-label="Main Navigation">
+        <a href="{{ url_for('index') }}" class="nav-link" data-i18n="nav_home">Home</a>
+        <a href="{{ url_for('index') }}#registrationSection" class="nav-link" data-i18n="nav_register">Register</a>
+        <a href="{{ url_for('check_registration') }}" class="nav-link" data-i18n="nav_check_pass">Check My Pass</a>
+        <a href="{{ url_for('venue_info') }}" class="nav-link" data-i18n="nav_venue_info">Venue &amp; Guidelines</a>
+        <a href="{{ url_for('help_contact') }}" class="nav-link" data-i18n="nav_help">Help &amp; Safety</a>
+
+        <!-- Authenticated Staff Controls (Only visible when staff is logged in) -->
+        {% if session.get('is_admin') %}
+          <a href="{{ url_for('admin_dashboard') }}" class="nav-link active" style="color: var(--teal); font-weight: 700;">⚙️ Dashboard</a>
+          <a href="{{ url_for('admin_logout') }}" class="nav-link" style="color: var(--red);">Logout</a>
+        {% elif session.get('guard_logged_in') %}
+          <a href="{{ url_for('verify_terminal') }}" class="nav-link active" style="color: #60A5FA; font-weight: 700;">🛡️ Scanner</a>
+          <a href="{{ url_for('guard_logout') }}" class="nav-link" style="color: var(--amber);" title="Lock Guard Terminal">🔒 Lock</a>
+        {% endif %}
+
+        <!-- Language Switcher -->
         <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Hindi / English">
           🌐 <span id="langBtnText">हिंदी में बदलें</span>
         </button>
-        <a href="{{ url_for('index') }}" class="nav-link" data-i18n="nav_register">Register</a>
-        <a href="{{ url_for('verify_terminal') }}" class="nav-link">Guard Portal</a>
-        {% if session.get('is_admin') %}
-          <a href="{{ url_for('admin_dashboard') }}" class="nav-link active">Dashboard</a>
-          <a href="{{ url_for('admin_logout') }}" class="nav-link" style="color: var(--red);">Logout</a>
-        {% elif session.get('guard_logged_in') %}
-          <a href="{{ url_for('guard_logout') }}" class="nav-link" style="color: var(--amber);" title="Lock Guard Terminal">🔒 Guard Lock</a>
-        {% else %}
-          <a href="{{ url_for('admin_login') }}" class="nav-link" data-i18n="nav_admin">Admin</a>
-        {% endif %}
-      </div>
+      </nav>
     </div>
   </header>
 
-  <!-- ═══════════════════════ FLASH MESSAGES ═══════════════════════ -->
+  <!-- ═══════════════════════ FLASH NOTIFICATIONS ═══════════════════════ -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="flash-container no-print" id="flashContainer">
         {% for category, message in messages %}
-          <div class="alert alert-{{ 'error' if category == 'error' else ('success' if category == 'success' else 'info') }} flash-auto-dismiss">
-            <span>{{ '⚠️' if category == 'error' else ('✅' if category == 'success' else 'ℹ️') }}</span>
+          <div class="alert alert-{{ 'error' if category == 'error' else ('success' if category == 'success' else ('warning' if category == 'warning' else 'info')) }} flash-auto-dismiss">
+            <span>{{ '⚠️' if category in ('error', 'warning') else ('✅' if category == 'success' else 'ℹ️') }}</span>
             <span>{{ message }}</span>
           </div>
         {% endfor %}
@@ -69,50 +83,136 @@
     {% endif %}
   {% endwith %}
 
-  <!-- ═══════════════════════ MAIN ═══════════════════════ -->
+  <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
   <main class="main-wrapper">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
-  <footer class="no-print">
-    <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+  <!-- ═══════════════════════ PROFESSIONAL VISITOR FOOTER ═══════════════════════ -->
+  <footer class="app-footer no-print" style="background: rgba(4,13,24,0.96); border-top: 1px solid var(--glass-border); padding: 3rem 1.5rem 1.75rem; margin-top: 4rem;">
+    <div style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2.25rem; margin-bottom: 2.5rem;">
+      <!-- Brand & Mission -->
       <div>
-        <strong style="color: var(--text-secondary);">VenueGuard &nbsp;·&nbsp;</strong>
-        <span>Cryptographic Anti-Fraud Engine &nbsp;&bull;&nbsp; HMAC-SHA256 Protected</span>
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem;">
+          <span style="font-size: 1.6rem;">🛡️</span>
+          <strong style="font-size: 1.15rem; color: var(--text-primary); letter-spacing: -0.01em;">VenueGuard</strong>
+        </div>
+        <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
+          Smart crowd safety and digital event entry management. Designed to ensure safe, transparent, and seamless entry for all visitors.
+        </p>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+          📍 {{ (event_config.event_venue if event_config else '') | default('Main Event Venue') }}
+        </div>
       </div>
-      <div style="color: var(--text-muted);">
-        {{ (event_config.event_name if event_config else '') | default('Event Management') }} &nbsp;&bull;&nbsp; {{ (event_config.event_venue if event_config else '') | default('') }}
+
+      <!-- Quick Visitor Links -->
+      <div>
+        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
+          Visitor Services
+        </h4>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
+          <li><a href="{{ url_for('index') }}" style="color: var(--text-secondary); text-decoration: none;">🏠 Official Home</a></li>
+          <li><a href="{{ url_for('index') }}#registrationSection" style="color: var(--text-secondary); text-decoration: none;">📝 Register Entry Pass</a></li>
+          <li><a href="{{ url_for('check_registration') }}" style="color: var(--text-secondary); text-decoration: none;">🔍 Check My Pass Status</a></li>
+          <li><a href="{{ url_for('venue_info') }}" style="color: var(--text-secondary); text-decoration: none;">🗺️ Venue Map &amp; Gates</a></li>
+          <li><a href="{{ url_for('help_contact') }}" style="color: var(--text-secondary); text-decoration: none;">ℹ️ Help Desk &amp; Guidelines</a></li>
+        </ul>
+      </div>
+
+      <!-- Safety & Support -->
+      <div>
+        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
+          Safety &amp; Support
+        </h4>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
+          <li><a href="{{ url_for('help_contact') }}#emergency" style="color: var(--text-secondary); text-decoration: none;">🚑 First Aid &amp; Medical</a></li>
+          <li><a href="{{ url_for('help_contact') }}#lostfound" style="color: var(--text-secondary); text-decoration: none;">🎒 Lost &amp; Found Desk</a></li>
+          <li><a href="{{ url_for('venue_info') }}#parking" style="color: var(--text-secondary); text-decoration: none;">🚗 Parking Information</a></li>
+          <li><a href="{{ url_for('help_contact') }}#faq" style="color: var(--text-secondary); text-decoration: none;">❓ Frequently Asked Questions</a></li>
+        </ul>
+      </div>
+
+      <!-- Authorized Staff Access (Discrete) -->
+      <div>
+        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.45); margin-bottom: 1rem; font-weight: 700;">
+          Staff Portals
+        </h4>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.5;">
+          Restricted access for on-duty security guards and event administrators only.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <a href="{{ url_for('guard_login') }}" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
+            🛡️ Security Guard Login
+          </a>
+          <a href="{{ url_for('admin_login') }}" class="btn btn-navy" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
+            ⚙️ Admin Command Center
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Legal Bar -->
+    <div style="max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--text-muted);">
+      <div>
+        &copy; {{ event_config.event_date[:4] if event_config and event_config.event_date else '2026' }} VenueGuard. All rights reserved. &bull; Official Crowd Safety Platform.
+      </div>
+      <div style="display: flex; gap: 1.25rem;">
+        <a href="#privacyModal" onclick="openModal('privacyModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
+        <span>&bull;</span>
+        <a href="#termsModal" onclick="openModal('termsModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Terms of Entry</a>
       </div>
     </div>
   </footer>
 
-  <!-- ═══════════════════════ FLASH AUTO-DISMISS ═══════════════════════ -->
+  <!-- ═══════════════════════ PRIVACY POLICY MODAL ═══════════════════════ -->
+  <div id="privacyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
+    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
+      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">🛡️ Privacy &amp; Data Protection</h3>
+      <p>VenueGuard collects visitor name, age, mobile number, and address strictly for authorized venue entry verification, emergency communication, and event safety management.</p>
+      <p style="margin-top:0.75rem;">Your data is cryptographically protected and never sold or shared with commercial third parties. Digital passes mask personal phone numbers and private addresses on public views.</p>
+      <button onclick="closeModal('privacyModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ TERMS MODAL ═══════════════════════ -->
+  <div id="termsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
+    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
+      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">📋 Venue Entry Terms &amp; Conditions</h3>
+      <ul style="padding-left:1.25rem; margin-top:0.5rem; line-height:1.7;">
+        <li>Each digital pass is valid only for the registered group size and assigned date.</li>
+        <li>Passes must be presented to official security guards at designated entry points.</li>
+        <li>Pass duplication or unauthorized sharing is strictly prohibited under anti-passback security protocols.</li>
+        <li>Visitors must adhere to assigned exit routes and follow safety directions issued by event security.</li>
+      </ul>
+      <button onclick="closeModal('termsModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">I Understand &amp; Agree</button>
+    </div>
+  </div>
+
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const flashes = document.querySelectorAll('.flash-auto-dismiss');
-      flashes.forEach(function (el) {
-        setTimeout(function () {
-          el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-          el.style.opacity = '0';
-          el.style.transform = 'translateY(-8px)';
-          setTimeout(function () { el.remove(); }, 500);
-        }, 5000);
-      });
-    });
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    }
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    }
   </script>
 
-  <!-- ═══════════════════════ I18N ═══════════════════════ -->
+  <!-- ═══════════════════════ I18N DICTIONARY ═══════════════════════ -->
   <script>
     const translations = {
       en: {
-        system_subtitle: "Smart Entry · Dynamic Load Balancing · Anti-Fraud",
+        system_subtitle: "Smart Entry · Crowd Safety · Anti-Fraud",
         lang_btn: "हिंदी में बदलें",
+        nav_home: "Home",
         nav_register: "Register",
-        nav_admin: "Admin",
-        form_title: "Event Entry Pass Registration",
-        form_subtitle: "Fill in your details to generate a cryptographically verified entry pass with smart exit gate assignment.",
-        sec_primary: "1. Primary Visitor Details",
+        nav_check_pass: "Check My Pass",
+        nav_venue_info: "Venue & Guidelines",
+        nav_help: "Help & Safety",
+        form_title: "Venue Entry Pass Registration",
+        form_subtitle: "Fill in your details to receive an official digital entry pass with smart exit gate routing.",
+        sec_primary: "Primary Visitor Details",
         name_label: "Full Name",
         name_placeholder: "e.g., Rajesh Sharma",
         phone_label: "Mobile (10 Digits)",
@@ -120,17 +220,17 @@
         age_label: "Age",
         age_placeholder: "e.g., 34",
         address_label: "Common Home Address",
-        address_placeholder: "House No, Street, City, State, PIN",
-        sec_group: "2. Group Members",
-        sec_group_desc: "Add accompanying members. All will be on this single verified pass.",
-        btn_add_member: "+ Add Member",
+        address_placeholder: "House No, Area, City, State, PIN",
+        sec_group: "Accompanying Family / Group Members",
+        sec_group_desc: "Add accompanying members. All will be issued under this single verified digital entry pass.",
+        btn_add_member: "+ Add Family / Group Member",
         member_name_placeholder: "Member Full Name",
         member_age_placeholder: "Age",
         member_mobile_placeholder: "Mobile (Optional)",
         btn_submit_pass: "Generate Official Entry Pass & Exit Route",
-        venue_summary_title: "Venue Architecture & Smart Routing",
-        entry_gate_desc: "Strict QR Pass Verification required at single entry gate.",
-        exit_routing_desc: "System auto-assigns least-loaded exit: Gate A, B, C, or D.",
+        venue_summary_title: "Venue Architecture & Safe Routing",
+        entry_gate_desc: "Single check-in entrance with QR pass verification.",
+        exit_routing_desc: "Auto-allocated exit corridors to balance crowd flow.",
         pass_title: "OFFICIAL DIGITAL ENTRY PASS",
         pass_verified_pill: "CRYPTOGRAPHICALLY VERIFIED",
         pass_reg_code: "Pass Code",
@@ -143,19 +243,21 @@
         pass_members_list: "Group Members",
         pass_no_members: "Solo Visitor",
         pass_timestamp: "Issued At",
-        pass_hmac_hash: "HMAC Signature",
         pass_print_btn: "Print / Save PDF",
         pass_new_btn: "Register Another",
-        pass_scan_notice: "Show this QR to the security guard at the entrance gate."
+        pass_scan_notice: "Show this QR code to the security guard at the entrance gate."
       },
       hi: {
-        system_subtitle: "स्मार्ट प्रवेश · गतिशील भीड़ नियंत्रण · धोखाधड़ी-रोधी",
+        system_subtitle: "स्मार्ट प्रवेश · भीड़ सुरक्षा · पारदर्शी प्रबंधन",
         lang_btn: "Switch to English",
+        nav_home: "होम",
         nav_register: "पंजीकरण",
-        nav_admin: "एडमिन",
+        nav_check_pass: "पास स्थिति जांचें",
+        nav_venue_info: "स्थल व दिशानिर्देश",
+        nav_help: "सहायता व सुरक्षा",
         form_title: "आयोजन प्रवेश पास पंजीकरण",
-        form_subtitle: "आधिकारिक एन्क्रिप्टेड डिजिटल पास के लिए विवरण भरें।",
-        sec_primary: "१. मुख्य आगंतुक का विवरण",
+        form_subtitle: "डिजिटल प्रवेश पास और निकास गेट आवंटन के लिए विवरण भरें।",
+        sec_primary: "मुख्य आगंतुक का विवरण",
         name_label: "पूरा नाम",
         name_placeholder: "उदा. राजेश शर्मा",
         phone_label: "मोबाइल (१० अंक)",
@@ -163,19 +265,19 @@
         age_label: "आयु",
         age_placeholder: "उदा. 34",
         address_label: "सामान्य पता",
-        address_placeholder: "मकान नं., गली, शहर, राज्य, पिन",
-        sec_group: "२. साथ के सदस्य",
-        sec_group_desc: "साथ आने वाले सदस्यों को जोड़ें।",
+        address_placeholder: "मकान नं., क्षेत्र, शहर, राज्य, पिन",
+        sec_group: "साथी परिवार / समूह सदस्य",
+        sec_group_desc: "साथ आने वाले सदस्यों को जोड़ें। सभी का एक ही आधिकारिक डिजिटल पास बनेगा।",
         btn_add_member: "+ सदस्य जोड़ें",
         member_name_placeholder: "सदस्य का पूरा नाम",
         member_age_placeholder: "आयु",
         member_mobile_placeholder: "मोबाइल (वैकल्पिक)",
         btn_submit_pass: "प्रवेश पास और निकास मार्ग प्राप्त करें",
-        venue_summary_title: "स्थल वास्तुकला और स्मार्ट रूटिंग",
-        entry_gate_desc: "एकल प्रवेश द्वार पर अनिवार्य क्यूआर सत्यापन।",
-        exit_routing_desc: "न्यूनतम भीड़ वाले निकास द्वार पर स्वचालित मार्गन।",
+        venue_summary_title: "स्थल व्यवस्था व सुरक्षित निकास",
+        entry_gate_desc: "मुख्य प्रवेश द्वार पर त्वरित क्यूआर सत्यापन।",
+        exit_routing_desc: "संतुलित निकास हेतु स्वचालित गेट आवंटन।",
         pass_title: "आधिकारिक डिजिटल प्रवेश पास",
-        pass_verified_pill: "क्रिप्टोग्राफिक रूप से सत्यापित",
+        pass_verified_pill: "प्रमाणित डिजिटल पास",
         pass_reg_code: "पास कोड",
         pass_assigned_exit: "आवंटित निकास मार्ग",
         pass_total_count: "कुल समूह संख्या",
@@ -186,10 +288,9 @@
         pass_members_list: "साथ के सदस्य",
         pass_no_members: "एकल आगंतुक",
         pass_timestamp: "जारी होने का समय",
-        pass_hmac_hash: "एचएमएसी हस्ताक्षर",
         pass_print_btn: "प्रिंट / पीडीएफ सहेजें",
         pass_new_btn: "नया पंजीकरण",
-        pass_scan_notice: "प्रवेश द्वार पर सुरक्षा गार्ड को यह क्यूआर कोड दिखाएं।"
+        pass_scan_notice: "प्रवेश द्वार पर सुरक्षा कर्मी को यह क्यूआर कोड दिखाएं।"
       }
     };
 

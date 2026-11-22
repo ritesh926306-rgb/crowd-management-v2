@@ -1,4 +1,4 @@
-# 🛡️ VenueGuard — Smart Venue Entry & Dynamic Crowd Management System
+# 🛡️ VenueGuard — Smart Crowd Control Management System
 
 [![GitHub Pages](https://img.shields.io/badge/Live_Demo-GitHub_Pages-00FFC6?logo=github&logoColor=black)](https://ritesh926306-rgb.github.io/crowd-management-v2/)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](https://python.org)
@@ -8,201 +8,175 @@
 [![Security: HMAC-SHA256](https://img.shields.io/badge/Security-HMAC--SHA256-00ADB5)](https://en.wikipedia.org/wiki/HMAC)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A production-grade, full-stack **Venue Entry & Smart Crowd Management System** built with **Python/Flask**, dual database support (**MySQL 8.0 & SQLite3**), **HMAC-SHA256** cryptographic anti-fraud verification, camera-based QR scanning, and automated **GitHub Actions CI/CD**.
-
-Designed for high-density public venues, religious festivals (temples/mandirs), stadiums, and large concerts to eliminate bottlenecks, prevent stampedes, and block counterfeit tickets.
+VenueGuard is a production-grade, full-stack **Smart Crowd Control & Venue Entry Management System** designed for high-density public venues, religious gatherings, temples, exhibitions, and stadiums. It provides segregated workflows for **Visitors**, **On-Duty Guards**, and **Venue Administrators**, coupled with automated **NodeMCU ESP8266 IoT hardware counters** to prevent bottlenecks, eliminate stampede risks, and block counterfeit passes.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Architecture & Three Segregated Portals
 
-- **Dynamic Crowd Load Balancing (Smart Split):** Automatically calculates live headcount across venue gates (West, North, East, South) and assigns visitors to the least congested exit route.
-- **Cryptographic Anti-Counterfeit Passes:** Every entry pass is signed with HMAC-SHA256 using a server secret key. Altered screenshots, fake dates, or forged names fail security verification.
-- **Live Camera QR Scanner Terminal:** Security guards can scan visitor passes using mobile or laptop cameras with instantaneous admission validation and tamper detection.
-- **PIN-Protected Guard Portal:** Dedicated guard terminal with session lock and PIN code (`1234`).
-- **Admin Command Center:** Real-time analytics charts, gate congestion split, live visitor search, CSV data export, and admission toggle.
-- **Bilingual Interface:** Instant language switching between English and Hindi (हिंदी).
-- **Dual Execution Modes:**
-  - **Full-Stack Mode:** Python Flask backend with live MySQL/SQLite database and dynamic QR generation.
-  - **Static Demo Mode:** Zero-backend interactive demo hosted on GitHub Pages powered by client-side state management.
+```mermaid
+graph TD
+    A[Visitor] -->|Registers / Looks Up Pass| B(Visitor Public Portal)
+    B -->|Generates Digital Pass| C[HMAC-Signed QR Code]
+    
+    C -->|Scanned at Turnstile| D(Guard Portal / Camera Terminal)
+    D -->|Validates Entry / Records Exit| E[(Central Database)]
+    
+    F[IoT ESP8266 Hardware] -->|Encrypted X-Device-Key Telemetry| E
+    
+    G[Venue Administrator] -->|Authenticated RBAC| H(Admin Command Center)
+    H -->|Monitors Live Occupancy & Gate Split| E
+    H -->|Triggers Emergency Evacuation| I[Broadcast Alerts to Guards & Visitors]
+```
+
+### 1. 👥 Visitor Public Portal
+- **Streamlined Navigation**: Home, Register, Check My Pass, Venue Information, Help & Safety, and Hindi / English language switch.
+- **4-Step Registration Wizard**: Collects Primary Visitor details, supports adding multiple individual family members with ages, review stage, and instant digital pass issuance.
+- **Privacy Protection**: Masked mobile numbers and truncated addresses in public-facing templates (`pass.html` and `check_registration.html`).
+- **Pass Verification & Download**: High-resolution printable visitor pass with QR code, assigned exit instructions, and single-click PDF / Print.
+
+### 2. 👮 Dedicated Guard Portal (`/guard/login` or `guard_login.html`)
+- **Restricted Access**: Role-based PIN / Password authentication with idle timeout protection.
+- **Live Camera QR Scanner**: HTML5 real-time camera scanner with instant sound feedback (beep/vibration).
+- **Manual Registration Lookup**: Rapid code lookup for damaged screens or non-smartphone visitors.
+- **Full Life-Cycle Tracking**: Check-in validation with duplicate pass detection, and checkout recording (`/api/check-out/<reg_code>`) for real-time occupancy updates.
+- **Emergency Evacuation Routes**: Immediate emergency alert broadcast with assigned evacuation gates and safety directions.
+
+### 3. 📊 Admin Command Center (`/admin` or `admin.html`)
+- **Occupancy Management**: Prototype capacity set to **1000** (fully configurable). Live gauges show Registered Visitors, Current Occupancy Inside, Exited Visitors, and Remaining Capacity.
+- **Dynamic Gate Load Balancing**: Tracks distribution across **Main Entry Gate** and public exits (**Exit Gate A, B, C, D**). Restricted staff **Gate E** is excluded from public routes.
+- **Audit Logging**: Comprehensive timestamped audit trail of all staff actions, gate admissions, emergency events, and system changes.
+- **Multi-Guard Management**: Add, deactivate, and assign guard accounts to specific perimeter gates.
+- **Emergency Protocol Activation**: One-click broadcast of emergency evacuation warnings across all terminals.
+- **Data Export**: Full CSV export of visitor logs.
 
 ---
 
-## 📁 Repository Architecture & Folder Structure
+## 📁 Repository Structure
 
 ```
 crowd-management-v2/
 ├── .github/
 │   └── workflows/
-│       ├── deploy.yml            # CI/CD: MySQL test, GitHub Pages deploy & GHCR Docker build
-│       └── tests.yml             # Automated integration & security test runner
-├── .env.example                  # Environment variables template (safe for VCS)
-├── .gitignore                    # Excludes keys, .env, DB files, venv, caches
-├── Dockerfile                    # Container definition for containerized deployment
+│       ├── deploy.yml            # CI/CD: Static build deploy to GitHub Pages
+│       └── tests.yml             # Automated unit & integration tests
+├── .env.example                  # Environment configuration template (safe for VCS)
+├── .gitignore                    # Excludes secrets, .env, DB files, venv
+├── Dockerfile                    # Containerization manifest
 ├── package.json                  # Node.js runner scripts
-├── run_dev.bat                   # 1-Click Windows execution script (auto-detects venv)
 ├── README.md                     # Comprehensive project documentation
 │
 ├── backend/                      # 🐍 Flask Backend Server
-│   ├── app.py                    # Main Flask app, routes, HMAC security, SQLite/MySQL DB
-│   ├── schema.sql                # Production MySQL database schema (InnoDB, utf8mb4)
-│   ├── requirements.txt          # Python dependencies (Flask, PyMySQL, qrcode, Pillow, etc.)
-│   ├── test_app.py               # Unit & integration test suite (6 automated tests)
+│   ├── app.py                    # Core backend, REST APIs, HMAC crypto, SQLite/MySQL DB
+│   ├── schema.sql                # Production MySQL schema with audit logs & emergency tables
+│   ├── requirements.txt          # Python dependencies
+│   ├── test_app.py               # Automated integration & security test suite
 │   └── venue_crowd.db            # SQLite database (auto-initialized fallback)
 │
 ├── frontend/                     # 🎨 Frontend Web Application
 │   ├── build_static.py           # Static site compiler for GitHub Pages deployment
 │   ├── templates/                # Jinja2 HTML templates
-│   │   ├── base.html             # Base layout, navbar, i18n handler
-│   │   ├── index.html            # Visitor registration form & venue architecture overview
-│   │   ├── pass.html             # Digital entry pass with dynamic QR & SVG floorplan
-│   │   ├── verify.html           # Guard terminal with camera QR scanner & manual lookup
-│   │   ├── guard_login.html      # Guard PIN security authentication
-│   │   ├── admin.html            # Real-time analytics, crowd control & CSV export
+│   │   ├── base.html             # Base layout, navbar, footer, emergency banner, i18n
+│   │   ├── index.html            # Visitor landing page & 4-step registration wizard
+│   │   ├── pass.html             # Digital entry pass with QR & printable layout
+│   │   ├── check_registration.html # Self-service registration & pass lookup
+│   │   ├── venue_info.html       # Venue blueprint, parking, transit & entry rules
+│   │   ├── help_contact.html     # Visitor safety guidelines, first aid & emergency numbers
+│   │   ├── verify.html           # Guard terminal (camera scanner, check-in, check-out)
+│   │   ├── guard_login.html      # Guard authentication screen
 │   │   ├── login.html            # Admin login screen
-│   │   └── entrance_poster.html  # High-res printable QR poster for entrance gates
+│   │   ├── admin.html            # Real-time analytics, occupancy KPIs, audit log & guards
+│   │   └── entrance_poster.html  # High-res printable QR poster for gates
 │   └── static/
 │       ├── style.css             # Glassmorphism dark-navy responsive design system
-│       ├── static-mode.js        # Client-side state bridge for GitHub Pages
+│       ├── static-mode.js        # Client-side state bridge for zero-backend GitHub Pages
 │       └── html5-qrcode.min.js   # Fast camera QR scanner library
+│
+├── hardware/                     # ⚡ IoT Hardware & Embedded Firmware
+│   ├── esp8266_crowd_monitor.ino # NodeMCU ESP8266 ultrasonic turnstile counter
+│   └── README.md                 # Complete pinout, schematic & telemetry spec
 │
 └── dist/                         # 🌐 Compiled static distribution for GitHub Pages
 ```
 
 ---
 
-## 🔒 Security Architecture (Anti-Hacker Hardening)
+## 🔒 Security Hardening
 
-1. **Zero Secret Exposure in Source Code**:
-   - Secrets (`FLASK_SECRET_KEY`, `HMAC_SECRET_KEY`, `ADMIN_PASSWORD`, `GUARD_PIN`, `DB_PASSWORD`) are loaded strictly from the `.env` file via `python-dotenv`.
-   - If `.env` is absent, the backend dynamically generates a cryptographically secure 256-bit random key using Python's `secrets.token_hex(32)`.
-2. **Strict `.gitignore` Exclusion**:
-   - `.env`, `.env.*`, `*.key`, `*.pem`, `*.db`, `*.sqlite3`, and `credentials.json` are excluded from Git commits.
-   - Public GitHub repositories only contain `.env.example`.
-3. **Parameterized SQL Queries**:
-   - All database queries use strict parameterized queries (`?` for SQLite, `%s` for MySQL) to eliminate SQL injection attacks completely.
-   - A unified database abstraction layer (`UnifiedConnection`) guarantees compatibility across MySQL and SQLite.
-4. **Cryptographic Anti-Counterfeit Verification**:
-   - Every visitor pass is digitally signed using HMAC-SHA256:
+1. **Zero Hardcoded Production Credentials**:
+   - All passwords and secret keys are loaded from environment variables (`.env`).
+   - Default credentials have been purged from documentation, HTML badges, and JavaScript files.
+2. **Cryptographic Anti-Tamper Verification**:
+   - Passes are signed using HMAC-SHA256:
      $$\text{HMAC-SHA256}(\text{RegCode} \parallel \text{Name} \parallel \text{Mobile} \parallel \text{Gate}, \text{SecretKey})$$
-   - Any modification to pass details (such as editing the name or changing the gate) immediately invalidates the signature and triggers a security alert on the guard terminal.
+   - Client passes forged offline or altered in transit are rejected by the server verification engine.
+3. **Hardware Telemetry Protection**:
+   - Turnstile counters must supply a valid `X-Device-Key` header matching `HARDWARE_DEVICE_KEY` to submit telemetry.
+4. **Parameterized SQL Queries**:
+   - All database calls use strictly parameterized queries to prevent SQL injection across SQLite, PostgreSQL, and MySQL.
+5. **Privacy Safeguards**:
+   - Mobile numbers and full home addresses are masked on public views to safeguard visitor PII.
 
 ---
 
-## 🗄️ Database Setup (MySQL & SQLite)
+## 🚀 Quick Start Guide
 
-The system automatically supports **zero-config SQLite** by default and can switch to **MySQL 8.0+** via configuration:
+### 1. Python Flask Backend Mode
 
-### 1. Zero-Config SQLite (Default)
-No setup required. If `DB_TYPE=sqlite` or MySQL is unavailable, the application automatically initializes `backend/venue_crowd.db`.
-
-### 2. MySQL Setup (Production)
-1. Import the schema via MySQL CLI:
-   ```bash
-   mysql -u root -p < backend/schema.sql
-   ```
-2. Configure `.env`:
-   ```ini
-   DB_TYPE=mysql
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_USER=root
-   DB_PASSWORD=your_mysql_password
-   DB_NAME=venue_crowd
-   ```
-*(If MySQL is temporarily unreachable, the application gracefully falls back to SQLite so service is never disrupted).*
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.9 or higher
-- Git
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/ritesh926306-rgb/crowd-management-v2.git
-   cd crowd-management-v2
-   ```
-
-2. **Set up virtual environment:**
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r backend/requirements.txt
-   ```
-
-4. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   ```
-
----
-
-## 🖥️ Running Locally
-
-### Option A: 1-Click Windows Batch Script
-Double-click `run_dev.bat` (automatically activates `venv` if present).
-
-### Option B: Python Direct
 ```bash
+# 1. Clone repository
+git clone https://github.com/ritesh926306-rgb/crowd-management-v2.git
+cd crowd-management-v2
+
+# 2. Create and activate virtual environment
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+# 3. Install dependencies
+pip install -r backend/requirements.txt
+
+# 4. Configure environment variables
+cp .env.example .env
+# Edit .env to set your secure secrets and passwords
+
+# 5. Run automated test suite
+python -m unittest discover -s backend -p "test_*.py"
+
+# 6. Start server
 python backend/app.py
 ```
+Access the application at `http://localhost:5000`.
 
-### Option C: NPM Script
+### 2. Static GitHub Pages Build Mode
+
+To rebuild static HTML files for zero-backend deployment:
 ```bash
-npm run dev
+python frontend/build_static.py
 ```
-
----
-
-## 🌐 Application Endpoints & Credentials
-
-| Portal / Page | URL | Description | Default Credentials |
-| :--- | :--- | :--- | :--- |
-| **Visitor Registration** | [http://127.0.0.1:5000](http://127.0.0.1:5000) | Public registration (English & Hindi) | *Public Access* |
-| **Pass Viewer** | [http://127.0.0.1:5000/pass/&lt;code&gt;](http://127.0.0.1:5000) | Digital Entry Pass with SVG Route & QR | *Public (via Pass Code)* |
-| **Guard Portal & Scanner** | [http://127.0.0.1:5000/guard](http://127.0.0.1:5000/guard) | Camera QR scanner & admission clearance | Guard PIN: `1234` |
-| **Admin Command Center** | [http://127.0.0.1:5000/admin](http://127.0.0.1:5000/admin) | Real-time congestion charts & CSV export | Password: `admin123` |
-| **Entrance QR Poster** | [http://127.0.0.1:5000/admin/entrance-poster](http://127.0.0.1:5000/admin/entrance-poster) | Printable gate QR poster for visitors | Password: `admin123` |
+This generates the full standalone client-side application in `dist/`.
 
 ---
 
 ## 🧪 Automated Testing
 
-Execute the comprehensive test suite verifying registration, group member cascading, HMAC cryptography, anti-tampering verification, and gate capacity balancing:
+VenueGuard includes a comprehensive automated test suite covering:
+- Visitor registration with individual group members
+- Check-registration self-service lookup and verification
+- Masked digital pass rendering
+- Guard check-in validation and duplicate prevention
+- Guard check-out / exit recording and live occupancy calculation
+- Admin occupancy metrics and emergency broadcast toggling
+- IoT hardware telemetry authentication with `X-Device-Key`
 
+Run tests anytime with:
 ```bash
 python -m unittest discover -s backend -p "test_*.py"
 ```
 
-Or via npm:
-```bash
-npm test
-```
-
 ---
 
-## 🔄 CI/CD & GitHub Actions
-
-The repository includes a GitHub Actions pipeline (`.github/workflows/deploy.yml`):
-
-1. **MySQL 8.0 Service Test:** Boots a containerized MySQL 8.0 database service, runs `schema.sql`, and executes backend integration tests against live MySQL.
-2. **GitHub Pages Deployment:** Runs `frontend/build_static.py` to compile the static site and deploys it automatically to the `gh-pages` branch.
-3. **Docker Container Registry (GHCR):** Builds a Docker image and publishes it to GitHub Packages (`ghcr.io`).
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+## 📜 License
+This project is open-source software licensed under the [MIT License](LICENSE).

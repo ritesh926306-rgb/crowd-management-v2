@@ -868,13 +868,24 @@
               }
             </div>
           </div>
-          <button
-            id="checkInBtn"
-            onclick="toggleCheckIn('${reg.reg_code}')"
-            class="btn ${isAdmitted ? 'btn-outline btn-admitted' : 'btn-primary'}"
-          >
-            <span id="checkInBtnIcon">${isAdmitted ? '↩️ Undo Admission' : '🚪 Mark as Admitted'}</span>
-          </button>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button
+              id="checkInBtn"
+              onclick="toggleCheckIn('${reg.reg_code}')"
+              class="btn ${isAdmitted ? 'btn-outline btn-admitted' : 'btn-primary'}"
+            >
+              <span id="checkInBtnIcon">${isAdmitted ? '↩️ Undo Admission' : '🚪 Mark as Admitted'}</span>
+            </button>
+            <button
+              id="checkOutBtn"
+              onclick="recordCheckOut('${reg.reg_code}')"
+              class="btn btn-outline"
+              style="border-color: rgba(245,158,11,0.4); color: var(--amber);"
+              title="Record visitor departure"
+            >
+              <span>🚶 Mark as Exited</span>
+            </button>
+          </div>
         </div>
 
         <!-- Visitor Details -->
@@ -1032,48 +1043,63 @@
       .replace(/'/g, '&#039;');
   }
 
-  /* ─────────────────────────── GUARD AUTO-LOGOUT ON BACK / NAVIGATE ─────────────────────────── */
-  (function initGuardSecurityAutoLogout() {
-    // Push an initial history state to trap browser back button navigation
-    try {
-      history.pushState({ guardTerminal: true }, document.title, window.location.href);
-    } catch (e) {}
+  /* ─────────────────────────── RECORD EXIT (CHECK-OUT) ─────────────────────────── */
+  function recordCheckOut(regCode) {
+    if (!confirm('Record exit for pass ' + regCode + '?')) return;
 
-    // When guard clicks browser back button (popstate):
-    window.addEventListener('popstate', function (event) {
-      if (typeof window.IS_STATIC_BUILD !== 'undefined' && window.IS_STATIC_BUILD) {
-        sessionStorage.removeItem('vg_guard');
-        window.location.replace("guard_login.html");
-        return;
-      }
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon("{{ url_for('guard_logout') }}");
+    if (typeof window.staticToggleCheckOut === 'function' && (!window.IS_FLASK_BACKEND || window.IS_STATIC_BUILD)) {
+      const data = window.staticToggleCheckOut(regCode);
+      if (data.success) {
+        alert('Pass ' + regCode + ' successfully recorded as EXITED.');
+        resetToStandby();
       } else {
-        fetch("{{ url_for('guard_logout') }}", { method: 'POST', keepalive: true });
+        alert('Exit error: ' + (data.message || 'Pass not found'));
       }
-      window.location.replace("{{ url_for('guard_login') }}");
-    });
+      return;
+    }
 
-    // Detect if page was loaded from browser BFCache (back/forward cache)
-    window.addEventListener('pageshow', function (event) {
-      if (event.persisted) {
-        window.location.reload();
-      }
-    });
-
-    // If guard clicks any navigation link that leaves the guard terminal, logout automatically
-    document.addEventListener('click', function(e) {
-      const link = e.target.closest('a');
-      if (!link) return;
-      const href = link.getAttribute('href');
-      if (href && !href.startsWith('#') && !href.startsWith('javascript:') && !href.includes('/verify') && !href.includes('/guard/logout')) {
-        if (typeof window.IS_STATIC_BUILD !== 'undefined' && window.IS_STATIC_BUILD) {
-          sessionStorage.removeItem('vg_guard');
-        } else if (navigator.sendBeacon) {
-          navigator.sendBeacon("{{ url_for('guard_logout') }}");
+    fetch(`/api/check-out/${encodeURIComponent(regCode)}`, { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert('Pass ' + regCode + ' successfully recorded as EXITED.');
+          resetToStandby();
+        } else {
+          alert('Error: ' + (data.message || 'Could not record exit'));
         }
+      })
+      .catch(err => {
+        alert('Network error recording exit: ' + err);
+      });
+  }
+
+  /* ─────────────────────────── AUTO-VERIFY & SESSION TIMER ─────────────────────────── */
+  document.addEventListener('DOMContentLoaded', function () {
+    // If URL has ?code=REG-XXXXXX, automatically verify on load
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      setTimeout(() => {
+        verifyPassAjax(code);
+      }, 350);
+    }
+
+    // Inactivity countdown timer (15 minutes)
+    let idleSeconds = 0;
+    setInterval(function() {
+      idleSeconds++;
+      const remaining = Math.max(0, 900 - idleSeconds);
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      const timerEl = document.getElementById('sessionTimer');
+      if (timerEl) {
+        timerEl.textContent = '⏱ ' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
       }
+    }, 1000);
+
+    ['click', 'touchstart', 'keydown'].forEach(ev => {
+      window.addEventListener(ev, () => { idleSeconds = 0; }, { passive: true });
     });
-  })();
+  });
 </script>
 {% endblock %}

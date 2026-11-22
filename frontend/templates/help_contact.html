@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Help, Safety & Support · VenueGuard{% endblock %}
+
+{% block content %}
+<div style="max-width: 980px; margin: 1.5rem auto 4rem; padding: 0 1rem;">
+
+  <!-- Header -->
+  <div style="text-align: center; margin-bottom: 2.5rem;">
+    <span class="badge badge-teal" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; margin-bottom: 0.5rem;">
+      Support &amp; Safety
+    </span>
+    <h1 style="font-size: 1.75rem; font-weight: 800; color: #fff; letter-spacing: -0.01em;">
+      Visitor Help Desk &amp; Safety Services
+    </h1>
+    <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 540px; margin: 0.35rem auto 0; line-height: 1.5;">
+      On-site medical staging, lost &amp; found assistance, emergency contacts, and visitor support services.
+    </p>
+  </div>
+
+  <!-- Emergency Contacts Banner -->
+  <div id="emergency" class="card" style="border: 1px solid rgba(239,68,68,0.3); background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(15,23,42,0.8)); margin-bottom: 2rem; padding: 1.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.8rem;">🚨</span>
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: #FCA5A5; margin: 0;">Emergency Hotlines &amp; On-Site Dispatch</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Operational 24/7 during event days for immediate response.</p>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(239,68,68,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; color: #FCA5A5; font-weight: 700; margin-bottom: 0.25rem;">Medical Emergency</div>
+        <div class="mono-font" style="font-size: 1.4rem; font-weight: 800; color: #fff;">108 / 112</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">National Medical Dispatch</div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(0,255,198,0.2); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.25rem;">Venue Security Control</div>
+        <div class="mono-font" style="font-size: 1.4rem; font-weight: 800; color: #fff;">+91 98765 00001</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Incident Command Desk</div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
+        <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--amber); font-weight: 700; margin-bottom: 0.25rem;">Visitor Help Desk</div>
+        <div class="mono-font" style="font-size: 1.4rem; font-weight: 800; color: #fff;">+91 98765 00002</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">General Inquiries &amp; Passes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lost & Found and Medical Info -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Lost & Found -->
+    <div id="lostfound" class="card" style="padding: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <span style="font-size: 1.5rem;">🎒</span>
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0;">Lost &amp; Found Protocol</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+        If you have lost personal belongings or need assistance locating accompanying family members:
+      </p>
+      <ul style="padding-left: 1.25rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; margin: 0;">
+        <li>Visit the Central Information Desk near the main plaza.</li>
+        <li>Present your official Registration Code so staff can verify your identity and group records.</li>
+        <li>Unclaimed items are safely logged and stored in the security office.</li>
+      </ul>
+    </div>
+
+    <!-- First Aid -->
+    <div class="card" style="padding: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <span style="font-size: 1.5rem;">🚑</span>
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0;">First Aid &amp; Paramedic Stations</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 0.75rem;">
+        Full medical teams and ambulances are on standby throughout the venue grounds:
+      </p>
+      <ul style="padding-left: 1.25rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; margin: 0;">
+        <li>Station Alpha: Located adjacent to Exit A (West Gate).</li>
+        <li>Station Beta: Positioned at Exit B (North Corridor).</li>
+        <li>Station Gamma: Located near East Plaza (Exit C).</li>
+        <li>Water stations and basic medical kits are stationed at every exit corridor.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Frequently Asked Questions (FAQ) -->
+  <div id="faq" class="card" style="padding: 1.75rem;">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 1.25rem;">
+      ❓ Frequently Asked Questions
+    </h3>
+
+    <div style="display: flex; flex-direction: column; gap: 1.25rem; font-size: 0.88rem;">
+      <div>
+        <strong style="color: var(--teal); display: block; margin-bottom: 0.25rem;">Q: Can I register my entire family under one pass?</strong>
+        <p style="color: var(--text-secondary); margin: 0; line-height: 1.5;">
+          Yes. On Step 3 of registration, click "+ Add Family / Group Member" to include companions. You will receive one master digital pass with the verified group headcount.
+        </p>
+      </div>
+
+      <div style="border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+        <strong style="color: var(--teal); display: block; margin-bottom: 0.25rem;">Q: How do I show my pass at the gate?</strong>
+        <p style="color: var(--text-secondary); margin: 0; line-height: 1.5;">
+          Simply present the QR code on your smartphone screen to the security guard at Gate 1. You may also present a clear printed copy.
+        </p>
+      </div>
+
+      <div style="border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+        <strong style="color: var(--teal); display: block; margin-bottom: 0.25rem;">Q: What should I do if my phone battery dies?</strong>
+        <p style="color: var(--text-secondary); margin: 0; line-height: 1.5;">
+          Visit the Visitor Help Desk at Gate 1 with your registered 10-digit mobile number and government photo ID. On-duty staff can look up and print your verified pass.
+        </p>
+      </div>
+
+      <div style="border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+        <strong style="color: var(--teal); display: block; margin-bottom: 0.25rem;">Q: Why is a specific exit gate assigned to me?</strong>
+        <p style="color: var(--text-secondary); margin: 0; line-height: 1.5;">
+          The system balances crowd distribution across Exit Corridors A, B, C, and D to prevent bottlenecks and ensure a safe, comfortable departure for all attendees.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

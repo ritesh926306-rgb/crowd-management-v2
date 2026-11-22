@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Venue Architecture & Guidelines · VenueGuard{% endblock %}
+
+{% block content %}
+<div style="max-width: 1050px; margin: 1.5rem auto 4rem; padding: 0 1rem;">
+
+  <!-- Header -->
+  <div style="text-align: center; margin-bottom: 2.5rem;">
+    <span class="badge badge-teal" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; margin-bottom: 0.5rem;">
+      Official Venue Guide
+    </span>
+    <h1 style="font-size: 1.75rem; font-weight: 800; color: #fff; letter-spacing: -0.01em;">
+      {{ event_config.event_venue | default('Grand Convention Pavilion & Grounds') }}
+    </h1>
+    <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 580px; margin: 0.35rem auto 0; line-height: 1.5;">
+      Complete visitor navigation guide, designated gate corridors, transit connections, and parking information.
+    </p>
+  </div>
+
+  <!-- Venue Location & Google Maps Card -->
+  <div class="card" style="margin-bottom: 2rem; padding: 1.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem;">📍 Location &amp; Directions</h3>
+        <p style="font-size: 0.84rem; color: var(--text-secondary); margin: 0;">{{ event_config.event_venue }}</p>
+      </div>
+      <a href="https://maps.google.com/?q={{ event_config.event_venue | urlencode }}" target="_blank" rel="noopener" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 1rem;">
+        <span>🗺️</span> Open in Google Maps
+      </a>
+    </div>
+
+    <!-- Interactive / Styled Venue Blueprint Map -->
+    <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.5rem; text-align: center;">
+      <svg viewBox="0 0 800 380" style="width: 100%; max-height: 380px; display: block; margin: 0 auto;" aria-label="Venue Map Blueprint">
+        <defs>
+          <radialGradient id="mapGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#00FFC6" stop-opacity="0.12" />
+            <stop offset="100%" stop-color="#00FFC6" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+
+        <!-- Outer Boundary -->
+        <rect x="20" y="20" width="760" height="340" rx="16" fill="rgba(15,23,42,0.7)" stroke="rgba(0,255,198,0.25)" stroke-width="2"/>
+        <rect x="180" y="80" width="440" height="220" rx="12" fill="url(#mapGlow)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+
+        <!-- Central Arena / Main Pavilion -->
+        <text x="400" y="180" fill="#fff" font-size="16" font-weight="800" text-anchor="middle">CENTRAL EVENT PAVILION</text>
+        <text x="400" y="205" fill="rgba(255,255,255,0.5)" font-size="11" text-anchor="middle">Max Permitted Capacity: {{ event_config.event_capacity | default('1000') }}</text>
+
+        <!-- Main Entrance Gate (South/Center) -->
+        <rect x="340" y="300" width="120" height="50" rx="8" fill="rgba(0,255,198,0.15)" stroke="#00FFC6" stroke-width="2"/>
+        <text x="400" y="325" fill="#00FFC6" font-size="11" font-weight="800" text-anchor="middle">MAIN ENTRANCE</text>
+        <text x="400" y="340" fill="rgba(0,255,198,0.8)" font-size="9" text-anchor="middle">Gate 1 (QR Scanner)</text>
+
+        <!-- Exit A (West) -->
+        <rect x="30" y="160" width="130" height="60" rx="8" fill="rgba(0,173,181,0.15)" stroke="#00ADB5" stroke-width="2"/>
+        <text x="95" y="187" fill="#00ADB5" font-size="11" font-weight="800" text-anchor="middle">EXIT A (WEST)</text>
+        <text x="95" y="205" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">West Boulevard</text>
+
+        <!-- Exit B (North) -->
+        <rect x="340" y="30" width="120" height="50" rx="8" fill="rgba(30,62,98,0.3)" stroke="#3B82F6" stroke-width="2"/>
+        <text x="400" y="55" fill="#60A5FA" font-size="11" font-weight="800" text-anchor="middle">EXIT B (NORTH)</text>
+        <text x="400" y="70" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">North Parking</text>
+
+        <!-- Exit C (East) -->
+        <rect x="640" y="160" width="130" height="60" rx="8" fill="rgba(217,119,6,0.15)" stroke="#D97706" stroke-width="2"/>
+        <text x="705" y="187" fill="#F59E0B" font-size="11" font-weight="800" text-anchor="middle">EXIT C (EAST)</text>
+        <text x="705" y="205" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">Metro Shuttle</text>
+
+        <!-- Exit D (South) -->
+        <rect x="520" y="300" width="120" height="50" rx="8" fill="rgba(124,58,237,0.15)" stroke="#7C3AED" stroke-width="2"/>
+        <text x="580" y="325" fill="#A855F7" font-size="11" font-weight="800" text-anchor="middle">EXIT D (SOUTH)</text>
+        <text x="580" y="340" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">Taxi Stand</text>
+      </svg>
+      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 1rem;">
+        * Note: Exit corridors are dynamically assigned upon registration to ensure balanced and uncrowded visitor dispersion.
+      </div>
+    </div>
+  </div>
+
+  <!-- Exit Gate Guidelines -->
+  <div style="margin-bottom: 2rem;">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 1.25rem;">
+      🚶 Designated Exit Corridors
+    </h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem;">
+      {% for gate in gates %}
+      <div class="card" style="border-left: 4px solid {{ gate.color }}; padding: 1.25rem;">
+        <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: {{ gate.color }};">
+          {{ gate.group }}
+        </span>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0.3rem 0;">{{ gate.name }}</h4>
+        <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.75rem;">
+          {{ gate.description }}
+        </p>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          Zone: <strong>{{ gate.zone }}</strong>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Parking & Transit -->
+  <div id="parking" class="card" style="padding: 1.75rem; margin-bottom: 2rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+      🚗 Parking &amp; Transit Hubs
+    </h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.6;">
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.25rem;">
+        <strong style="color: #fff; display: block; margin-bottom: 0.4rem;">🅿️ North Open Parking (Lot A)</strong>
+        Directly accessible from Exit B (North). Features 400 vehicle capacity and designated two-wheeler bays.
+      </div>
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.25rem;">
+        <strong style="color: #fff; display: block; margin-bottom: 0.4rem;">🚇 Metro &amp; City Shuttle Service</strong>
+        Feeder shuttles depart every 10 minutes from East Plaza immediately outside Exit C (East).
+      </div>
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.25rem;">
+        <strong style="color: #fff; display: block; margin-bottom: 0.4rem;">🚕 Taxi &amp; Rideshare Pickup Zone</strong>
+        Dedicated rideshare drop-off and pickup stands are located along South Promenade near Exit D.
+      </div>
+    </div>
+  </div>
+
+  <!-- Visitor Entry Rules -->
+  <div class="card" style="padding: 1.75rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+      📋 Visitor Guidelines &amp; Code of Conduct
+    </h3>
+    <ul style="padding-left: 1.25rem; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.8; margin: 0;">
+      <li>Please arrive 15 minutes before your preferred entry window to avoid checkpoint queues.</li>
+      <li>Carry your digital pass on a mobile phone or printed paper pass with clear QR visibility.</li>
+      <li>Do not share QR screenshots with unauthorized persons — all passes are authenticated upon gate entry.</li>
+      <li>Follow directional signage and maintain orderly movement through assigned corridors.</li>
+      <li>For safety, luggage and large backpacks are subject to security screening at Gate 1.</li>
+    </ul>
+  </div>
+
+</div>
+{% endblock %}
+
