@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venue Architecture & Guidelines · VenueGuard</title>
+  <meta name="description" content="VenueGuard — Professional crowd safety and event entry management system with digital QR verification and smart multi-gate routing.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/style.css">
+  <script>
+    window.IS_FLASK_BACKEND = ("false" === "true");
+    window.IS_STATIC_BUILD = !window.IS_FLASK_BACKEND;
+  </script>
+  <script src="static/static-mode.js" defer></script>
+  
+</head>
+<body>
+
+  <!-- ═══════════════════════ EMERGENCY BROADCAST BANNER ═══════════════════════ -->
+  
+
+  <!-- ═══════════════════════ PUBLIC HEADER & NAVIGATION ═══════════════════════ -->
+  <header class="app-header no-print">
+    <div class="header-container">
+      <a href="index.html" class="brand-wrapper" title="VenueGuard Home">
+        <div class="brand-logo-icon">🛡️</div>
+        <div>
+          <div class="brand-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            VENUEGUARD
+            
+          </div>
+          <div class="brand-subtitle" data-i18n="system_subtitle">Community Cultural & Exhibition Gathering</div>
+        </div>
+      </a>
+
+      <!-- Public Navigation Menu (Clean & Visitor-Focused) -->
+      <nav class="header-actions" aria-label="Main Navigation">
+        <a href="index.html" class="nav-link" data-i18n="nav_home">Home</a>
+        <a href="index.html#registrationSection" class="nav-link" data-i18n="nav_register">Register</a>
+        <a href="check_registration.html" class="nav-link" data-i18n="nav_check_pass">Check My Pass</a>
+        <a href="venue_info.html" class="nav-link" data-i18n="nav_venue_info">Venue &amp; Guidelines</a>
+        <a href="help_contact.html" class="nav-link" data-i18n="nav_help">Help &amp; Safety</a>
+
+        <!-- Authenticated Staff Controls (Only visible when staff is logged in) -->
+        
+
+        <!-- Language Switcher -->
+        <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Hindi / English">
+          🌐 <span id="langBtnText">हिंदी में बदलें</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════ FLASH NOTIFICATIONS ═══════════════════════ -->
+  
+    
+  
+
+  <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
+  <main class="main-wrapper">
+    
+<div style="max-width: 1050px; margin: 1.5rem auto 4rem; padding: 0 1rem;">
+
+  <!-- Header -->
+  <div style="text-align: center; margin-bottom: 2.5rem;">
+    <span class="badge badge-teal" style="font-size: 0.75rem; padding: 0.25rem 0.75rem; margin-bottom: 0.5rem;">
+      Official Venue Guide
+    </span>
+    <h1 style="font-size: 1.75rem; font-weight: 800; color: #fff; letter-spacing: -0.01em;">
+      City Grand Grounds & Exhibition Center
+    </h1>
+    <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 580px; margin: 0.35rem auto 0; line-height: 1.5;">
+      Complete visitor navigation guide, designated gate corridors, transit connections, and parking information.
+    </p>
+  </div>
+
+  <!-- Venue Location & Google Maps Card -->
+  <div class="card" style="margin-bottom: 2rem; padding: 1.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem;">📍 Location &amp; Directions</h3>
+        <p style="font-size: 0.84rem; color: var(--text-secondary); margin: 0;">City Grand Grounds & Exhibition Center</p>
+      </div>
+      <a href="https://maps.google.com/?q=City%20Grand%20Grounds%20%26%20Exhibition%20Center" target="_blank" rel="noopener" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 1rem;">
+        <span>🗺️</span> Open in Google Maps
+      </a>
+    </div>
+
+    <!-- Interactive / Styled Venue Blueprint Map -->
+    <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.5rem; text-align: center;">
+      <svg viewBox="0 0 800 380" style="width: 100%; max-height: 380px; display: block; margin: 0 auto;" aria-label="Venue Map Blueprint">
+        <defs>
+          <radialGradient id="mapGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#00FFC6" stop-opacity="0.12" />
+            <stop offset="100%" stop-color="#00FFC6" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+
+        <!-- Outer Boundary -->
+        <rect x="20" y="20" width="760" height="340" rx="16" fill="rgba(15,23,42,0.7)" stroke="rgba(0,255,198,0.25)" stroke-width="2"/>
+        <rect x="180" y="80" width="440" height="220" rx="12" fill="url(#mapGlow)" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+
+        <!-- Central Arena / Main Pavilion -->
+        <text x="400" y="180" fill="#fff" font-size="16" font-weight="800" text-anchor="middle">CENTRAL EVENT PAVILION</text>
+        <text x="400" y="205" fill="rgba(255,255,255,0.5)" font-size="11" text-anchor="middle">Max Permitted Capacity: 1000</text>
+
+        <!-- Main Entrance Gate (South/Center) -->
+        <rect x="340" y="300" width="120" height="50" rx="8" fill="rgba(0,255,198,0.15)" stroke="#00FFC6" stroke-width="2"/>
+        <text x="400" y="325" fill="#00FFC6" font-size="11" font-weight="800" text-anchor="middle">MAIN ENTRANCE</text>
+        <text x="400" y="340" fill="rgba(0,255,198,0.8)" font-size="9" text-anchor="middle">Gate 1 (QR Scanner)</text>
+
+        <!-- Exit A (West) -->
+        <rect x="30" y="160" width="130" height="60" rx="8" fill="rgba(0,173,181,0.15)" stroke="#00ADB5" stroke-width="2"/>
+        <text x="95" y="187" fill="#00ADB5" font-size="11" font-weight="800" text-anchor="middle">EXIT A (WEST)</text>
+        <text x="95" y="205" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">West Boulevard</text>
+
+        <!-- Exit B (North) -->
+        <rect x="340" y="30" width="120" height="50" rx="8" fill="rgba(30,62,98,0.3)" stroke="#3B82F6" stroke-width="2"/>
+        <text x="400" y="55" fill="#60A5FA" font-size="11" font-weight="800" text-anchor="middle">EXIT B (NORTH)</text>
+        <text x="400" y="70" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">North Parking</text>
+
+        <!-- Exit C (East) -->
+        <rect x="640" y="160" width="130" height="60" rx="8" fill="rgba(217,119,6,0.15)" stroke="#D97706" stroke-width="2"/>
+        <text x="705" y="187" fill="#F59E0B" font-size="11" font-weight="800" text-anchor="middle">EXIT C (EAST)</text>
+        <text x="705" y="205" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">Metro Shuttle</text>
+
+        <!-- Exit D (South) -->
+        <rect x="520" y="300" width="120" height="50" rx="8" fill="rgba(124,58,237,0.15)" stroke="#7C3AED" stroke-width="2"/>
+        <text x="580" y="325" fill="#A855F7" font-size="11" font-weight="800" text-anchor="middle">EXIT D (SOUTH)</text>
+        <text x="580" y="340" fill="rgba(255,255,255,0.6)" font-size="9" text-anchor="middle">Taxi Stand</text>
+      </svg>
+      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 1rem;">
+        * Note: Exit corridors are dynamically assigned upon registration to ensure balanced and uncrowded visitor dispersion.
+      </div>
+    </div>
+  </div>
+
+  <!-- Exit Gate Guidelines -->
+  <div style="margin-bottom: 2rem;">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 1.25rem;">
+      🚶 Designated Exit Corridors
+    </h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem;">
+      
+      <div class="card" style="border-left: 4px solid #00FFC6; padding: 1.25rem;">
+        <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: #00FFC6;">
+          Group A
+        </span>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0.3rem 0;">Exit Gate A (North Promenade)</h4>
+        <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.75rem;">
+          North Exit towards Main Boulevard & North Transit Plaza
+        </p>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          Zone: <strong>Zone Alpha (North)</strong>
+        </div>
+      </div>
+      
+      <div class="card" style="border-left: 4px solid #3B82F6; padding: 1.25rem;">
+        <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: #3B82F6;">
+          Group B
+        </span>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0.3rem 0;">Exit Gate B (East Corridor)</h4>
+        <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.75rem;">
+          East Exit towards Eastern Metro Station & Shuttle
+        </p>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          Zone: <strong>Zone Beta (East)</strong>
+        </div>
+      </div>
+      
+      <div class="card" style="border-left: 4px solid #F59E0B; padding: 1.25rem;">
+        <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: #F59E0B;">
+          Group C
+        </span>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0.3rem 0;">Exit Gate C (South Plaza)</h4>
+        <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.75rem;">
+          South Exit towards Parking Lot B & Ring Road
+        </p>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          Zone: <strong>Zone Gamma (South)</strong>
+        </div>
+      </div>
+      
+      <div class="card" style="border-left: 4px solid #A855F7; padding: 1.25rem;">
+        <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: #A855F7;">
+          Group D
+        </span>
+        <h4 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0.3rem 0;">Exit Gate D (West Concourse)</h4>
+        <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.75rem;">
+          West Exit towards City Center & Ride-share Zone
+        </p>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          Zone: <strong>Zone Delta (West)</strong>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Parking & Transit -->
+  <div id="parking" class="card" style="padding: 1.75rem; margin-bottom: 2rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+      🚗 Parking &amp; Transit Hubs
+    </h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.6;">
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.25rem;">
+        <strong style="color: #fff; display: block; margin-bottom: 0.4rem;">🅿️ North Open Parking (Lot A)</strong>
+        Directly accessible from Exit B (North). Features 400 vehicle capacity and designated two-wheeler bays.
+      </div>
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.25rem;">
+        <strong style="color: #fff; display: block; margin-bottom: 0.4rem;">🚇 Metro &amp; City Shuttle Service</strong>
+        Feeder shuttles depart every 10 minutes from East Plaza immediately outside Exit C (East).
+      </div>
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.25rem;">
+        <strong style="color: #fff; display: block; margin-bottom: 0.4rem;">🚕 Taxi &amp; Rideshare Pickup Zone</strong>
+        Dedicated rideshare drop-off and pickup stands are located along South Promenade near Exit D.
+      </div>
+    </div>
+  </div>
+
+  <!-- Visitor Entry Rules -->
+  <div class="card" style="padding: 1.75rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+      📋 Visitor Guidelines &amp; Code of Conduct
+    </h3>
+    <ul style="padding-left: 1.25rem; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.8; margin: 0;">
+      <li>Please arrive 15 minutes before your preferred entry window to avoid checkpoint queues.</li>
+      <li>Carry your digital pass on a mobile phone or printed paper pass with clear QR visibility.</li>
+      <li>Do not share QR screenshots with unauthorized persons — all passes are authenticated upon gate entry.</li>
+      <li>Follow directional signage and maintain orderly movement through assigned corridors.</li>
+      <li>For safety, luggage and large backpacks are subject to security screening at Gate 1.</li>
+    </ul>
+  </div>
+
+</div>
+
+  </main>
+
+  <!-- ═══════════════════════ PROFESSIONAL VISITOR FOOTER ═══════════════════════ -->
+  <footer class="app-footer no-print" style="background: rgba(4,13,24,0.96); border-top: 1px solid var(--glass-border); padding: 3rem 1.5rem 1.75rem; margin-top: 4rem;">
+    <div style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2.25rem; margin-bottom: 2.5rem;">
+      <!-- Brand & Mission -->
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem;">
+          <span style="font-size: 1.6rem;">🛡️</span>
+          <strong style="font-size: 1.15rem; color: var(--text-primary); letter-spacing: -0.01em;">VenueGuard</strong>
+        </div>
+        <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
+          Smart crowd safety and digital event entry management. Designed to ensure safe, transparent, and seamless entry for all visitors.
+        </p>
+        <div style="font-size: 0.78rem; color: var(--text-secondary);">
+          📍 City Grand Grounds & Exhibition Center
+        </div>
+      </div>
+
+      <!-- Quick Visitor Links -->
+      <div>
+        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
+          Visitor Services
+        </h4>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
+          <li><a href="index.html" style="color: var(--text-secondary); text-decoration: none;">🏠 Official Home</a></li>
+          <li><a href="index.html#registrationSection" style="color: var(--text-secondary); text-decoration: none;">📝 Register Entry Pass</a></li>
+          <li><a href="check_registration.html" style="color: var(--text-secondary); text-decoration: none;">🔍 Check My Pass Status</a></li>
+          <li><a href="venue_info.html" style="color: var(--text-secondary); text-decoration: none;">🗺️ Venue Map &amp; Gates</a></li>
+          <li><a href="help_contact.html" style="color: var(--text-secondary); text-decoration: none;">ℹ️ Help Desk &amp; Guidelines</a></li>
+        </ul>
+      </div>
+
+      <!-- Safety & Support -->
+      <div>
+        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
+          Safety &amp; Support
+        </h4>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
+          <li><a href="help_contact.html#emergency" style="color: var(--text-secondary); text-decoration: none;">🚑 First Aid &amp; Medical</a></li>
+          <li><a href="help_contact.html#lostfound" style="color: var(--text-secondary); text-decoration: none;">🎒 Lost &amp; Found Desk</a></li>
+          <li><a href="venue_info.html#parking" style="color: var(--text-secondary); text-decoration: none;">🚗 Parking Information</a></li>
+          <li><a href="help_contact.html#faq" style="color: var(--text-secondary); text-decoration: none;">❓ Frequently Asked Questions</a></li>
+        </ul>
+      </div>
+
+      <!-- Authorized Staff Access (Discrete) -->
+      <div>
+        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.45); margin-bottom: 1rem; font-weight: 700;">
+          Staff Portals
+        </h4>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.5;">
+          Restricted access for on-duty security guards and event administrators only.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <a href="guard_login.html" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
+            🛡️ Security Guard Login
+          </a>
+          <a href="login.html" class="btn btn-navy" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
+            ⚙️ Admin Command Center
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Legal Bar -->
+    <div style="max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--text-muted);">
+      <div>
+        &copy; 2026 VenueGuard. All rights reserved. &bull; Official Crowd Safety Platform.
+      </div>
+      <div style="display: flex; gap: 1.25rem;">
+        <a href="#privacyModal" onclick="openModal('privacyModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
+        <span>&bull;</span>
+        <a href="#termsModal" onclick="openModal('termsModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Terms of Entry</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════ PRIVACY POLICY MODAL ═══════════════════════ -->
+  <div id="privacyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
+    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
+      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">🛡️ Privacy &amp; Data Protection</h3>
+      <p>VenueGuard collects visitor name, age, mobile number, and address strictly for authorized venue entry verification, emergency communication, and event safety management.</p>
+      <p style="margin-top:0.75rem;">Your data is cryptographically protected and never sold or shared with commercial third parties. Digital passes mask personal phone numbers and private addresses on public views.</p>
+      <button onclick="closeModal('privacyModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ TERMS MODAL ═══════════════════════ -->
+  <div id="termsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
+    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
+      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">📋 Venue Entry Terms &amp; Conditions</h3>
+      <ul style="padding-left:1.25rem; margin-top:0.5rem; line-height:1.7;">
+        <li>Each digital pass is valid only for the registered group size and assigned date.</li>
+        <li>Passes must be presented to official security guards at designated entry points.</li>
+        <li>Pass duplication or unauthorized sharing is strictly prohibited under anti-passback security protocols.</li>
+        <li>Visitors must adhere to assigned exit routes and follow safety directions issued by event security.</li>
+      </ul>
+      <button onclick="closeModal('termsModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">I Understand &amp; Agree</button>
+    </div>
+  </div>
+
+  <script>
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    }
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    }
+  </script>
+
+  <!-- ═══════════════════════ I18N DICTIONARY ═══════════════════════ -->
+  <script>
+    const translations = {
+      en: {
+        system_subtitle: "Smart Entry · Crowd Safety · Anti-Fraud",
+        lang_btn: "हिंदी में बदलें",
+        nav_home: "Home",
+        nav_register: "Register",
+        nav_check_pass: "Check My Pass",
+        nav_venue_info: "Venue & Guidelines",
+        nav_help: "Help & Safety",
+        form_title: "Venue Entry Pass Registration",
+        form_subtitle: "Fill in your details to receive an official digital entry pass with smart exit gate routing.",
+        sec_primary: "Primary Visitor Details",
+        name_label: "Full Name",
+        name_placeholder: "e.g., Rajesh Sharma",
+        phone_label: "Mobile (10 Digits)",
+        phone_placeholder: "e.g., 9876543210",
+        age_label: "Age",
+        age_placeholder: "e.g., 34",
+        address_label: "Common Home Address",
+        address_placeholder: "House No, Area, City, State, PIN",
+        sec_group: "Accompanying Family / Group Members",
+        sec_group_desc: "Add accompanying members. All will be issued under this single verified digital entry pass.",
+        btn_add_member: "+ Add Family / Group Member",
+        member_name_placeholder: "Member Full Name",
+        member_age_placeholder: "Age",
+        member_mobile_placeholder: "Mobile (Optional)",
+        btn_submit_pass: "Generate Official Entry Pass & Exit Route",
+        venue_summary_title: "Venue Architecture & Safe Routing",
+        entry_gate_desc: "Single check-in entrance with QR pass verification.",
+        exit_routing_desc: "Auto-allocated exit corridors to balance crowd flow.",
+        pass_title: "OFFICIAL DIGITAL ENTRY PASS",
+        pass_verified_pill: "CRYPTOGRAPHICALLY VERIFIED",
+        pass_reg_code: "Pass Code",
+        pass_assigned_exit: "ASSIGNED EXIT ROUTE",
+        pass_total_count: "Total Group Count",
+        pass_primary_person: "Primary Visitor",
+        pass_phone: "Mobile",
+        pass_age: "Age",
+        pass_address: "Address",
+        pass_members_list: "Group Members",
+        pass_no_members: "Solo Visitor",
+        pass_timestamp: "Issued At",
+        pass_print_btn: "Print / Save PDF",
+        pass_new_btn: "Register Another",
+        pass_scan_notice: "Show this QR code to the security guard at the entrance gate."
+      },
+      hi: {
+        system_subtitle: "स्मार्ट प्रवेश · भीड़ सुरक्षा · पारदर्शी प्रबंधन",
+        lang_btn: "Switch to English",
+        nav_home: "होम",
+        nav_register: "पंजीकरण",
+        nav_check_pass: "पास स्थिति जांचें",
+        nav_venue_info: "स्थल व दिशानिर्देश",
+        nav_help: "सहायता व सुरक्षा",
+        form_title: "आयोजन प्रवेश पास पंजीकरण",
+        form_subtitle: "डिजिटल प्रवेश पास और निकास गेट आवंटन के लिए विवरण भरें।",
+        sec_primary: "मुख्य आगंतुक का विवरण",
+        name_label: "पूरा नाम",
+        name_placeholder: "उदा. राजेश शर्मा",
+        phone_label: "मोबाइल (१० अंक)",
+        phone_placeholder: "उदा. 9876543210",
+        age_label: "आयु",
+        age_placeholder: "उदा. 34",
+        address_label: "सामान्य पता",
+        address_placeholder: "मकान नं., क्षेत्र, शहर, राज्य, पिन",
+        sec_group: "साथी परिवार / समूह सदस्य",
+        sec_group_desc: "साथ आने वाले सदस्यों को जोड़ें। सभी का एक ही आधिकारिक डिजिटल पास बनेगा।",
+        btn_add_member: "+ सदस्य जोड़ें",
+        member_name_placeholder: "सदस्य का पूरा नाम",
+        member_age_placeholder: "आयु",
+        member_mobile_placeholder: "मोबाइल (वैकल्पिक)",
+        btn_submit_pass: "प्रवेश पास और निकास मार्ग प्राप्त करें",
+        venue_summary_title: "स्थल व्यवस्था व सुरक्षित निकास",
+        entry_gate_desc: "मुख्य प्रवेश द्वार पर त्वरित क्यूआर सत्यापन।",
+        exit_routing_desc: "संतुलित निकास हेतु स्वचालित गेट आवंटन।",
+        pass_title: "आधिकारिक डिजिटल प्रवेश पास",
+        pass_verified_pill: "प्रमाणित डिजिटल पास",
+        pass_reg_code: "पास कोड",
+        pass_assigned_exit: "आवंटित निकास मार्ग",
+        pass_total_count: "कुल समूह संख्या",
+        pass_primary_person: "मुख्य आगंतुक",
+        pass_phone: "मोबाइल",
+        pass_age: "आयु",
+        pass_address: "पता",
+        pass_members_list: "साथ के सदस्य",
+        pass_no_members: "एकल आगंतुक",
+        pass_timestamp: "जारी होने का समय",
+        pass_print_btn: "प्रिंट / पीडीएफ सहेजें",
+        pass_new_btn: "नया पंजीकरण",
+        pass_scan_notice: "प्रवेश द्वार पर सुरक्षा कर्मी को यह क्यूआर कोड दिखाएं।"
+      }
+    };
+
+    let currentLang = localStorage.getItem('venue_lang') || 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('venue_lang', lang);
+      document.documentElement.lang = lang;
+      const langText = document.getElementById('langBtnText');
+      if (langText) langText.textContent = translations[lang].lang_btn;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang]?.[key]) el.textContent = translations[lang][key];
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (translations[lang]?.[key]) el.placeholder = translations[lang][key];
+      });
+      const hiddenLang = document.getElementById('formLanguageChoice');
+      if (hiddenLang) hiddenLang.value = lang;
+    }
+
+    function toggleLanguage() {
+      setLanguage(currentLang === 'en' ? 'hi' : 'en');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
+  </script>
+  
+</body>
+</html>
