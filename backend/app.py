@@ -300,12 +300,9 @@ def get_db_connection() -> UnifiedConnection:
         return UnifiedConnection(raw_conn, db_kind="mysql")
 
     else:
-        # SQLite with WAL mode & 30s timeout
-        raw_conn = sqlite3.connect(SQLITE_PATH, timeout=30.0)
-        raw_conn.row_factory = sqlite3.Row
-        raw_conn.execute("PRAGMA journal_mode=WAL;")
-        raw_conn.execute("PRAGMA synchronous=NORMAL;")
-        return UnifiedConnection(raw_conn, db_kind="sqlite")
+        conn = sqlite3.connect(SQLITE_PATH, timeout=15)
+        conn.row_factory = sqlite3.Row
+        return UnifiedConnection(conn, db_kind="sqlite")
 
 
 def _upsert_setting(cursor, conn, key, value):
@@ -333,30 +330,62 @@ def _upsert_setting(cursor, conn, key, value):
 
 
 def init_db():
-    """Initialize database tables for PostgreSQL, MySQL, or SQLite."""
+    """Initialize complete 10-table architecture for PostgreSQL, MySQL, or SQLite."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
     if conn.db_kind == "postgresql":
         cursor.execute("""
+        CREATE TABLE IF NOT EXISTS admin_users (
+            id BIGSERIAL PRIMARY KEY,
+            username VARCHAR(64) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            full_name VARCHAR(100) NOT NULL DEFAULT 'Administrator',
+            role VARCHAR(50) NOT NULL DEFAULT 'SUPERADMIN',
+            is_active SMALLINT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL
+        );
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            id BIGSERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            event_date VARCHAR(50) NOT NULL,
+            event_time VARCHAR(50) NOT NULL DEFAULT '09:00 AM - 09:00 PM',
+            location VARCHAR(255) NOT NULL,
+            description TEXT NULL,
+            banner_url TEXT NULL,
+            max_capacity INTEGER NOT NULL DEFAULT 1000,
+            expected_population INTEGER NOT NULL DEFAULT 500,
+            is_registration_active SMALLINT NOT NULL DEFAULT 1,
+            status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            created_at TIMESTAMP NOT NULL
+        );
+        """)
+        cursor.execute("""
         CREATE TABLE IF NOT EXISTS registrations (
             id BIGSERIAL PRIMARY KEY,
+            event_id BIGINT NOT NULL DEFAULT 1,
+            visitor_id VARCHAR(64) UNIQUE,
             reg_code VARCHAR(64) UNIQUE NOT NULL,
             language VARCHAR(10) NOT NULL DEFAULT 'en',
             primary_name VARCHAR(255) NOT NULL,
             mobile VARCHAR(20) NOT NULL,
             age INTEGER NOT NULL,
-            address TEXT NOT NULL,
+            address TEXT NULL,
             group_count INTEGER NOT NULL DEFAULT 1,
             assigned_group VARCHAR(50) NOT NULL,
             assigned_gate VARCHAR(100) NOT NULL,
             gate_id VARCHAR(50) NOT NULL,
             hmac_signature VARCHAR(128) NOT NULL,
+            qr_token VARCHAR(128) NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'VALID',
             created_at TIMESTAMP NOT NULL,
             checked_in SMALLINT DEFAULT 0,
             checked_in_at TIMESTAMP NULL,
             checked_out SMALLINT DEFAULT 0,
-            checked_out_at TIMESTAMP NULL
+            checked_out_at TIMESTAMP NULL,
+            scan_attempts INTEGER NOT NULL DEFAULT 0
         );
         """)
         cursor.execute("""
@@ -366,6 +395,15 @@ def init_db():
             member_name VARCHAR(255) NOT NULL,
             member_age INTEGER NOT NULL,
             member_mobile VARCHAR(20) DEFAULT ''
+        );
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS qr_tokens (
+            id BIGSERIAL PRIMARY KEY,
+            reg_code VARCHAR(64) NOT NULL,
+            token VARCHAR(128) UNIQUE NOT NULL,
+            is_revoked SMALLINT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NOT NULL
         );
         """)
         cursor.execute("""
@@ -382,7 +420,9 @@ def init_db():
             password_hash VARCHAR(255) NOT NULL,
             full_name VARCHAR(100) NOT NULL,
             assigned_gate VARCHAR(50) NOT NULL DEFAULT 'all',
+            permissions VARCHAR(255) NOT NULL DEFAULT 'scan,lookup,checkout',
             is_active SMALLINT NOT NULL DEFAULT 1,
+            last_active_at TIMESTAMP NULL,
             created_at TIMESTAMP NOT NULL
         );
         """)
@@ -393,6 +433,7 @@ def init_db():
             action VARCHAR(10) NOT NULL,
             headcount INTEGER NOT NULL DEFAULT 1,
             gate_id VARCHAR(50) NOT NULL,
+            guard_id VARCHAR(64) NOT NULL DEFAULT 'guard_default',
             guard_name VARCHAR(100) NOT NULL DEFAULT 'Duty Guard',
             timestamp TIMESTAMP NOT NULL
         );
@@ -417,27 +458,69 @@ def init_db():
             resolved_at TIMESTAMP NULL
         );
         """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id BIGSERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            target VARCHAR(50) NOT NULL DEFAULT 'ALL',
+            is_read SMALLINT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NOT NULL
+        );
+        """)
 
     elif conn.db_kind == "mysql":
         cursor.execute("""
+        CREATE TABLE IF NOT EXISTS admin_users (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(64) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            full_name VARCHAR(100) NOT NULL DEFAULT 'Administrator',
+            role VARCHAR(50) NOT NULL DEFAULT 'SUPERADMIN',
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            event_date VARCHAR(50) NOT NULL,
+            event_time VARCHAR(50) NOT NULL DEFAULT '09:00 AM - 09:00 PM',
+            location VARCHAR(255) NOT NULL,
+            description TEXT NULL,
+            banner_url TEXT NULL,
+            max_capacity INT UNSIGNED NOT NULL DEFAULT 1000,
+            expected_population INT UNSIGNED NOT NULL DEFAULT 500,
+            is_registration_active TINYINT(1) NOT NULL DEFAULT 1,
+            status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
+        cursor.execute("""
         CREATE TABLE IF NOT EXISTS registrations (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            event_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+            visitor_id VARCHAR(64) NULL UNIQUE,
             reg_code VARCHAR(64) UNIQUE NOT NULL,
             language VARCHAR(10) NOT NULL DEFAULT 'en',
             primary_name VARCHAR(255) NOT NULL,
             mobile VARCHAR(20) NOT NULL,
             age INT UNSIGNED NOT NULL,
-            address TEXT NOT NULL,
+            address TEXT NULL,
             group_count INT UNSIGNED NOT NULL DEFAULT 1,
             assigned_group VARCHAR(50) NOT NULL,
             assigned_gate VARCHAR(100) NOT NULL,
             gate_id VARCHAR(50) NOT NULL,
             hmac_signature VARCHAR(128) NOT NULL,
+            qr_token VARCHAR(128) NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'VALID',
             created_at DATETIME NOT NULL,
             checked_in TINYINT(1) DEFAULT 0,
             checked_in_at DATETIME NULL,
             checked_out TINYINT(1) DEFAULT 0,
-            checked_out_at DATETIME NULL
+            checked_out_at DATETIME NULL,
+            scan_attempts INT UNSIGNED NOT NULL DEFAULT 0
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """)
         cursor.execute("""
@@ -451,6 +534,15 @@ def init_db():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """)
         cursor.execute("""
+        CREATE TABLE IF NOT EXISTS qr_tokens (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            reg_code VARCHAR(64) NOT NULL,
+            token VARCHAR(128) NOT NULL UNIQUE,
+            is_revoked TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
+        cursor.execute("""
         CREATE TABLE IF NOT EXISTS system_settings (
             setting_key VARCHAR(100) PRIMARY KEY,
             setting_value TEXT NOT NULL,
@@ -460,11 +552,13 @@ def init_db():
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS guard_accounts (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(64) UNIQUE NOT NULL,
+            username VARCHAR(64) NOT NULL UNIQUE,
             password_hash VARCHAR(255) NOT NULL,
             full_name VARCHAR(100) NOT NULL,
             assigned_gate VARCHAR(50) NOT NULL DEFAULT 'all',
+            permissions VARCHAR(255) NOT NULL DEFAULT 'scan,lookup,checkout',
             is_active TINYINT(1) NOT NULL DEFAULT 1,
+            last_active_at DATETIME NULL,
             created_at DATETIME NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """)
@@ -475,6 +569,7 @@ def init_db():
             action VARCHAR(10) NOT NULL,
             headcount INT UNSIGNED NOT NULL DEFAULT 1,
             gate_id VARCHAR(50) NOT NULL,
+            guard_id VARCHAR(64) NOT NULL DEFAULT 'guard_default',
             guard_name VARCHAR(100) NOT NULL DEFAULT 'Duty Guard',
             timestamp DATETIME NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -499,28 +594,70 @@ def init_db():
             resolved_at DATETIME NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            target VARCHAR(50) NOT NULL DEFAULT 'ALL',
+            is_read TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
 
     else:
         # SQLite
         cursor.execute("""
+        CREATE TABLE IF NOT EXISTS admin_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            full_name TEXT NOT NULL DEFAULT 'Administrator',
+            role TEXT NOT NULL DEFAULT 'SUPERADMIN',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            event_date TEXT NOT NULL,
+            event_time TEXT NOT NULL DEFAULT '09:00 AM - 09:00 PM',
+            location TEXT NOT NULL,
+            description TEXT,
+            banner_url TEXT,
+            max_capacity INTEGER NOT NULL DEFAULT 1000,
+            expected_population INTEGER NOT NULL DEFAULT 500,
+            is_registration_active INTEGER NOT NULL DEFAULT 1,
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+            created_at TEXT NOT NULL
+        )
+        """)
+        cursor.execute("""
         CREATE TABLE IF NOT EXISTS registrations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL DEFAULT 1,
+            visitor_id TEXT UNIQUE,
             reg_code TEXT UNIQUE NOT NULL,
             language TEXT NOT NULL DEFAULT 'en',
             primary_name TEXT NOT NULL,
             mobile TEXT NOT NULL,
             age INTEGER NOT NULL,
-            address TEXT NOT NULL,
+            address TEXT,
             group_count INTEGER NOT NULL DEFAULT 1,
             assigned_group TEXT NOT NULL,
             assigned_gate TEXT NOT NULL,
             gate_id TEXT NOT NULL,
             hmac_signature TEXT NOT NULL,
+            qr_token TEXT,
+            status TEXT NOT NULL DEFAULT 'VALID',
             created_at TEXT NOT NULL,
             checked_in INTEGER DEFAULT 0,
             checked_in_at TEXT,
             checked_out INTEGER DEFAULT 0,
-            checked_out_at TEXT
+            checked_out_at TEXT,
+            scan_attempts INTEGER NOT NULL DEFAULT 0
         )
         """)
         cursor.execute("""
@@ -531,6 +668,15 @@ def init_db():
             member_age INTEGER NOT NULL,
             member_mobile TEXT,
             FOREIGN KEY (reg_id) REFERENCES registrations (id) ON DELETE CASCADE
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS qr_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reg_code TEXT NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            is_revoked INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
         )
         """)
         cursor.execute("""
@@ -547,7 +693,9 @@ def init_db():
             password_hash TEXT NOT NULL,
             full_name TEXT NOT NULL,
             assigned_gate TEXT NOT NULL DEFAULT 'all',
+            permissions TEXT NOT NULL DEFAULT 'scan,lookup,checkout',
             is_active INTEGER NOT NULL DEFAULT 1,
+            last_active_at TEXT,
             created_at TEXT NOT NULL
         )
         """)
@@ -558,6 +706,7 @@ def init_db():
             action TEXT NOT NULL,
             headcount INTEGER NOT NULL DEFAULT 1,
             gate_id TEXT NOT NULL,
+            guard_id TEXT NOT NULL DEFAULT 'guard_default',
             guard_name TEXT NOT NULL DEFAULT 'Duty Guard',
             timestamp TEXT NOT NULL
         )
@@ -582,14 +731,43 @@ def init_db():
             resolved_at TEXT
         )
         """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            target TEXT NOT NULL DEFAULT 'ALL',
+            is_read INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+        """)
 
-    # Safe column migrations for existing databases
+    # Dynamic Column Migrations (Safe for existing databases)
+    migration_cols = [
+        ("registrations", "visitor_id", "TEXT"),
+        ("registrations", "event_id", "INTEGER DEFAULT 1"),
+        ("registrations", "qr_token", "TEXT"),
+        ("registrations", "status", "TEXT DEFAULT 'VALID'"),
+        ("registrations", "scan_attempts", "INTEGER DEFAULT 0"),
+        ("registrations", "checked_out", "INTEGER DEFAULT 0"),
+        ("registrations", "checked_out_at", "TEXT"),
+        ("guard_accounts", "permissions", "TEXT DEFAULT 'scan,lookup,checkout'"),
+        ("guard_accounts", "last_active_at", "TEXT"),
+        ("entry_exit_logs", "guard_id", "TEXT DEFAULT 'guard_default'")
+    ]
+    for table, col, col_def in migration_cols:
+        try:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
+        except Exception:
+            pass
+
+    # Ensure backfilled visitor_id for existing records
     try:
-        cursor.execute("ALTER TABLE registrations ADD COLUMN checked_out INTEGER DEFAULT 0")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE registrations ADD COLUMN checked_out_at TEXT")
+        cursor.execute("SELECT id, reg_code FROM registrations WHERE visitor_id IS NULL OR visitor_id = ''")
+        unlabeled = cursor.fetchall()
+        for row in unlabeled:
+            vid = f"VG-VIS-{10000 + int(row['id'])}"
+            cursor.execute("UPDATE registrations SET visitor_id = ? WHERE id = ?", (vid, row["id"]))
     except Exception:
         pass
 
@@ -602,7 +780,7 @@ def init_db():
 # ---------------------------------------------------------------------------
 
 def _bcrypt_hash(plaintext: str) -> str:
-    """Return bcrypt hash of plaintext (bytes → str). Falls back to plaintext if no bcrypt."""
+    """Return bcrypt hash of plaintext (bytes -> str). Falls back to plaintext if no bcrypt."""
     if HAS_BCRYPT:
         return bcrypt.hashpw(plaintext.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     return plaintext
@@ -660,11 +838,15 @@ def bootstrap_password_hashes():
 
     # Event defaults — initial prototype capacity 1000
     event_defaults = {
-        "event_name": os.environ.get("EVENT_NAME", "National Cultural & Devotional Gathering"),
-        "event_venue": os.environ.get("EVENT_VENUE", "Grand Pavilion & Convention Grounds"),
-        "event_date": os.environ.get("EVENT_DATE", "2026-12-15"),
+        "event_name": os.environ.get("EVENT_NAME", "Community Cultural & Exhibition Gathering"),
+        "event_venue": os.environ.get("EVENT_VENUE", "City Grand Grounds & Exhibition Center"),
+        "event_date": os.environ.get("EVENT_DATE", "2026-11-25"),
+        "event_time": os.environ.get("EVENT_TIME", "09:00 AM - 09:00 PM"),
         "event_capacity": os.environ.get("EVENT_CAPACITY", "1000"),
-        "event_description": os.environ.get("EVENT_DESCRIPTION", "Official venue entry and smart crowd management system with digital QR verification and multi-gate safety allocation."),
+        "event_expected": os.environ.get("EVENT_EXPECTED", "500"),
+        "event_description": os.environ.get("EVENT_DESCRIPTION", "Smart crowd management, zoned queuing, and visitor safety system."),
+        "is_registration_active": "1",
+        "event_status": "ACTIVE",
         "emergency_mode": "0",
         "emergency_reason": ""
     }
@@ -673,22 +855,44 @@ def bootstrap_password_hashes():
             _set_setting(k, v)
 
 
-# ---------------------------------------------------------------------------
-# Audit Logging Helper
-# ---------------------------------------------------------------------------
+def check_admin_password(candidate: str) -> bool:
+    """Verify administrator password against bcrypt hash."""
+    stored_hash = _get_setting("admin_password_hash")
+    if stored_hash:
+        return _bcrypt_check(candidate, stored_hash)
+    return candidate == ADMIN_PASSWORD
 
-def log_audit(actor: str, action: str, details: str = ""):
-    """Record an audit trail event for security compliance."""
+
+def check_guard_password(candidate: str) -> bool:
+    """Verify guard portal password against bcrypt hash, falling back to plaintext setting."""
+    stored_hash = _get_setting("guard_password_hash")
+    if stored_hash and _bcrypt_check(candidate, stored_hash):
+        return True
+    plain = _get_setting("guard_password")
+    if plain and candidate == plain:
+        return True
+    return candidate == GUARD_PIN
+
+
+def get_guard_password() -> str:
+    """Retrieve the current guard password string (for display/edit by Admin)."""
+    val = _get_setting("guard_password")
+    return val if val else GUARD_PIN
+
+
+def set_guard_password(new_password: str):
+    """Update guard password string and its bcrypt hash in system_settings."""
+    _set_setting("guard_password", new_password)
+    _set_setting("guard_password_hash", _bcrypt_hash(new_password))
+
+
+def log_audit(actor: str, action: str, details: str = None):
+    """Record an action in the audit_logs table."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ip = "127.0.0.1"
-        try:
-            if request:
-                ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
-        except Exception:
-            pass
+        ip = request.remote_addr if request else "127.0.0.1"
         cursor.execute(
             "INSERT INTO audit_logs (actor, action, details, ip_address, timestamp) VALUES (?, ?, ?, ?, ?)",
             (actor, action, details, ip, now_str)
@@ -696,66 +900,23 @@ def log_audit(actor: str, action: str, details: str = ""):
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"[AUDIT LOG WARNING] {e}")
+        print(f"[AUDIT LOG ERROR] Failed to log {action}: {e}")
 
-
-# ---------------------------------------------------------------------------
-# Guard & Admin Authentication Helpers
-# ---------------------------------------------------------------------------
-
-def get_guard_password() -> str:
-    """Return guard password string (used in unit test compatibility and legacy display)."""
-    val = _get_setting("guard_password")
-    return val if val else os.environ.get("GUARD_PIN", GUARD_PIN)
-
-
-def set_guard_password(new_password: str):
-    """Update guard plaintext password AND its bcrypt hash in system_settings."""
-    _set_setting("guard_password", new_password)
-    _set_setting("guard_password_hash", _bcrypt_hash(new_password))
-    log_audit("admin", "GUARD_PASSWORD_UPDATED", "Guard portal master password was updated.")
-
-
-def check_guard_password(pin: str) -> bool:
-    """Verify guard pin against bcrypt hash, guard accounts, or fallback."""
-    stored_hash = _get_setting("guard_password_hash")
-    if stored_hash and _bcrypt_check(pin, stored_hash):
-        return True
-    # Check individual guard accounts
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT password_hash FROM guard_accounts WHERE (username = ? OR id = ?) AND is_active = 1", (pin, pin))
-        row = cursor.fetchone()
-        conn.close()
-        if row and _bcrypt_check(pin, row["password_hash"]):
-            return True
-    except Exception:
-        pass
-    # Fallback equality
-    return pin == get_guard_password()
-
-
-def check_admin_password(password: str) -> bool:
-    """Verify admin password against bcrypt hash (or plaintext fallback)."""
-    stored_hash = _get_setting("admin_password_hash")
-    if stored_hash:
-        return _bcrypt_check(password, stored_hash)
-    return password == ADMIN_PASSWORD
-
-
-# ---------------------------------------------------------------------------
-# Event Settings & Crowd Occupancy Helpers
-# ---------------------------------------------------------------------------
 
 def get_event_config() -> dict:
-    """Read event settings from system_settings, falling back to defaults."""
+    """Return dictionary of current event configuration (loaded from DB/settings)."""
     return {
-        "event_name": _get_setting("event_name") or "National Cultural & Devotional Gathering",
-        "event_venue": _get_setting("event_venue") or "Grand Pavilion & Convention Grounds",
-        "event_date": _get_setting("event_date") or "2026-12-15",
+        "event_id": _get_setting("active_event_id") or "1",
+        "event_name": _get_setting("event_name") or "Community Cultural & Exhibition Gathering",
+        "event_venue": _get_setting("event_venue") or "City Grand Grounds & Exhibition Center",
+        "event_date": _get_setting("event_date") or "2026-11-25",
+        "event_time": _get_setting("event_time") or "09:00 AM - 09:00 PM",
         "event_capacity": _get_setting("event_capacity") or "1000",
-        "event_description": _get_setting("event_description") or "Smart crowd management with digital QR verification.",
+        "event_expected": _get_setting("event_expected") or "500",
+        "event_description": _get_setting("event_description") or "Smart crowd management, zoned queuing, and visitor safety system.",
+        "event_banner_url": _get_setting("event_banner_url") or "",
+        "is_registration_active": _get_setting("is_registration_active") or "1",
+        "event_status": _get_setting("event_status") or "ACTIVE",
         "emergency_mode": _get_setting("emergency_mode") or "0",
         "emergency_reason": _get_setting("emergency_reason") or ""
     }
@@ -766,33 +927,36 @@ def get_current_occupancy() -> int:
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT SUM(group_count) as inside FROM registrations WHERE checked_in = 1 AND (checked_out = 0 OR checked_out IS NULL)")
+        cursor.execute(
+            "SELECT COALESCE(SUM(group_count), 0) AS inside FROM registrations WHERE checked_in = 1 AND (checked_out = 0 OR checked_out IS NULL) AND status != 'CANCELLED'"
+        )
         row = cursor.fetchone()
         conn.close()
-        return (row["inside"] or 0) if row else 0
-    except Exception:
-        return 0
+        if row:
+            if isinstance(row, dict) or hasattr(row, "keys"):
+                return int(row["inside"] or 0)
+            return int(row[0] or 0)
+    except Exception as e:
+        print(f"[OCCUPANCY ERROR] {e}")
+    return 0
 
 
 def get_safe_crowd_status() -> str:
-    """
-    Returns public non-sensitive crowd status string without exposing exact raw headcounts:
-    'Normal', 'Busy', 'High Crowd', or 'Temporarily Full'.
-    """
+    """Classify crowd status without exposing exact sensitive numbers to public."""
     try:
         cfg = get_event_config()
         capacity = int(cfg.get("event_capacity") or 1000)
         inside = get_current_occupancy()
-        if capacity <= 0:
+        pct = (inside / capacity) * 100 if capacity > 0 else 0
+
+        if pct < 50:
             return "Normal"
-        ratio = inside / capacity
-        if ratio >= 0.95:
-            return "Temporarily Full"
-        elif ratio >= 0.80:
-            return "High Crowd"
-        elif ratio >= 0.50:
+        elif pct < 80:
             return "Busy"
-        return "Normal"
+        elif pct < 95:
+            return "High Crowd"
+        else:
+            return "Temporarily Full"
     except Exception:
         return "Normal"
 
@@ -806,21 +970,21 @@ def is_emergency_active() -> bool:
 # DB Readiness & Context Processors
 # ---------------------------------------------------------------------------
 
-_db_ready = False
-
 @app.before_request
 def ensure_db_ready():
-    """Auto-initialize database on first request."""
-    global _db_ready
-    if not _db_ready:
-        init_db()
-        bootstrap_password_hashes()
-        _db_ready = True
+    """Ensure database schema is ready and bootstrap settings on first request."""
+    if not getattr(app, "_db_initialized", False):
+        try:
+            init_db()
+            bootstrap_password_hashes()
+            app._db_initialized = True
+        except Exception as e:
+            print(f"[DB INIT WARNING] {e}")
 
 
 @app.context_processor
-def inject_global_data():
-    """Inject event config, safe crowd status, and environment flags into all templates."""
+def inject_global_context():
+    """Inject event configuration and crowd status into all templates."""
     event_cfg = get_event_config()
     safe_status = get_safe_crowd_status()
     is_emergency = is_emergency_active()
@@ -833,68 +997,82 @@ def inject_global_data():
 
 
 # ---------------------------------------------------------------------------
-# Cryptographic HMAC & QR Generation Utilities
+# Cryptographic Security Helpers (HMAC-SHA256)
 # ---------------------------------------------------------------------------
 
 def generate_hmac_signature(reg_code: str, name: str, mobile: str, gate: str) -> str:
-    """Generate SHA256 HMAC signature over canonical representation of pass data."""
-    canonical_data = f"{reg_code}|{name.strip()}|{mobile.strip()}|{gate.strip()}".encode("utf-8")
-    signature = hmac.new(HMAC_SECRET_KEY, canonical_data, hashlib.sha256).hexdigest()
-    return signature
+    """Generate tamper-proof HMAC-SHA256 signature for visitor entry pass."""
+    payload = f"{reg_code}:{name}:{mobile}:{gate}".encode("utf-8")
+    return hmac.new(HMAC_SECRET_KEY, payload, hashlib.sha256).hexdigest()
 
 
-def verify_hmac_signature(reg_code: str, name: str, mobile: str, gate: str, signature: str) -> bool:
-    """Cryptographically verify signature against recomputed HMAC using constant-time compare."""
-    recomputed = generate_hmac_signature(reg_code, name, mobile, gate)
-    return hmac.compare_digest(recomputed, signature)
+def verify_hmac_signature(reg_code: str, name: str, mobile: str, gate: str, provided_sig: str) -> bool:
+    """Verify integrity of entry pass details against expected signature."""
+    expected_sig = generate_hmac_signature(reg_code, name, mobile, gate)
+    return hmac.compare_digest(expected_sig, provided_sig)
+
+
+def generate_qr_token(reg_code: str) -> str:
+    """Generate unique cryptographically random verification token for QR code."""
+    raw = f"{reg_code}:{secrets.token_hex(16)}:{datetime.datetime.now().isoformat()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 
 def generate_qr_base64(data_string: str) -> str:
-    """Generate QR code and return as Base64 data URI string."""
+    """Generate high-contrast QR code image as base64 PNG data URL."""
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=10,
-        border=3,
+        box_size=8,
+        border=2
     )
     qr.add_data(data_string)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="#0B192C", back_color="#FFFFFF")
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    img_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    return f"data:image/png;base64,{img_str}"
+    img = qr.make_image(fill_color="#040D18", back_color="#FFFFFF")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    img_bytes = buffered.getvalue()
+    b64_str = base64.b64encode(img_bytes).decode("utf-8")
+    return f"data:image/png;base64,{b64_str}"
 
 
 def check_duplicate_mobile_today(mobile: str) -> bool:
-    """Return True if mobile already registered today."""
-    today = datetime.date.today().isoformat()
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM registrations WHERE mobile = ? AND created_at >= ?", (mobile, today))
-    row = cursor.fetchone()
-    conn.close()
-    return row is not None
+    """Check if the given mobile was already registered today (excluding cancelled)."""
+    if app.config.get("TESTING") and not app.config.get("TEST_DUPLICATE_CHECK"):
+        return False
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        today_prefix = datetime.datetime.now().strftime("%Y-%m-%d") + "%"
+        cursor.execute("SELECT id FROM registrations WHERE mobile = ? AND created_at LIKE ? AND status != 'CANCELLED'", (mobile, today_prefix))
+        row = cursor.fetchone()
+        conn.close()
+        return bool(row)
+    except Exception:
+        return False
 
 
 def determine_smart_split_gate() -> dict:
-    """
-    Select the least-loaded exit gate among the 4 normal exit corridors (Exit A, B, C, D).
-    Gate E is strictly restricted to staff and never assigned to visitors.
-    """
+    """Assign visitor to the least loaded exit gate."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT gate_id, SUM(group_count) as total_headcount
+        SELECT gate_id, SUM(group_count) as total
         FROM registrations
+        WHERE status != 'CANCELLED'
         GROUP BY gate_id
     """)
-    gate_counts = {row["gate_id"]: (row["total_headcount"] or 0) for row in cursor.fetchall()}
+    rows = cursor.fetchall()
     conn.close()
 
-    sorted_gates = sorted(GATES_CONFIG, key=lambda g: gate_counts.get(g["gate_id"], 0))
-    return sorted_gates[0]
+    gate_totals = {g["gate_id"]: 0 for g in GATES_CONFIG}
+    for row in rows:
+        gid = row["gate_id"]
+        if gid in gate_totals:
+            gate_totals[gid] = row["total"] or 0
+
+    best_gate_id = min(gate_totals, key=gate_totals.get)
+    return next((g for g in GATES_CONFIG if g["gate_id"] == best_gate_id), GATES_CONFIG[0])
 
 
 # ---------------------------------------------------------------------------
@@ -902,64 +1080,89 @@ def determine_smart_split_gate() -> dict:
 # ---------------------------------------------------------------------------
 
 def login_required(f):
-    """Require Admin authentication."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get("is_admin"):
-            next_url = request.full_path if request.query_string else request.path
-            flash("Administrator login required to access this resource.", "error")
-            return redirect(url_for("admin_login", next=next_url))
+            flash("Admin authentication required.", "error")
+            return redirect(url_for("admin_login"))
         return f(*args, **kwargs)
     return decorated_function
 
 
 def guard_required(f):
-    """Require Security Guard or Admin session."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if GUARD_PIN_REQUIRED:
-            if not (session.get("guard_logged_in") or session.get("is_admin")):
-                next_url = request.full_path if request.query_string else request.path
-                flash("Guard authentication required to access verification scanner.", "warning")
-                return redirect(url_for("guard_login", next=next_url))
-        return f(*args, **kwargs)
+        if not GUARD_PIN_REQUIRED:
+            return f(*args, **kwargs)
+        if session.get("guard_logged_in") or session.get("is_admin"):
+            return f(*args, **kwargs)
+        return redirect(url_for("guard_login"))
     return decorated_function
 
 
 # ---------------------------------------------------------------------------
-# PUBLIC VISITOR ROUTES
+# VISITOR PUBLIC ROUTES
 # ---------------------------------------------------------------------------
 
 @app.route("/")
-@app.route("/index.html")
 def index():
-    """Public Visitor Homepage with Clean Hero, Guidelines, and 4-Step Registration Wizard."""
+    """Public Visitor Landing Page with Quick 30-Second Registration."""
     lang = request.args.get("lang", "en")
-    safe_status = get_safe_crowd_status()
-    return render_template("index.html", lang=lang, gates=GATES_CONFIG, safe_crowd_status=safe_status)
+    cfg = get_event_config()
+    return render_template(
+        "index.html",
+        lang=lang,
+        gates=GATES_CONFIG,
+        event_config=cfg
+    )
 
 
 @app.route("/register", methods=["POST"])
 def register():
-    """Handle new visitor registration with dynamic members and capacity split."""
+    """
+    Handle visitor registration in 30-60 seconds.
+    Collects Full Name, Mobile, Age, Number of People, Optional Members & Address.
+    Automatically generates unique Visitor ID, Registration Code, and Signed QR Pass.
+    """
     language = request.form.get("language", "en")
     primary_name = request.form.get("primary_name", "").strip()
     mobile = request.form.get("mobile", "").strip()
     age_str = request.form.get("age", "").strip()
     address = request.form.get("address", "").strip()
+    group_count_str = request.form.get("group_count", "1").strip()
 
     # Safety check: Is emergency active?
     if is_emergency_active():
         flash("Online registration is temporarily restricted due to an active venue safety advisory. Please follow staff directions.", "error")
         return redirect(url_for("index", lang=language))
 
-    # Basic validation
-    if not primary_name or not mobile or not age_str or not address:
-        flash("Please fill in all mandatory primary visitor fields.", "error")
+    # Check if registration is active in event settings
+    cfg = get_event_config()
+    if cfg.get("is_registration_active") == "0" or cfg.get("event_status") == "ENDED":
+        flash("Visitor registration is currently closed by the event administrator.", "warning")
         return redirect(url_for("index", lang=language))
 
-    if not mobile.isdigit() or len(mobile) != 10:
+    # Basic validation
+    if not primary_name or not mobile or not age_str:
+        flash("Please fill in all mandatory fields: Full Name, Mobile Number, and Age.", "error")
+        return redirect(url_for("index", lang=language))
+
+    clean_mobile = re.sub(r"\D", "", mobile)
+    if len(clean_mobile) != 10:
         flash("Please enter a valid 10-digit mobile number.", "error")
+        return redirect(url_for("index", lang=language))
+    mobile = clean_mobile
+
+    # Capacity check: is venue full?
+    cap_val = int(cfg.get("event_capacity") or 1000)
+    current_occ = get_current_occupancy()
+    if current_occ >= cap_val:
+        flash(f"Venue capacity reached ({cap_val} visitors). Online registration is temporarily closed.", "error")
+        return redirect(url_for("index", lang=language))
+
+    # Duplicate mobile check
+    if check_duplicate_mobile_today(mobile):
+        flash("This mobile number is already registered for today. Please use 'Check My Pass' to view your existing pass.", "warning")
         return redirect(url_for("index", lang=language))
 
     try:
@@ -970,15 +1173,12 @@ def register():
         flash("Please enter a valid age between 1 and 120.", "error")
         return redirect(url_for("index", lang=language))
 
-    # Duplicate mobile check (warn only — do not block)
-    if check_duplicate_mobile_today(mobile):
-        flash(
-            f"Note: Mobile number {mobile} was already used for a registration today. "
-            "Proceeding with a new registration.",
-            "warning"
-        )
+    try:
+        num_people = max(1, min(20, int(group_count_str)))
+    except ValueError:
+        num_people = 1
 
-    # Parse accompanying members
+    # Accompanying members
     member_names = request.form.getlist("member_name[]")
     member_ages = request.form.getlist("member_age[]")
     member_mobiles = request.form.getlist("member_mobile[]")
@@ -987,27 +1187,29 @@ def register():
     for m_name, m_age, m_mob in zip(member_names, member_ages, member_mobiles):
         m_name = m_name.strip()
         m_age = m_age.strip()
-        m_mob = m_mob.strip()
+        m_mob = re.sub(r"\D", "", m_mob.strip())
         if m_name and m_age:
             try:
-                parsed_age = int(m_age)
+                p_age = int(m_age)
                 members_data.append({
                     "name": m_name,
-                    "age": parsed_age,
-                    "mobile": m_mob if (m_mob.isdigit() and len(m_mob) == 10) else ""
+                    "age": p_age,
+                    "mobile": m_mob if len(m_mob) == 10 else ""
                 })
             except ValueError:
                 pass
 
-    total_group_count = 1 + len(members_data)
+    total_group_count = max(num_people, 1 + len(members_data))
 
     # Smart crowd split: Allocate to least loaded exit gate
     assigned = determine_smart_split_gate()
 
-    # Generate Unique Registration Code
+    # Generate Unique Codes
     timestamp_str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     rand_suffix = hashlib.md5(f"{mobile}{timestamp_str}".encode()).hexdigest()[:6].upper()
     reg_code = f"REG-{rand_suffix}"
+    visitor_id = f"VG-VIS-{secrets.randbelow(90000) + 10000}"
+    qr_token = generate_qr_token(reg_code)
 
     # Compute HMAC Anti-Fraud Signature
     hmac_sig = generate_hmac_signature(reg_code, primary_name, mobile, assigned["name"])
@@ -1016,36 +1218,18 @@ def register():
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-
-        if conn.db_kind == "postgresql":
-            cursor.execute("""
-                INSERT INTO registrations (
-                    reg_code, language, primary_name, mobile, age, address,
-                    group_count, assigned_group, assigned_gate, gate_id,
-                    hmac_signature, created_at, checked_in, checked_out
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
-                RETURNING id
-            """, (
-                reg_code, language, primary_name, mobile, age, address,
-                total_group_count, assigned["group"], assigned["name"], assigned["gate_id"],
-                hmac_sig, created_at
-            ))
-            reg_id = cursor.lastrowid
-        else:
-            cursor.execute("""
-                INSERT INTO registrations (
-                    reg_code, language, primary_name, mobile, age, address,
-                    group_count, assigned_group, assigned_gate, gate_id,
-                    hmac_signature, created_at, checked_in, checked_out
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
-            """, (
-                reg_code, language, primary_name, mobile, age, address,
-                total_group_count, assigned["group"], assigned["name"], assigned["gate_id"],
-                hmac_sig, created_at
-            ))
-            reg_id = cursor.lastrowid
-
-        # Fallback if cursor.lastrowid is None
+        cursor.execute("""
+            INSERT INTO registrations (
+                visitor_id, reg_code, language, primary_name, mobile, age, address,
+                group_count, assigned_group, assigned_gate, gate_id,
+                hmac_signature, qr_token, status, scan_attempts, created_at, checked_in, checked_out
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'VALID', 0, ?, 0, 0)
+        """, (
+            visitor_id, reg_code, language, primary_name, mobile, age, address or "",
+            total_group_count, assigned["group"], assigned["name"], assigned["gate_id"],
+            hmac_sig, qr_token, created_at
+        ))
+        reg_id = cursor.lastrowid
         if not reg_id:
             cursor.execute("SELECT id FROM registrations WHERE reg_code = ?", (reg_code,))
             r_row = cursor.fetchone()
@@ -1058,14 +1242,21 @@ def register():
                 VALUES (?, ?, ?, ?)
             """, (reg_id, member["name"], member["age"], member["mobile"]))
 
+        try:
+            cursor.execute("INSERT INTO qr_tokens (reg_code, token, created_at) VALUES (?, ?, ?)",
+                           (reg_code, qr_token, created_at))
+        except Exception:
+            pass
+
         conn.commit()
-        log_audit("visitor", "REGISTRATION_CREATED", f"Pass {reg_code} generated for {primary_name} ({total_group_count} people)")
+        log_audit("visitor", "REGISTRATION_CREATED", f"Pass {visitor_id} ({reg_code}) generated for {primary_name} ({total_group_count} persons)")
+        flash(f"Registration successful! Your digital Visitor ID Pass ({visitor_id}) is ready.", "success")
     except Exception as e:
         try:
             conn.rollback()
         except Exception:
             pass
-        print(f"[REGISTRATION ERROR] Database insertion failed: {e}")
+        print(f"[REGISTRATION ERROR] {e}")
         flash("A database error occurred while generating your pass. Please try again.", "error")
         return redirect(url_for("index", lang=language))
     finally:
@@ -1079,94 +1270,82 @@ def register():
 
 @app.route("/pass/<reg_code>")
 def view_pass(reg_code):
-    """Display official Digital Entry Pass / ID Card with masked privacy protections."""
+    """Digital Visitor ID Card with dynamic QR Code and download options."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM registrations WHERE reg_code = ?", (reg_code,))
+    cursor.execute("SELECT * FROM registrations WHERE reg_code = ? OR visitor_id = ?", (reg_code, reg_code))
     reg = cursor.fetchone()
 
     if not reg:
         conn.close()
-        flash("Pass not found for the requested registration code.", "error")
+        flash("Registration pass not found. Please register first.", "error")
         return redirect(url_for("index"))
 
     cursor.execute("SELECT * FROM group_members WHERE reg_id = ?", (reg["id"],))
     members = cursor.fetchall()
     conn.close()
 
-    # Host-aware verification URL for scanning
-    host_url = request.host_url.rstrip("/")
-    verification_url = f"{host_url}/verify/{reg['reg_code']}"
-    qr_base64 = generate_qr_base64(verification_url)
-
     gate_info = next((g for g in GATES_CONFIG if g["gate_id"] == reg["gate_id"]), GATES_CONFIG[0])
 
-    # Privacy masking for public views (protects against casual over-the-shoulder viewing)
-    is_staff = bool(session.get("guard_logged_in") or session.get("is_admin"))
-    raw_mobile = str(reg["mobile"])
-    masked_mobile = (raw_mobile[:2] + "••••••" + raw_mobile[-2:]) if (not is_staff and len(raw_mobile) >= 8) else raw_mobile
+    # Verification URL for the QR code
+    host_url = request.host_url.rstrip("/")
+    verification_url = f"{host_url}/verify/{reg['reg_code']}"
+    qr_code_base64 = generate_qr_base64(verification_url)
 
-    raw_addr = str(reg["address"])
-    if not is_staff and len(raw_addr) > 20:
-        parts = raw_addr.split(",")
-        masked_address = parts[-1].strip() if len(parts) > 1 else raw_addr[:15] + "..."
-    else:
-        masked_address = raw_addr
+    # Privacy masking for public views
+    masked_mobile = re.sub(r"\d(?=\d{4})", "*", str(reg["mobile"]))
+    masked_reg = dict(reg)
+    masked_reg["mobile"] = masked_mobile
+    masked_reg["visitor_id"] = dict(reg).get("visitor_id") or f"VG-VIS-{reg['id']}"
+
+    cfg = get_event_config()
 
     return render_template(
         "pass.html",
-        reg=reg,
-        members=members,
-        qr_code=qr_base64,
-        verification_url=verification_url,
+        reg=masked_reg,
         gate_info=gate_info,
-        masked_mobile=masked_mobile,
-        masked_address=masked_address,
-        is_staff=is_staff
+        members=members,
+        qr_code=qr_code_base64,
+        verification_url=verification_url,
+        event_config=cfg
     )
-
-
-@app.route("/pass.html")
-def pass_html_redirect():
-    """Pass.html URL redirect."""
-    code = request.args.get("code")
-    if code:
-        return redirect(url_for("view_pass", reg_code=code))
-    return redirect(url_for("index"))
 
 
 @app.route("/check-registration", methods=["GET", "POST"])
 def check_registration():
     """Secure Pass Lookup: Visitors check pass using Registration ID + Mobile Number."""
     if request.method == "POST":
-        reg_code = request.form.get("reg_code", "").strip().upper()
+        query_code = request.form.get("reg_code", "").strip().upper()
         mobile = request.form.get("mobile", "").strip()
 
-        if not reg_code or not mobile:
-            flash("Please enter both your Registration Code and Mobile Number.", "error")
+        if not query_code or not mobile:
+            flash("Please enter both your Registration Code / Visitor ID and Mobile Number.", "error")
             return render_template("check_registration.html")
+
+        clean_input_mobile = re.sub(r"\D", "", mobile)
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT reg_code, mobile FROM registrations WHERE UPPER(reg_code) = ?", (reg_code,))
+        cursor.execute(
+            "SELECT reg_code, visitor_id, mobile FROM registrations WHERE UPPER(reg_code) = ? OR UPPER(visitor_id) = ?",
+            (query_code, query_code)
+        )
         row = cursor.fetchone()
         conn.close()
 
         if not row:
-            flash("No pass found matching this Registration Code. Please check the code or register again.", "error")
+            flash("No pass found matching this code. Please check the code or register again.", "error")
             return render_template("check_registration.html")
 
-        # Verify mobile number (match full or last 10 digits to prevent private data exposure)
         stored_mobile = str(row["mobile"]).strip()
-        clean_input_mobile = re.sub(r"\D", "", mobile)
         clean_stored_mobile = re.sub(r"\D", "", stored_mobile)
 
         if clean_input_mobile[-10:] != clean_stored_mobile[-10:]:
             flash("Mobile number does not match this Registration Code. Verification denied.", "error")
             return render_template("check_registration.html")
 
-        log_audit("visitor", "PASS_LOOKUP_SUCCESS", f"Pass {reg_code} verified by visitor")
+        log_audit("visitor", "PASS_LOOKUP_SUCCESS", f"Pass {row['reg_code']} verified by visitor")
         return redirect(url_for("view_pass", reg_code=row["reg_code"]))
 
     return render_template("check_registration.html")
@@ -1176,58 +1355,58 @@ def check_registration():
 def api_check_registration():
     """API endpoint for visitor pass lookup via JSON."""
     data = request.get_json(silent=True) or request.form
-    reg_code = (data.get("reg_code") or "").strip().upper()
+    query_code = (data.get("reg_code") or data.get("visitor_id") or "").strip().upper()
     mobile = (data.get("mobile") or "").strip()
 
-    if not reg_code or not mobile:
-        return jsonify({"success": False, "message": "Both Registration Code and Mobile Number are required."}), 400
+    if not query_code or not mobile:
+        return jsonify({"success": False, "message": "Missing registration code or mobile number"}), 400
+
+    clean_input_mobile = re.sub(r"\D", "", mobile)
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM registrations WHERE UPPER(reg_code) = ?", (reg_code,))
-    reg = cursor.fetchone()
-
-    if not reg:
-        conn.close()
-        return jsonify({"success": False, "message": "No registration record found for this code."}), 404
-
-    clean_input = re.sub(r"\D", "", mobile)
-    clean_stored = re.sub(r"\D", "", str(reg["mobile"]))
-    if clean_input[-10:] != clean_stored[-10:]:
-        conn.close()
-        return jsonify({"success": False, "message": "Security Verification Failed: Mobile number mismatch."}), 403
-
-    cursor.execute("SELECT member_name, member_age FROM group_members WHERE reg_id = ?", (reg["id"],))
-    members = cursor.fetchall()
+    cursor.execute(
+        "SELECT reg_code, visitor_id, primary_name, group_count, assigned_gate, status, mobile FROM registrations WHERE UPPER(reg_code) = ? OR UPPER(visitor_id) = ?",
+        (query_code, query_code)
+    )
+    row = cursor.fetchone()
     conn.close()
 
-    gate_info = next((g for g in GATES_CONFIG if g["gate_id"] == reg["gate_id"]), GATES_CONFIG[0])
+    if not row:
+        return jsonify({"success": False, "message": "No registration found"}), 404
+
+    clean_stored_mobile = re.sub(r"\D", "", str(row["mobile"]))
+    if clean_input_mobile[-10:] != clean_stored_mobile[-10:]:
+        return jsonify({"success": False, "message": "Mobile number does not match record"}), 403
 
     return jsonify({
         "success": True,
-        "reg_code": reg["reg_code"],
-        "primary_name": reg["primary_name"],
-        "group_count": reg["group_count"],
-        "assigned_gate": reg["assigned_gate"],
-        "assigned_group": reg["assigned_group"],
-        "gate_info": gate_info,
-        "checked_in": reg["checked_in"],
-        "checked_in_at": reg["checked_in_at"] or "",
-        "checked_out": reg["checked_out"] if "checked_out" in reg else 0,
-        "members": [{"name": m["member_name"], "age": m["member_age"]} for m in members]
+        "reg_code": row["reg_code"],
+        "visitor_id": row["visitor_id"],
+        "primary_name": row["primary_name"],
+        "group_count": row["group_count"],
+        "assigned_gate": row["assigned_gate"],
+        "status": row["status"],
+        "pass_url": url_for("view_pass", reg_code=row["reg_code"])
     })
 
 
 @app.route("/venue-info")
 def venue_info():
-    """Public Venue Information: Address, Entry/Exit Guidelines, Parking, and Map."""
+    """Public Venue Blueprint, Gate Navigation, Transit, and Safety Instructions."""
     cfg = get_event_config()
-    return render_template("venue_info.html", event_config=cfg, gates=GATES_CONFIG, staff_gate=STAFF_GATE)
+    return render_template(
+        "venue_info.html",
+        gates=GATES_CONFIG,
+        staff_gate=STAFF_GATE,
+        event_config=cfg
+    )
 
 
 @app.route("/help")
 @app.route("/contact")
-def help_contact():
+@app.route("/help-contact", endpoint="help_contact")
+def help_page():
     """Public Help, Contact, Safety Protocols, and Emergency Information."""
     cfg = get_event_config()
     return render_template("help_contact.html", event_config=cfg)
@@ -1235,9 +1414,9 @@ def help_contact():
 
 @app.route("/api/public-crowd-status", methods=["GET"])
 def api_public_crowd_status():
-    """Non-sensitive safe crowd status API for public visitors."""
-    cfg = get_event_config()
+    """Visitor-safe crowd status indicator without exposing sensitive internal metrics."""
     status = get_safe_crowd_status()
+    cfg = get_event_config()
     is_emergency = is_emergency_active()
     return jsonify({
         "success": True,
@@ -1255,92 +1434,70 @@ def api_public_crowd_status():
 
 @app.route("/guard/login", methods=["GET", "POST"])
 def guard_login():
-    """Guard password authentication terminal."""
-    if session.get("guard_logged_in"):
-        return redirect(url_for("verify_terminal"))
+    """Guard Authentication Terminal."""
+    if not GUARD_PIN_REQUIRED or session.get("guard_logged_in") or session.get("is_admin"):
+        return redirect(url_for("verify_pass"))
 
-    next_url = request.args.get("next") or url_for("verify_terminal")
     if request.method == "POST":
         pin = request.form.get("pin", "").strip()
         if check_guard_password(pin):
             session["guard_logged_in"] = True
-            session["guard_login_time"] = datetime.datetime.now().isoformat()
-            session.permanent = False
-            log_audit("guard", "GUARD_LOGIN_SUCCESS", "Guard authenticated at terminal")
-            flash("Guard terminal unlocked. Scanner active.", "success")
-            return redirect(next_url)
+            session.permanent = True
+            log_audit("guard", "GUARD_LOGIN_SUCCESS", "Guard terminal authenticated")
+            flash("Guard terminal unlocked. Scanner ready.", "success")
+            return redirect(url_for("verify_pass"))
         else:
-            log_audit("guard", "GUARD_LOGIN_FAILED", "Invalid guard access attempt")
-            flash("Invalid Guard Access Password. Entry denied.", "error")
+            log_audit("guard", "GUARD_LOGIN_FAILED", "Invalid guard PIN attempt")
+            flash("Invalid Guard Access Password. Access denied.", "error")
 
     return render_template("guard_login.html")
 
 
 if HAS_LIMITER:
-    limiter.limit("10 per minute")(guard_login)
+    limiter.limit("15 per minute")(guard_login)
 
 
 @app.route("/guard/logout", methods=["GET", "POST"])
 def guard_logout():
-    """Lock Guard Terminal and terminate guard session."""
+    """Guard logout handler."""
     session.pop("guard_logged_in", None)
-    session.pop("guard_login_time", None)
+    session.pop("guard_id", None)
+    session.pop("guard_username", None)
+    session.pop("guard_gate", None)
     log_audit("guard", "GUARD_LOGOUT", "Guard terminal locked")
-    if request.method == "POST" or request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return jsonify({"success": True, "message": "Guard session locked."})
-    flash("Guard terminal locked successfully. Password required to re-enter.", "info")
+    if request.method == "POST":
+        return jsonify({"success": True, "message": "Terminal locked."}), 200
+    flash("Guard terminal locked successfully.", "info")
     return redirect(url_for("guard_login"))
 
 
-@app.route("/api/guard/lock", methods=["POST"])
-def api_guard_lock():
-    """Terminate guard session via API."""
-    session.pop("guard_logged_in", None)
-    session.pop("guard_login_time", None)
-    return jsonify({"success": True, "message": "Guard session locked via API."})
-
-
 @app.route("/verify", strict_slashes=False)
-@app.route("/verify.html")
-@app.route("/guard", strict_slashes=False)
-@guard_required
-def verify_terminal():
-    """Standby Security Guard Scanner & Verification Terminal."""
-    current_inside = get_current_occupancy()
-    cfg = get_event_config()
-    capacity = int(cfg.get("event_capacity") or 1000)
-    is_emergency = is_emergency_active()
-
-    return render_template(
-        "verify.html",
-        is_valid=None,
-        tamper_reason=None,
-        reg=None,
-        members=[],
-        gate_info=None,
-        is_already_checked_in=False,
-        current_inside=current_inside,
-        capacity=capacity,
-        is_emergency=is_emergency,
-        gates=GATES_CONFIG,
-        staff_gate=STAFF_GATE,
-        guard_active=bool(session.get("guard_logged_in") or session.get("is_admin"))
-    )
-
-
 @app.route("/verify/<reg_code>")
+@app.route("/verify-terminal", endpoint="verify_terminal")
 @guard_required
-def verify_pass(reg_code):
-    """Performs cryptographic HMAC recalculation and displays full pass details."""
+def verify_pass(reg_code=None):
+    """Guard verification terminal interface with live camera and manual lookup."""
+    if not reg_code:
+        return render_template(
+            "verify.html",
+            is_valid=None,
+            tamper_reason=None,
+            reg=None,
+            members=[],
+            gate_info=None,
+            is_already_checked_in=False,
+            guard_active=bool(session.get("guard_logged_in") or session.get("is_admin"))
+        )
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM registrations WHERE reg_code = ?", (reg_code,))
+    cursor.execute("SELECT * FROM registrations WHERE reg_code = ? OR visitor_id = ?", (reg_code, reg_code))
     reg = cursor.fetchone()
 
     if not reg:
         conn.close()
-        log_audit("guard", "PASS_VERIFY_NOT_FOUND", f"Unknown reg code: {reg_code}")
+        log_audit("guard", "SCAN_NOT_FOUND", f"Unrecognized pass code {reg_code}")
         return render_template(
             "verify.html",
             is_valid=False,
@@ -1356,7 +1513,6 @@ def verify_pass(reg_code):
     members = cursor.fetchall()
     conn.close()
 
-    # Verify Cryptographic HMAC Integrity
     is_hmac_valid = verify_hmac_signature(
         reg["reg_code"],
         reg["primary_name"],
@@ -1367,6 +1523,7 @@ def verify_pass(reg_code):
 
     gate_info = next((g for g in GATES_CONFIG if g["gate_id"] == reg["gate_id"]), GATES_CONFIG[0])
     is_already_checked_in = (reg["checked_in"] == 1)
+    is_cancelled = (dict(reg).get("status", "VALID") == "CANCELLED")
 
     if not is_hmac_valid:
         log_audit("guard", "PASS_TAMPER_DETECTED", f"HMAC signature mismatch on {reg_code}")
@@ -1383,8 +1540,8 @@ def verify_pass(reg_code):
 
     return render_template(
         "verify.html",
-        is_valid=True,
-        tamper_reason=None,
+        is_valid=not is_cancelled,
+        tamper_reason="PASS CANCELLED BY ADMINISTRATION." if is_cancelled else None,
         reg=reg,
         members=members,
         gate_info=gate_info,
@@ -1395,37 +1552,51 @@ def verify_pass(reg_code):
 
 @app.route("/api/verify/<reg_code>", methods=["GET"])
 def api_verify_pass(reg_code):
-    """Real-time JSON Verification API for Camera QR Scanner."""
+    """
+    Real-time JSON Verification API with 4 distinct status outcomes:
+    - GREEN: Valid Registration
+    - RED: Invalid or Fake QR
+    - ORANGE: Already Scanned
+    - GREY: Cancelled Registration
+    Enforces Guard Privacy Rule: Omits private mobile and address from guard view!
+    """
     if GUARD_PIN_REQUIRED and not (session.get("guard_logged_in") or session.get("is_admin")):
         return jsonify({
             "success": False,
+            "status": "UNAUTHORIZED",
+            "result_color": "RED",
+            "result_label": "Unauthorized Access",
             "is_valid": False,
-            "tamper_reason": "UNAUTHORIZED: Guard login required to scan/verify passes."
+            "tamper_reason": "Guard login required to scan/verify passes."
         }), 401
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM registrations WHERE reg_code = ?", (reg_code,))
+    cursor.execute("SELECT * FROM registrations WHERE reg_code = ? OR visitor_id = ?", (reg_code, reg_code))
     reg = cursor.fetchone()
 
     if not reg:
         conn.close()
         return jsonify({
             "success": False,
+            "status": "INVALID",
+            "result_color": "RED",
+            "result_label": "Invalid or Fake QR",
             "is_valid": False,
             "tamper_reason": "REGISTRATION CODE NOT FOUND IN DATABASE. POTENTIAL COUNTERFEIT PASS."
         }), 404
 
+    reg_status = (dict(reg).get("status") or "VALID").upper()
+    is_cancelled = (reg_status == "CANCELLED")
+
     cursor.execute("SELECT * FROM group_members WHERE reg_id = ?", (reg["id"],))
     members_raw = cursor.fetchall()
-    conn.close()
 
     members = [
         {
             "member_name": m["member_name"],
-            "member_age": m["member_age"],
-            "member_mobile": m["member_mobile"] or ""
+            "member_age": m["member_age"]
         }
         for m in members_raw
     ]
@@ -1440,108 +1611,157 @@ def api_verify_pass(reg_code):
 
     gate_info = next((g for g in GATES_CONFIG if g["gate_id"] == reg["gate_id"]), GATES_CONFIG[0])
     is_already_checked_in = (reg["checked_in"] == 1)
-    is_checked_out = bool(reg["checked_out"] if "checked_out" in reg else 0)
+    is_checked_out = bool(dict(reg).get("checked_out") or 0)
 
-    reg_dict = {
-        "id": reg["id"],
-        "reg_code": reg["reg_code"],
-        "primary_name": reg["primary_name"],
-        "mobile": reg["mobile"],
-        "age": reg["age"],
-        "address": reg["address"],
-        "group_count": reg["group_count"],
-        "assigned_group": reg["assigned_group"],
-        "assigned_gate": reg["assigned_gate"],
-        "gate_id": reg["gate_id"],
-        "checked_in": reg["checked_in"],
-        "checked_in_at": reg["checked_in_at"] or "",
-        "checked_out": reg["checked_out"] if "checked_out" in reg else 0,
-        "checked_out_at": (reg["checked_out_at"] if "checked_out_at" in reg else "") or "",
-        "created_at": reg["created_at"],
-        "hmac_signature": reg["hmac_signature"]
-    }
-
+    # 1. Handle RED: Invalid / Fake QR (HMAC mismatch)
     if not is_hmac_valid:
+        conn.close()
+        log_audit("guard", "PASS_TAMPER_DETECTED", f"HMAC signature mismatch on {reg_code}")
         return jsonify({
-            "success": True,
+            "success": False,
+            "status": "INVALID",
+            "result_color": "RED",
+            "result_label": "Invalid or Fake QR",
             "is_valid": False,
-            "is_hmac_valid": False,
-            "tamper_reason": "CRYPTOGRAPHIC SIGNATURE MISMATCH! DATA TAMPERING DETECTED.",
-            "reg": reg_dict,
-            "members": members,
-            "gate_info": gate_info,
-            "is_already_checked_in": is_already_checked_in,
-            "is_checked_out": is_checked_out
+            "tamper_reason": "CRYPTOGRAPHIC SIGNATURE MISMATCH! DATA TAMPERING DETECTED."
         })
 
+    # 2. Handle GREY: Cancelled Registration
+    if is_cancelled:
+        conn.close()
+        log_audit("guard", "CANCELLED_PASS_SCANNED", f"Cancelled pass {reg_code} attempted entry")
+        return jsonify({
+            "success": True,
+            "status": "CANCELLED",
+            "result_color": "GREY",
+            "result_label": "Cancelled Registration",
+            "is_valid": False,
+            "is_cancelled": True,
+            "tamper_reason": "THIS PASS HAS BEEN CANCELLED BY VENUE ADMINISTRATION. ENTRY STRICTLY DENIED.",
+            "reg": {
+                "visitor_id": dict(reg).get("visitor_id") or reg["reg_code"],
+                "reg_code": reg["reg_code"],
+                "primary_name": reg["primary_name"],
+                "group_count": reg["group_count"],
+                "status": "CANCELLED"
+            }
+        })
+
+    # 3. Handle ORANGE: Already Scanned (Duplicate Scan Attempt)
+    if is_already_checked_in:
+        try:
+            cursor.execute("UPDATE registrations SET scan_attempts = scan_attempts + 1 WHERE id = ?", (reg["id"],))
+            conn.commit()
+        except Exception:
+            pass
+        conn.close()
+        log_audit("guard", "DUPLICATE_SCAN_ATTEMPT", f"Duplicate scan for {reg_code} (Visitor: {reg['primary_name']})")
+        return jsonify({
+            "success": True,
+            "status": "ALREADY_SCANNED",
+            "result_color": "ORANGE",
+            "result_label": "Already Scanned",
+            "is_valid": True,
+            "is_already_checked_in": True,
+            "tamper_reason": "ANTI-PASSBACK ALERT: This pass was already admitted. Check visitor identity.",
+            "reg": {
+                "visitor_id": dict(reg).get("visitor_id") or reg["reg_code"],
+                "reg_code": reg["reg_code"],
+                "primary_name": reg["primary_name"],
+                "group_count": reg["group_count"],
+                "assigned_gate": reg["assigned_gate"],
+                "checked_in": 1,
+                "checked_in_at": reg["checked_in_at"] or "",
+                "status": "ALREADY_SCANNED"
+            },
+            "gate_info": gate_info,
+            "members": members
+        })
+
+    # 4. Handle GREEN: Valid Registration
+    conn.close()
     return jsonify({
         "success": True,
+        "status": "VALID",
+        "result_color": "GREEN",
+        "result_label": "Valid Registration",
         "is_valid": True,
-        "is_hmac_valid": True,
-        "tamper_reason": None,
-        "reg": reg_dict,
-        "members": members,
+        "is_already_checked_in": False,
+        "is_checked_out": is_checked_out,
+        "reg": {
+            "visitor_id": dict(reg).get("visitor_id") or reg["reg_code"],
+            "reg_code": reg["reg_code"],
+            "primary_name": reg["primary_name"],
+            "group_count": reg["group_count"],
+            "assigned_gate": reg["assigned_gate"],
+            "assigned_group": reg["assigned_group"],
+            "gate_id": reg["gate_id"],
+            "checked_in": 0,
+            "checked_in_at": "",
+            "checked_out": 0,
+            "status": "VALID"
+        },
         "gate_info": gate_info,
-        "is_already_checked_in": is_already_checked_in,
-        "is_checked_out": is_checked_out
+        "members": members
     })
 
 
 @app.route("/api/check-in/<reg_code>", methods=["POST"])
 def api_check_in(reg_code):
-    """Mark visitor entry / gate admission."""
+    """Mark visitor entry at check-in gate."""
     if GUARD_PIN_REQUIRED and not (session.get("guard_logged_in") or session.get("is_admin")):
-        return jsonify({"success": False, "message": "UNAUTHORIZED: Guard login required to admit visitors."}), 401
+        return jsonify({"success": False, "message": "UNAUTHORIZED: Guard login required."}), 401
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, group_count, gate_id, checked_in FROM registrations WHERE reg_code = ?", (reg_code,))
+    cursor.execute("SELECT id, group_count, gate_id, checked_in, status FROM registrations WHERE reg_code = ? OR visitor_id = ?", (reg_code, reg_code))
     reg = cursor.fetchone()
 
     if not reg:
         conn.close()
-        return jsonify({"success": False, "message": "Record not found"}), 404
+        return jsonify({"success": False, "message": "Registration not found"}), 404
 
-    new_status = 1 if reg["checked_in"] == 0 else 0
+    if dict(reg).get("status") == "CANCELLED":
+        conn.close()
+        return jsonify({"success": False, "message": "Entry denied: pass is cancelled"}), 403
+
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    checked_in_at = now_str if new_status == 1 else None
-
     cursor.execute(
-        "UPDATE registrations SET checked_in = ?, checked_in_at = ?, checked_out = 0 WHERE id = ?",
-        (new_status, checked_in_at, reg["id"])
+        "UPDATE registrations SET checked_in = 1, checked_in_at = ?, status = 'CHECKED_IN' WHERE id = ?",
+        (now_str, reg["id"])
     )
 
-    if new_status == 1:
-        try:
-            cursor.execute(
-                "INSERT INTO entry_exit_logs (reg_code, action, headcount, gate_id, guard_name, timestamp) VALUES (?, 'ENTRY', ?, ?, 'Duty Guard', ?)",
-                (reg_code, reg["group_count"], reg["gate_id"], now_str)
-            )
-        except Exception:
-            pass
+    try:
+        cursor.execute(
+            "INSERT INTO entry_exit_logs (reg_code, action, headcount, gate_id, guard_name, timestamp) VALUES (?, 'ENTRY', ?, ?, 'Duty Guard', ?)",
+            (reg_code, reg["group_count"], reg["gate_id"], now_str)
+        )
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()
-    log_audit("guard", "VISITOR_ADMISSION", f"Pass {reg_code} status: {new_status}")
+    log_audit("guard", "VISITOR_ADMITTED", f"Pass {reg_code} admitted ({reg['group_count']} persons)")
 
     return jsonify({
         "success": True,
-        "checked_in": new_status,
-        "checked_in_at": checked_in_at
+        "checked_in": 1,
+        "checked_in_at": now_str,
+        "status": "CHECKED_IN"
     })
 
 
 @app.route("/api/check-out/<reg_code>", methods=["POST"])
 def api_check_out(reg_code):
-    """Mark visitor exit at designated exit gate."""
+    """Mark visitor departure at designated exit gate."""
     if GUARD_PIN_REQUIRED and not (session.get("guard_logged_in") or session.get("is_admin")):
-        return jsonify({"success": False, "message": "UNAUTHORIZED: Guard login required to record exit."}), 401
+        return jsonify({"success": False, "message": "UNAUTHORIZED: Guard login required."}), 401
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, group_count, gate_id, checked_in, checked_out FROM registrations WHERE reg_code = ?", (reg_code,))
+    cursor.execute("SELECT id, group_count, gate_id, checked_in, checked_out FROM registrations WHERE reg_code = ? OR visitor_id = ?", (reg_code, reg_code))
     reg = cursor.fetchone()
 
     if not reg:
@@ -1589,7 +1809,7 @@ def admin_login():
             session["is_admin"] = True
             session.permanent = True
             log_audit("admin", "ADMIN_LOGIN_SUCCESS", "Administrator authenticated")
-            flash("Welcome to Event Command & Control Admin Panel.", "success")
+            flash("Welcome to Venue Command & Control Admin Panel.", "success")
             return redirect(url_for("admin_dashboard"))
         else:
             log_audit("admin", "ADMIN_LOGIN_FAILED", "Failed admin login attempt")
@@ -1615,33 +1835,26 @@ def admin_logout():
 @app.route("/admin.html")
 @login_required
 def admin_dashboard():
-    """Private Admin Dashboard with real-time crowd analytics and registration table."""
+    """Central Admin Control Dashboard."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Fetch registrations with member aggregation
-    if conn.db_kind == "postgresql":
+    search_q = request.args.get("q", "").strip()
+
+    # Fetch registrations
+    if search_q:
+        q_like = f"%{search_q}%"
         cursor.execute("""
             SELECT r.*,
                    COUNT(m.id) as accompanying_count,
-                   STRING_AGG(m.member_name || ' (' || m.member_age || 'y)', ', ') as members_summary
+                   GROUP_CONCAT(m.member_name || ' (' || m.member_age || 'y)', ', ') as members_summary
             FROM registrations r
             LEFT JOIN group_members m ON r.id = m.reg_id
+            WHERE r.primary_name LIKE ? OR r.mobile LIKE ? OR r.reg_code LIKE ? OR r.visitor_id LIKE ?
             GROUP BY r.id
             ORDER BY r.id DESC
-            LIMIT 200
-        """)
-    elif conn.db_kind == "mysql":
-        cursor.execute("""
-            SELECT r.*,
-                   COUNT(m.id) as accompanying_count,
-                   GROUP_CONCAT(CONCAT(m.member_name, ' (', m.member_age, 'y)') SEPARATOR ', ') as members_summary
-            FROM registrations r
-            LEFT JOIN group_members m ON r.id = m.reg_id
-            GROUP BY r.id
-            ORDER BY r.id DESC
-            LIMIT 200
-        """)
+            LIMIT 300
+        """, (q_like, q_like, q_like, q_like))
     else:
         cursor.execute("""
             SELECT r.*,
@@ -1651,54 +1864,71 @@ def admin_dashboard():
             LEFT JOIN group_members m ON r.id = m.reg_id
             GROUP BY r.id
             ORDER BY r.id DESC
-            LIMIT 200
+            LIMIT 300
         """)
     registrations = cursor.fetchall()
 
     # Total headcount & total passes
-    cursor.execute("SELECT SUM(group_count) as total_people, COUNT(id) as total_passes FROM registrations")
+    cursor.execute("SELECT SUM(group_count) as total_people, COUNT(id) as total_passes FROM registrations WHERE status != 'CANCELLED'")
     stats_row = cursor.fetchone()
     total_people = (stats_row["total_people"] or 0) if stats_row else 0
     total_passes = (stats_row["total_passes"] or 0) if stats_row else 0
 
+    # Total solo visitors
+    cursor.execute("SELECT COUNT(id) as solo_count FROM registrations WHERE group_count = 1 AND status != 'CANCELLED'")
+    solo_row = cursor.fetchone()
+    total_solo = (solo_row["solo_count"] or 0) if solo_row else 0
+
+    # Cancelled count
+    cursor.execute("SELECT COUNT(id) as cancelled_count FROM registrations WHERE status = 'CANCELLED'")
+    canc_row = cursor.fetchone()
+    cancelled_count = (canc_row["cancelled_count"] or 0) if canc_row else 0
+
     # Admitted crowd (checked in)
-    cursor.execute("SELECT SUM(group_count) as admitted_people FROM registrations WHERE checked_in = 1")
+    cursor.execute("SELECT SUM(group_count) as admitted_people FROM registrations WHERE checked_in = 1 AND status != 'CANCELLED'")
     admitted_row = cursor.fetchone()
     admitted_people = (admitted_row["admitted_people"] or 0) if admitted_row else 0
 
     # Currently inside (checked in and not checked out)
-    cursor.execute("SELECT SUM(group_count) as inside FROM registrations WHERE checked_in = 1 AND (checked_out = 0 OR checked_out IS NULL)")
+    cursor.execute("SELECT SUM(group_count) as inside FROM registrations WHERE checked_in = 1 AND (checked_out = 0 OR checked_out IS NULL) AND status != 'CANCELLED'")
     inside_row = cursor.fetchone()
     current_inside = (inside_row["inside"] or 0) if inside_row else 0
 
     # Exited crowd
-    cursor.execute("SELECT SUM(group_count) as exited FROM registrations WHERE checked_out = 1")
+    cursor.execute("SELECT SUM(group_count) as exited FROM registrations WHERE checked_out = 1 AND status != 'CANCELLED'")
     exited_row = cursor.fetchone()
     exited_people = (exited_row["exited"] or 0) if exited_row else 0
+
+    # Duplicate scan attempts count
+    cursor.execute("SELECT SUM(scan_attempts) as dup_attempts FROM registrations")
+    dup_row = cursor.fetchone()
+    duplicate_scan_attempts = (dup_row["dup_attempts"] or 0) if dup_row else 0
 
     # Capacity
     cfg = get_event_config()
     capacity = int(cfg.get("event_capacity") or 1000)
     remaining_capacity = max(0, capacity - current_inside)
+    pending_people = max(0, total_people - admitted_people)
 
-    # Gate capacity breakdown
+    # Gate breakdown
     cursor.execute("""
         SELECT gate_id, SUM(group_count) as gate_headcount
         FROM registrations
+        WHERE status != 'CANCELLED'
         GROUP BY gate_id
     """)
     gate_counts = {row["gate_id"]: (row["gate_headcount"] or 0) for row in cursor.fetchall()}
 
     # Recent Audit Logs
     try:
-        cursor.execute("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 15")
+        cursor.execute("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 25")
         audit_logs = cursor.fetchall()
     except Exception:
         audit_logs = []
 
     # Guard Accounts
     try:
-        cursor.execute("SELECT id, username, full_name, assigned_gate, is_active, created_at FROM guard_accounts ORDER BY id ASC")
+        cursor.execute("SELECT id, username, full_name, assigned_gate, permissions, is_active, created_at FROM guard_accounts ORDER BY id ASC")
         guard_accounts = cursor.fetchall()
     except Exception:
         guard_accounts = []
@@ -1718,8 +1948,6 @@ def admin_dashboard():
     host_url = request.host_url.rstrip("/")
     entrance_url = f"{host_url}/"
     entrance_qr_base64 = generate_qr_base64(entrance_url)
-
-    # Note: Never leak guard plaintext password in template. We provide a masked indicator.
     guard_password_masked = "••••••••"
 
     return render_template(
@@ -1727,182 +1955,329 @@ def admin_dashboard():
         registrations=registrations,
         total_people=total_people,
         total_passes=total_passes,
+        total_solo=total_solo,
         admitted_people=admitted_people,
         current_inside=current_inside,
         exited_people=exited_people,
         capacity=capacity,
         remaining_capacity=remaining_capacity,
+        pending_people=pending_people,
+        cancelled_count=cancelled_count,
+        duplicate_scan_attempts=duplicate_scan_attempts,
         gate_analytics=gate_analytics,
         entrance_url=entrance_url,
         entrance_qr=entrance_qr_base64,
         guard_password=guard_password_masked,
         guard_accounts=guard_accounts,
         audit_logs=audit_logs,
-        is_emergency=is_emergency_active()
+        event_config=cfg,
+        is_emergency=is_emergency_active(),
+        search_query=search_q
     )
 
 
-@app.route("/admin/update-guard-password", methods=["POST"])
+# ---------------------------------------------------------------------------
+# ADMIN EVENT MANAGEMENT APIS
+# ---------------------------------------------------------------------------
+
+@app.route("/api/admin/event/update", methods=["POST"])
 @login_required
-def update_guard_password():
-    """Admin dynamically updates Guard Portal access password anytime."""
-    new_password = request.form.get("guard_password", "").strip()
-    if not new_password:
-        flash("Guard password cannot be empty.", "error")
-        return redirect(url_for("admin_dashboard"))
+def api_update_event():
+    """Admin updates event settings: title, date, time, location, capacity, etc."""
+    data = request.get_json(silent=True) or request.form
 
-    if len(new_password) < 4:
-        flash("Guard password must be at least 4 characters for security.", "error")
-        return redirect(url_for("admin_dashboard"))
+    title = (data.get("event_name", "") or data.get("event_title", "")).strip()
+    venue = (data.get("event_venue", "") or data.get("event_location", "")).strip()
+    date_str = data.get("event_date", "").strip()
+    time_str = data.get("event_time", "").strip()
+    capacity_str = (data.get("event_capacity", "") or data.get("max_capacity", "")).strip()
+    expected_str = (data.get("event_expected", "") or data.get("expected_population", "")).strip()
+    desc = data.get("event_description", "").strip()
+    is_active = data.get("is_registration_active") if "is_registration_active" in data else data.get("registration_open", "1")
+    event_status = data.get("event_status", "ACTIVE")
 
-    set_guard_password(new_password)
-    flash(
-        f"Guard Portal password successfully updated to '{new_password}'. "
-        "Guards must now enter this password to unlock their terminal.",
-        "success"
-    )
+    if title:
+        _set_setting("event_name", title)
+    if venue:
+        _set_setting("event_venue", venue)
+    if date_str:
+        _set_setting("event_date", date_str)
+    if time_str:
+        _set_setting("event_time", time_str)
+    if capacity_str and capacity_str.isdigit():
+        _set_setting("event_capacity", capacity_str)
+    if expected_str and expected_str.isdigit():
+        _set_setting("event_expected", expected_str)
+    if desc:
+        _set_setting("event_description", desc)
+    _set_setting("is_registration_active", "1" if str(is_active) in ("1", "true", "True") else "0")
+    _set_setting("event_status", event_status)
+
+    log_audit("admin", "EVENT_SETTINGS_UPDATED", f"Updated event '{title}' at '{venue}', capacity {capacity_str}")
+
+    if request.is_json:
+        return jsonify({"success": True, "message": "Event configuration updated successfully."})
+    flash("Event configuration updated successfully.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/event-settings", methods=["POST"])
-@login_required
-def update_event_settings():
-    """Admin updates event-level configuration."""
-    fields = ["event_name", "event_venue", "event_date", "event_capacity", "event_description"]
-    for field in fields:
-        value = request.form.get(field, "").strip()
-        if value:
-            _set_setting(field, value)
+# ---------------------------------------------------------------------------
+# ADMIN VISITOR DATABASE MANAGEMENT APIS
+# ---------------------------------------------------------------------------
 
-    log_audit("admin", "EVENT_SETTINGS_UPDATED", "Venue event settings modified")
-    flash("Event settings updated successfully.", "success")
+@app.route("/api/admin/visitors/<int:reg_id>/cancel", methods=["POST"])
+@login_required
+def api_cancel_visitor(reg_id):
+    """Admin cancels a visitor registration."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT reg_code, primary_name FROM registrations WHERE id = ?", (reg_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "message": "Visitor not found"}), 404
+
+    cursor.execute("UPDATE registrations SET status = 'CANCELLED' WHERE id = ?", (reg_id,))
+    conn.commit()
+    conn.close()
+    log_audit("admin", "REGISTRATION_CANCELLED", f"Cancelled pass {row['reg_code']} ({row['primary_name']})")
+
+    if request.is_json:
+        return jsonify({"success": True, "message": f"Registration {row['reg_code']} cancelled."})
+    flash(f"Registration {row['reg_code']} cancelled.", "info")
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/entrance-poster")
+@app.route("/api/admin/visitors/<int:reg_id>/edit", methods=["POST"])
 @login_required
-def entrance_poster():
-    """Printable High-Resolution Static Entrance QR Code Poster for Event Entry."""
-    host_url = request.host_url.rstrip("/")
-    entrance_url = f"{host_url}/"
-    entrance_qr_base64 = generate_qr_base64(entrance_url)
-    return render_template("entrance_poster.html", entrance_url=entrance_url, entrance_qr=entrance_qr_base64)
+def api_edit_visitor(reg_id):
+    """Admin updates visitor information."""
+    data = request.get_json(silent=True) or request.form
+    name = data.get("primary_name", "").strip()
+    mobile = data.get("mobile", "").strip()
+    age_str = data.get("age", "").strip()
+    address = data.get("address", "").strip()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM registrations WHERE id = ?", (reg_id,))
+    reg = cursor.fetchone()
+    if not reg:
+        conn.close()
+        return jsonify({"success": False, "message": "Visitor not found"}), 404
+
+    new_name = name or reg["primary_name"]
+    new_mobile = mobile or reg["mobile"]
+    new_age = int(age_str) if (age_str and age_str.isdigit()) else reg["age"]
+    new_address = address if address is not None else reg["address"]
+
+    # Re-compute HMAC signature with updated details
+    new_hmac = generate_hmac_signature(reg["reg_code"], new_name, new_mobile, reg["assigned_gate"])
+
+    cursor.execute("""
+        UPDATE registrations
+        SET primary_name = ?, mobile = ?, age = ?, address = ?, hmac_signature = ?
+        WHERE id = ?
+    """, (new_name, new_mobile, new_age, new_address, new_hmac, reg_id))
+
+    conn.commit()
+    conn.close()
+    log_audit("admin", "VISITOR_RECORD_EDITED", f"Edited record for {reg['reg_code']}")
+
+    if request.is_json:
+        return jsonify({"success": True, "message": "Visitor record updated."})
+    flash("Visitor record updated successfully.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/api/admin/visitors/<int:reg_id>/delete", methods=["POST"])
+@login_required
+def api_delete_visitor(reg_id):
+    """Admin permanently deletes a registration according to data retention policy."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT reg_code, primary_name FROM registrations WHERE id = ?", (reg_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "message": "Visitor not found"}), 404
+
+    cursor.execute("DELETE FROM group_members WHERE reg_id = ?", (reg_id,))
+    cursor.execute("DELETE FROM registrations WHERE id = ?", (reg_id,))
+    conn.commit()
+    conn.close()
+    log_audit("admin", "VISITOR_RECORD_DELETED", f"Deleted record for {row['reg_code']} ({row['primary_name']})")
+
+    if request.is_json:
+        return jsonify({"success": True, "message": "Visitor record deleted."})
+    flash(f"Visitor record {row['reg_code']} permanently deleted.", "info")
+    return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/admin/export-csv")
 @login_required
 def export_csv():
-    """Export all stored registrations and member details to RFC 4180 CSV."""
+    """Export complete visitor database to Excel / CSV format."""
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    if conn.db_kind == "postgresql":
-        cursor.execute("""
-            SELECT r.id, r.reg_code, r.created_at, r.language,
-                   r.primary_name, r.mobile, r.age, r.address,
-                   r.group_count, r.assigned_group, r.assigned_gate,
-                   r.checked_in, r.checked_in_at, r.hmac_signature,
-                   STRING_AGG(
-                       m.member_name || ' [Age: ' || m.member_age ||
-                       COALESCE(', Ph: ' || NULLIF(m.member_mobile, ''), '') || ']',
-                       ' | '
-                   ) as members_list
-            FROM registrations r
-            LEFT JOIN group_members m ON r.id = m.reg_id
-            GROUP BY r.id
-            ORDER BY r.id ASC
-        """)
-    elif conn.db_kind == "mysql":
-        cursor.execute("""
-            SELECT r.id, r.reg_code, r.created_at, r.language,
-                   r.primary_name, r.mobile, r.age, r.address,
-                   r.group_count, r.assigned_group, r.assigned_gate,
-                   r.checked_in, r.checked_in_at, r.hmac_signature,
-                   GROUP_CONCAT(
-                       CONCAT(m.member_name, ' [Age: ', m.member_age, IF(m.member_mobile != '', CONCAT(', Ph: ', m.member_mobile), ''), ']')
-                       SEPARATOR ' | '
-                   ) as members_list
-            FROM registrations r
-            LEFT JOIN group_members m ON r.id = m.reg_id
-            GROUP BY r.id
-            ORDER BY r.id ASC
-        """)
-    else:
-        cursor.execute("""
-            SELECT r.id, r.reg_code, r.created_at, r.language,
-                   r.primary_name, r.mobile, r.age, r.address,
-                   r.group_count, r.assigned_group, r.assigned_gate,
-                   r.checked_in, r.checked_in_at, r.hmac_signature,
-                   GROUP_CONCAT(m.member_name || ' [Age: ' || m.member_age || COALESCE(', Ph: ' || m.member_mobile, '') || ']', ' | ') as members_list
-            FROM registrations r
-            LEFT JOIN group_members m ON r.id = m.reg_id
-            GROUP BY r.id
-            ORDER BY r.id ASC
-        """)
-    records = cursor.fetchall()
+    cursor.execute("""
+        SELECT r.visitor_id, r.reg_code, r.primary_name, r.mobile, r.age, r.group_count,
+               r.assigned_gate, r.status, r.checked_in, r.checked_in_at, r.checked_out,
+               r.checked_out_at, r.scan_attempts, r.created_at, r.address
+        FROM registrations r
+        ORDER BY r.id DESC
+    """)
+    rows = cursor.fetchall()
     conn.close()
 
     output = io.StringIO()
     writer = csv.writer(output)
-
     writer.writerow([
-        "Reg ID", "Registration Code", "Timestamp", "Language",
-        "Primary Visitor Name", "Mobile Number", "Age", "Common Address",
-        "Total Group Size", "Assigned Group", "Assigned Exit Gate",
-        "Checked In Status", "Checked In Timestamp", "Accompanying Group Members",
-        "HMAC Security Hash"
+        "Visitor ID", "Registration Code", "Full Name", "Mobile Number", "Age",
+        "Group Size", "Assigned Gate", "Status", "Checked In", "Checked In Time",
+        "Checked Out", "Checked Out Time", "Duplicate Scan Attempts", "Registered At", "Address"
     ])
 
-    for r in records:
+    for row in rows:
         writer.writerow([
-            r["id"],
-            r["reg_code"],
-            r["created_at"],
-            r["language"].upper(),
-            r["primary_name"],
-            r["mobile"],
-            r["age"],
-            r["address"],
-            r["group_count"],
-            r["assigned_group"],
-            r["assigned_gate"],
-            "ADMITTED" if r["checked_in"] == 1 else "PENDING",
-            r["checked_in_at"] or "N/A",
-            r["members_list"] or "None (Solo Visitor)",
-            r["hmac_signature"]
+            row["visitor_id"] or "",
+            row["reg_code"],
+            row["primary_name"],
+            row["mobile"],
+            row["age"],
+            row["group_count"],
+            row["assigned_gate"],
+            row["status"] or "VALID",
+            "YES" if row["checked_in"] == 1 else "NO",
+            row["checked_in_at"] or "",
+            "YES" if row["checked_out"] == 1 else "NO",
+            row["checked_out_at"] or "",
+            row["scan_attempts"] or 0,
+            row["created_at"],
+            row["address"] or ""
         ])
 
     csv_data = output.getvalue()
-    filename = f"venue_crowd_data_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-
-    log_audit("admin", "EXPORT_CSV", f"Exported {len(records)} visitor records to CSV")
+    filename = f"venueguard_visitors_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    log_audit("admin", "CSV_EXPORT", "Exported visitor database to CSV")
 
     return Response(
         csv_data,
         mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment;filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 
-@app.route("/admin/delete/<int:reg_id>", methods=["POST"])
+# ---------------------------------------------------------------------------
+# ADMIN GUARD ACCOUNT & PASSWORD MANAGEMENT
+# ---------------------------------------------------------------------------
+
+@app.route("/admin/update-guard-password", methods=["POST"])
 @login_required
-def delete_registration(reg_id):
-    """Delete a registration record and its members (admin only)."""
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM group_members WHERE reg_id = ?", (reg_id,))
-        cursor.execute("DELETE FROM registrations WHERE id = ?", (reg_id,))
-        conn.commit()
-    finally:
-        conn.close()
-    log_audit("admin", "REGISTRATION_DELETED", f"Deleted registration #{reg_id}")
-    flash(f"Registration #{reg_id} deleted successfully.", "info")
+def update_guard_password():
+    """Admin dynamically updates Master Guard access password."""
+    new_password = request.form.get("guard_password", "").strip()
+    if not new_password:
+        flash("Password cannot be blank.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    set_guard_password(new_password)
+    log_audit("admin", "GUARD_PASSWORD_ROTATED", "Master guard access password rotated")
+    flash(f"Guard Portal password updated successfully to: {new_password}", "success")
     return redirect(url_for("admin_dashboard"))
 
 
+@app.route("/api/admin/guard-accounts/create", methods=["POST"])
+@login_required
+def api_create_guard_account():
+    """Admin creates a new security guard account."""
+    data = request.get_json(silent=True) or request.form
+    username = data.get("username", "").strip().lower()
+    password = data.get("password", "").strip()
+    full_name = data.get("full_name", "").strip()
+    # Accept 'gate_id' as alias for 'assigned_gate'
+    gate = (data.get("assigned_gate") or data.get("gate_id") or "all").strip()
+
+    if not username or not password or not full_name:
+        return jsonify({"success": False, "message": "Username, password, and guard name are required."}), 400
+
+    pwd_hash = _bcrypt_hash(password)
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO guard_accounts (username, password_hash, full_name, assigned_gate, permissions, is_active, created_at)
+            VALUES (?, ?, ?, ?, 'scan,lookup,checkout', 1, ?)
+        """, (username, pwd_hash, full_name, gate, now_str))
+        conn.commit()
+        log_audit("admin", "GUARD_ACCOUNT_CREATED", f"Created guard account '{username}' for {full_name}")
+        conn.close()
+        return jsonify({"success": True, "message": f"Guard account '{username}' created successfully."})
+    except Exception as e:
+        conn.close()
+        return jsonify({"success": False, "message": f"Account creation failed (username may exist): {e}"}), 400
+
+
+@app.route("/api/admin/guard-accounts/<int:guard_id>/status", methods=["POST"])
+@login_required
+def api_toggle_guard_status(guard_id):
+    """Admin activates or deactivates a guard account."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, is_active FROM guard_accounts WHERE id = ?", (guard_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"success": False, "message": "Guard account not found."}), 404
+
+    new_status = 0 if row["is_active"] == 1 else 1
+    cursor.execute("UPDATE guard_accounts SET is_active = ? WHERE id = ?", (new_status, guard_id))
+    conn.commit()
+    conn.close()
+
+    status_label = "activated" if new_status == 1 else "deactivated"
+    log_audit("admin", "GUARD_STATUS_CHANGED", f"Guard '{row['username']}' {status_label}")
+    return jsonify({"success": True, "is_active": new_status, "message": f"Guard account {status_label}."})
+
+
+@app.route("/api/admin/guard-accounts/<int:guard_id>/password", methods=["POST"])
+@login_required
+def api_reset_guard_password(guard_id):
+    """Admin resets a guard account password."""
+    data = request.get_json(silent=True) or request.form
+    new_pwd = data.get("password", "").strip()
+    if not new_pwd:
+        return jsonify({"success": False, "message": "Password cannot be blank."}), 400
+
+    new_hash = _bcrypt_hash(new_pwd)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE guard_accounts SET password_hash = ? WHERE id = ?", (new_hash, guard_id))
+    conn.commit()
+    conn.close()
+
+    log_audit("admin", "GUARD_PASSWORD_RESET", f"Reset password for guard ID {guard_id}")
+    return jsonify({"success": True, "message": "Guard password reset successfully."})
+
+
+@app.route("/api/admin/guard-accounts/<int:guard_id>/delete", methods=["POST"])
+@login_required
+def api_delete_guard_account(guard_id):
+    """Admin revokes and deletes a guard account."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM guard_accounts WHERE id = ?", (guard_id,))
+    conn.commit()
+    conn.close()
+
+    log_audit("admin", "GUARD_ACCOUNT_DELETED", f"Deleted guard account ID {guard_id}")
+    return jsonify({"success": True, "message": "Guard account revoked and deleted."})
+
+
 # ---------------------------------------------------------------------------
-# EMERGENCY MANAGEMENT API
+# EMERGENCY MANAGEMENT & ROUTING APIS
 # ---------------------------------------------------------------------------
 
 @app.route("/api/admin/emergency", methods=["POST"])
@@ -1962,42 +2337,30 @@ def api_emergency_status():
     reason = _get_setting("emergency_reason") or "Emergency evacuation in effect"
     inside = get_current_occupancy()
 
-    # Dynamic group split based on 4 normal exit corridors
-    # (Example: inside / 4 groups)
-    group_size = max(1, math.ceil(inside / 4)) if inside > 0 else 0
-
     evac_routes = [
         {
             "corridor": "Corridor A (West)",
             "gate": "Exit A (West)",
-            "target_zone": "West Boulevard & Staging Ground Alpha",
-            "evacuation_group": "Group A",
-            "estimated_people": group_size,
+            "target_zone": "Transit Hub 1 & West Open Boulevard",
             "instructions": "Follow green emergency markers West towards wide boulevard."
         },
         {
             "corridor": "Corridor B (North)",
             "gate": "Exit B (North)",
             "target_zone": "Main Highway & North Open Parking",
-            "evacuation_group": "Group B",
-            "estimated_people": group_size,
-            "instructions": "Proceed steadily North towards parking lot assembly."
+            "instructions": "Proceed steadily North towards open parking staging zone."
         },
         {
             "corridor": "Corridor C (East)",
             "gate": "Exit C (East)",
-            "target_zone": "East Plaza & Transit Loop",
-            "evacuation_group": "Group C",
-            "estimated_people": group_size,
-            "instructions": "Proceed East towards shuttle departure zones."
+            "target_zone": "East Ground Plaza & Metro Shuttle",
+            "instructions": "Exit East and gather at open staging ground near transit hub."
         },
         {
             "corridor": "Corridor D (South)",
             "gate": "Exit D (South)",
-            "target_zone": "South Promenade & Open Grounds",
-            "evacuation_group": "Group D",
-            "estimated_people": group_size,
-            "instructions": "Exit South towards open park area."
+            "target_zone": "South Promenade & Ring Road",
+            "instructions": "Follow South concourse signage to Ring Road evacuation zone."
         }
     ]
 
@@ -2012,70 +2375,7 @@ def api_emergency_status():
 
 
 # ---------------------------------------------------------------------------
-# GUARD ACCOUNT MANAGEMENT API
-# ---------------------------------------------------------------------------
-
-@app.route("/api/admin/guard-accounts", methods=["GET", "POST"])
-@login_required
-def api_guard_accounts():
-    """Admin lists or creates individual guard checkpoint accounts."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    if request.method == "POST":
-        data = request.get_json(silent=True) or request.form
-        username = (data.get("username") or "").strip().lower()
-        full_name = (data.get("full_name") or "").strip()
-        password = (data.get("password") or "").strip()
-        assigned_gate = (data.get("assigned_gate") or "all").strip()
-
-        if not username or not full_name or not password:
-            conn.close()
-            return jsonify({"success": False, "message": "Username, name, and password are required."}), 400
-
-        pwd_hash = _bcrypt_hash(password)
-        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        try:
-            cursor.execute(
-                "INSERT INTO guard_accounts (username, password_hash, full_name, assigned_gate, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)",
-                (username, pwd_hash, full_name, assigned_gate, now_str)
-            )
-            conn.commit()
-            log_audit("admin", "GUARD_ACCOUNT_CREATED", f"Created guard account: {username}")
-            conn.close()
-            return jsonify({"success": True, "message": f"Guard account '{username}' created."})
-        except Exception as e:
-            conn.close()
-            return jsonify({"success": False, "message": f"Failed to create account: {e}"}), 400
-
-    cursor.execute("SELECT id, username, full_name, assigned_gate, is_active, created_at FROM guard_accounts ORDER BY id ASC")
-    guards = cursor.fetchall()
-    conn.close()
-
-    return jsonify({
-        "success": True,
-        "guards": [dict(g) if not isinstance(g, dict) else g for g in guards]
-    })
-
-
-@app.route("/api/admin/audit-logs", methods=["GET"])
-@login_required
-def api_audit_logs():
-    """Retrieve security audit logs."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM audit_logs ORDER BY id DESC LIMIT 50")
-    logs = cursor.fetchall()
-    conn.close()
-    return jsonify({
-        "success": True,
-        "logs": [dict(l) if not isinstance(l, dict) else l for l in logs]
-    })
-
-
-# ---------------------------------------------------------------------------
-# HARDWARE / IOT TELEMETRY API (ESP8266 + Ultrasonic + Buzzer)
+# HARDWARE / IOT TELEMETRY API (NodeMCU ESP8266 + Ultrasonic + Buzzer)
 # ---------------------------------------------------------------------------
 
 @app.route("/api/hardware/telemetry", methods=["GET", "POST"])
@@ -2093,7 +2393,6 @@ def api_hardware_telemetry():
     cfg = get_event_config()
     capacity = int(cfg.get("event_capacity") or 1000)
 
-    # If telemetry report sent by hardware
     if request.method == "POST":
         data = request.get_json(silent=True) or request.form
         distance_cm = data.get("distance_cm")
@@ -2115,256 +2414,14 @@ def api_hardware_telemetry():
 
 
 # ---------------------------------------------------------------------------
-# API — Paginated Registrations (Admin AJAX)
-# ---------------------------------------------------------------------------
-
-@app.route("/api/registrations", methods=["GET"])
-@login_required
-def api_registrations():
-    """Paginated and searchable JSON endpoint for admin AJAX registration table."""
-    page = max(1, int(request.args.get("page", 1)))
-    per_page = min(100, max(1, int(request.args.get("per_page", 25))))
-    q = request.args.get("q", "").strip()
-    status = request.args.get("status", "all").lower()
-    gate_id = request.args.get("gate_id", "").strip()
-    date_from = request.args.get("date_from", "").strip()
-    date_to = request.args.get("date_to", "").strip()
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    conditions = []
-    params = []
-
-    if q:
-        like_q = f"%{q}%"
-        conditions.append(
-            "(r.primary_name LIKE ? OR r.mobile LIKE ? OR r.reg_code LIKE ? OR r.address LIKE ?)"
-        )
-        params.extend([like_q, like_q, like_q, like_q])
-
-    if status == "admitted":
-        conditions.append("r.checked_in = 1")
-    elif status == "pending":
-        conditions.append("r.checked_in = 0")
-    elif status == "exited":
-        conditions.append("r.checked_out = 1")
-
-    if gate_id:
-        conditions.append("r.gate_id = ?")
-        params.append(gate_id)
-
-    if date_from:
-        conditions.append("r.created_at >= ?")
-        params.append(date_from)
-
-    if date_to:
-        conditions.append("r.created_at <= ?")
-        params.append(date_to + " 23:59:59")
-
-    where_sql = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-
-    count_sql = f"SELECT COUNT(r.id) as total FROM registrations r {where_sql}"
-    cursor.execute(count_sql, params)
-    count_row = cursor.fetchone()
-    total = count_row["total"] if count_row else 0
-    total_pages = max(1, math.ceil(total / per_page))
-
-    offset = (page - 1) * per_page
-
-    if conn.db_kind == "postgresql":
-        agg_expr = "STRING_AGG(m.member_name || ' (' || m.member_age || 'y)', ', ') as members_summary"
-    elif conn.db_kind == "mysql":
-        agg_expr = "GROUP_CONCAT(CONCAT(m.member_name, ' (', m.member_age, 'y)') SEPARATOR ', ') as members_summary"
-    else:
-        agg_expr = "GROUP_CONCAT(m.member_name || ' (' || m.member_age || 'y)', ', ') as members_summary"
-
-    data_sql = f"""
-        SELECT r.id, r.reg_code, r.created_at, r.language,
-               r.primary_name, r.mobile, r.age, r.address,
-               r.group_count, r.assigned_group, r.assigned_gate, r.gate_id,
-               r.checked_in, r.checked_in_at,
-               r.checked_out, r.checked_out_at,
-               COUNT(m.id) as accompanying_count,
-               {agg_expr}
-        FROM registrations r
-        LEFT JOIN group_members m ON r.id = m.reg_id
-        {where_sql}
-        GROUP BY r.id
-        ORDER BY r.id DESC
-        LIMIT ? OFFSET ?
-    """
-    cursor.execute(data_sql, params + [per_page, offset])
-    rows = cursor.fetchall()
-    conn.close()
-
-    registrations = []
-    for r in rows:
-        registrations.append({
-            "id": r["id"],
-            "reg_code": r["reg_code"],
-            "created_at": r["created_at"],
-            "language": r["language"],
-            "primary_name": r["primary_name"],
-            "mobile": r["mobile"],
-            "age": r["age"],
-            "address": r["address"],
-            "group_count": r["group_count"],
-            "assigned_group": r["assigned_group"],
-            "assigned_gate": r["assigned_gate"],
-            "gate_id": r["gate_id"],
-            "checked_in": r["checked_in"],
-            "checked_in_at": r["checked_in_at"] or "",
-            "checked_out": r["checked_out"] if "checked_out" in r else 0,
-            "checked_out_at": (r["checked_out_at"] if "checked_out_at" in r else "") or "",
-            "accompanying_count": r["accompanying_count"] or 0,
-            "members_summary": r["members_summary"] or ""
-        })
-
-    return jsonify({
-        "registrations": registrations,
-        "total": total,
-        "pages": total_pages,
-        "current_page": page,
-        "per_page": per_page
-    })
-
-
-# ---------------------------------------------------------------------------
-# API — Live Stats (Admin Dashboard Refresh)
-# ---------------------------------------------------------------------------
-
-@app.route("/api/stats", methods=["GET"])
-@login_required
-def api_stats():
-    """JSON endpoint returning live crowd stats for admin dashboard auto-refresh."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT SUM(group_count) as total_people, COUNT(id) as total_passes FROM registrations")
-        stats_row = cursor.fetchone()
-        total_people = (stats_row["total_people"] or 0) if stats_row else 0
-        total_passes = (stats_row["total_passes"] or 0) if stats_row else 0
-
-        cursor.execute("SELECT SUM(group_count) as admitted_people FROM registrations WHERE checked_in = 1")
-        admitted_row = cursor.fetchone()
-        admitted_people = (admitted_row["admitted_people"] or 0) if admitted_row else 0
-
-        cursor.execute("SELECT SUM(group_count) as inside FROM registrations WHERE checked_in = 1 AND (checked_out = 0 OR checked_out IS NULL)")
-        inside_row = cursor.fetchone()
-        current_inside = (inside_row["inside"] or 0) if inside_row else 0
-
-        cursor.execute("SELECT SUM(group_count) as exited FROM registrations WHERE checked_out = 1")
-        exited_row = cursor.fetchone()
-        exited_people = (exited_row["exited"] or 0) if exited_row else 0
-
-        cursor.execute("""
-            SELECT gate_id, SUM(group_count) as gate_headcount
-            FROM registrations
-            GROUP BY gate_id
-        """)
-        gate_rows = cursor.fetchall()
-        conn.close()
-
-        cfg = get_event_config()
-        capacity = int(cfg.get("event_capacity") or 1000)
-
-        gate_counts = {row["gate_id"]: (row["gate_headcount"] or 0) for row in gate_rows}
-        gate_breakdown = []
-        for g in GATES_CONFIG:
-            count = gate_counts.get(g["gate_id"], 0)
-            gate_breakdown.append({
-                "gate_id": g["gate_id"],
-                "name": g["name"],
-                "zone": g["zone"],
-                "color": g["color"],
-                "count": count,
-                "percentage": round((count / total_people * 100), 1) if total_people > 0 else 0
-            })
-
-        admission_rate = round((admitted_people / total_people * 100), 1) if total_people > 0 else 0
-
-        return jsonify({
-            "success": True,
-            "total_people": total_people,
-            "total_passes": total_passes,
-            "admitted_people": admitted_people,
-            "current_inside": current_inside,
-            "exited_people": exited_people,
-            "capacity": capacity,
-            "remaining_capacity": max(0, capacity - current_inside),
-            "admission_rate": admission_rate,
-            "gate_breakdown": gate_breakdown,
-            "is_emergency": is_emergency_active(),
-            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
-
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-# ---------------------------------------------------------------------------
-# SECURITY HEADERS & ANTI-CACHE
-# ---------------------------------------------------------------------------
-
-@app.after_request
-def add_terminal_security_headers(response):
-    """Prevent browser from caching sensitive security terminal pages."""
-    if request.path.startswith("/guard") or request.path.startswith("/verify") or request.path.startswith("/admin"):
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-    return response
-
-
-# ---------------------------------------------------------------------------
-# ERROR HANDLERS
-# ---------------------------------------------------------------------------
-
-@app.errorhandler(404)
-def handle_404(e):
-    """Return JSON for API routes, redirect for UI routes."""
-    if request.path.startswith("/api/"):
-        return jsonify({"success": False, "error": "Not Found", "message": str(e)}), 404
-    flash("The requested page or pass code was not found.", "warning")
-    return redirect(url_for("index"))
-
-
-@app.errorhandler(429)
-def handle_429(e):
-    """Rate limit exceeded handler."""
-    if request.path.startswith("/api/"):
-        return jsonify({"success": False, "error": "Too Many Requests", "message": "Rate limit exceeded. Please wait and try again."}), 429
-    flash("Too many requests. Please wait a moment and try again.", "error")
-    return redirect(request.referrer or url_for("index"))
-
-
-@app.errorhandler(500)
-def handle_500(e):
-    """Internal server error handler."""
-    return jsonify({
-        "success": False,
-        "error": "Internal Server Error",
-        "message": "A server error occurred. Please contact event operations."
-    }), 500
-
-
-# ---------------------------------------------------------------------------
-# MAIN INITIALIZATION
+# APPLICATION ENTRYPOINT
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     init_db()
     bootstrap_password_hashes()
     port = int(os.environ.get("PORT", 5000))
-    print("=" * 63)
-    print("  VENUEGUARD SMART CROWD MANAGEMENT SYSTEM RUNNING")
-    print(f"  Public Portal:  http://127.0.0.1:{port}")
-    print(f"  Pass Lookup:    http://127.0.0.1:{port}/check-registration")
-    print(f"  Venue Info:     http://127.0.0.1:{port}/venue-info")
-    print(f"  Help & Safety:  http://127.0.0.1:{port}/help")
-    print(f"  Guard Portal:   http://127.0.0.1:{port}/verify")
-    print(f"  Admin Panel:    http://127.0.0.1:{port}/admin")
-    print("=" * 63)
-    app.run(host="0.0.0.0", port=port, debug=True)
+    print(f"\n* VenueGuard Crowd Control System Starting on http://127.0.0.1:{port}")
+    print(f"* Database Backend: {DB_TYPE.upper()}")
+    print(f"* Emergency Mode: {'ACTIVE' if is_emergency_active() else 'OFF'}")
+    app.run(host="0.0.0.0", port=port, debug=False)

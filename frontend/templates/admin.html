@@ -3,419 +3,591 @@
 {% block title %}Admin Command Center · VenueGuard{% endblock %}
 
 {% block content %}
-<div class="admin-dashboard-container" style="max-width: 1220px; margin: 0 auto; padding: 1rem 1rem 3rem;">
+<div class="admin-container" style="max-width: 1240px; margin: 1.5rem auto; padding: 0 1rem 3.5rem;">
 
-  <!-- Header & Live Mode Banner -->
-  <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(7,16,29,0.98)); border: 1px solid var(--glass-border);">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-      <div>
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <span style="font-size: 1.5rem;">⚙️</span>
-          <h1 style="font-size: 1.35rem; font-weight: 800; color: #fff; margin: 0;">Venue Operations &amp; Crowd Analytics</h1>
-        </div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.35rem 0 0;">
-          Real-time event surveillance, capacity control, gate load balancing, and emergency response.
-        </p>
-      </div>
-
-      <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-        <span class="badge {{ 'badge-danger' if is_emergency else 'badge-teal' }}" id="emergencyStatusBadge" style="font-size: 0.76rem; padding: 0.35rem 0.75rem;">
-          {{ '🚨 EMERGENCY MODE ACTIVE' if is_emergency else '● NORMAL OPERATIONS' }}
+  <!-- ══════════════════ TOP COMMAND HEADER ══════════════════ -->
+  <div
+    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--glass-border);">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <span style="font-size: 1.6rem;">⚙️</span>
+        <h1 style="font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0; letter-spacing: -0.01em;">
+          Admin Command Center
+        </h1>
+        <span class="badge badge-teal" style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">
+          CENTRAL REPOSITORY CONNECTED
         </span>
-        <a href="{{ url_for('export_csv') }}" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
-          📥 Export CSV
-        </a>
-        <a href="{{ url_for('entrance_poster') }}" target="_blank" class="btn btn-navy" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
-          🖨️ Entrance Poster
-        </a>
       </div>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0 0;">
+        Full control over visitor database, capacity thresholds, guard credentials, and public section visibility.
+      </p>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <button type="button" onclick="exportVisitorsCsv()" class="btn btn-outline"
+        style="font-size: 0.8rem; padding: 0.4rem 0.85rem;" title="Download complete database to CSV / Excel">
+        <span>📥</span> Export CSV
+      </button>
+      <button type="button" onclick="window.print()" class="btn btn-navy"
+        style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+        <span>🖨️</span> Print PDF
+      </button>
+      <button type="button" onclick="handleAdminLogout()" class="btn btn-outline"
+        style="font-size: 0.8rem; padding: 0.4rem 0.85rem; color: #F87171; border-color: rgba(248,113,113,0.35);">
+        <span>🔒</span> Logout
+      </button>
     </div>
   </div>
 
-  <!-- ── REAL-TIME OCCUPANCY & CAPACITY METRICS ── -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.25rem; margin-bottom: 1.75rem;">
-    <!-- Currently Inside -->
-    <div class="card" style="border-top: 3px solid var(--teal); padding: 1.25rem;">
-      <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.35rem;">
-        Currently Inside
+  <!-- ══════════════════ LIVE CROWD MONITORING KPIS ══════════════════ -->
+  <div
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
+
+    <!-- Total Registered -->
+    <div class="card" style="border-top: 3px solid #3B82F6; padding: 1.15rem;">
+      <div
+        style="font-size: 0.7rem; text-transform: uppercase; color: #60A5FA; font-weight: 800; letter-spacing: 0.06em; margin-bottom: 0.3rem;">
+        TOTAL REGISTERED
       </div>
-      <div style="font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1;">
-        <span id="statCurrentInside">{{ current_inside | default(0) }}</span>
+      <div style="font-size: 2.1rem; font-weight: 900; color: #fff; line-height: 1;">
+        <span id="kpiTotalRegistered">0</span>
       </div>
-      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
-        Admitted visitors not yet exited
+      <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Total visitor headcount registered
+      </div>
+    </div>
+
+    <!-- Admitted / Entered -->
+    <div class="card" style="border-top: 3px solid #00FFC6; padding: 1.15rem; background: rgba(0,255,198,0.02);">
+      <div
+        style="font-size: 0.7rem; text-transform: uppercase; color: var(--teal); font-weight: 800; letter-spacing: 0.06em; margin-bottom: 0.3rem;">
+        CURRENTLY ENTERED
+      </div>
+      <div style="font-size: 2.1rem; font-weight: 900; color: #00FFC6; line-height: 1;">
+        <span id="kpiCurrentlyEntered">0</span>
+      </div>
+      <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Verified inside venue via Gate 1
       </div>
     </div>
 
     <!-- Remaining Capacity -->
-    <div class="card" style="border-top: 3px solid #3B82F6; padding: 1.25rem;">
-      <div style="font-size: 0.74rem; text-transform: uppercase; color: #60A5FA; font-weight: 700; margin-bottom: 0.35rem;">
-        Remaining Capacity
+    <div class="card" style="border-top: 3px solid #10B981; padding: 1.15rem;">
+      <div
+        style="font-size: 0.7rem; text-transform: uppercase; color: #34D399; font-weight: 800; letter-spacing: 0.06em; margin-bottom: 0.3rem;">
+        REMAINING CAPACITY
       </div>
-      <div style="font-size: 2.2rem; font-weight: 900; color: #60A5FA; line-height: 1;">
-        <span id="statRemainingCapacity">{{ remaining_capacity | default(1000) }}</span>
+      <div style="font-size: 2.1rem; font-weight: 900; color: #34D399; line-height: 1;">
+        <span id="kpiRemainingCapacity">1,000</span>
       </div>
-      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
-        Of {{ capacity | default(1000) }} maximum permitted
-      </div>
-    </div>
-
-    <!-- Total Registered -->
-    <div class="card" style="border-top: 3px solid #F59E0B; padding: 1.25rem;">
-      <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--amber); font-weight: 700; margin-bottom: 0.35rem;">
-        Total Registrations
-      </div>
-      <div style="font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1;">
-        <span id="statTotalPeople">{{ total_people | default(0) }}</span>
-      </div>
-      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
-        Across {{ total_passes | default(0) }} digital passes
+      <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Max permitted capacity: <strong id="kpiMaxCapacity">1000</strong>
       </div>
     </div>
 
-    <!-- Total Exited -->
-    <div class="card" style="border-top: 3px solid #A855F7; padding: 1.25rem;">
-      <div style="font-size: 0.74rem; text-transform: uppercase; color: #A855F7; font-weight: 700; margin-bottom: 0.35rem;">
-        Exited Visitors
+    <!-- Duplicate Scan Attempts -->
+    <div class="card" style="border-top: 3px solid #F59E0B; padding: 1.15rem;">
+      <div
+        style="font-size: 0.7rem; text-transform: uppercase; color: #FBBF24; font-weight: 800; letter-spacing: 0.06em; margin-bottom: 0.3rem;">
+        DUPLICATE SCAN ATTEMPTS
       </div>
-      <div style="font-size: 2.2rem; font-weight: 900; color: #A855F7; line-height: 1;">
-        <span id="statExitedPeople">{{ exited_people | default(0) }}</span>
+      <div style="font-size: 2.1rem; font-weight: 900; color: #FBBF24; line-height: 1;">
+        <span id="kpiDuplicateScans">0</span>
       </div>
-      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.4rem;">
-        Recorded departures at exit gates
+      <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.4rem;">
+        Anti-passback duplicate attempts blocked
       </div>
     </div>
+
   </div>
 
-  <!-- ── EMERGENCY INCIDENT MANAGEMENT PANEL ── -->
-  <div class="card" style="margin-bottom: 1.75rem; border: 1px solid {{ 'rgba(239,68,68,0.4)' if is_emergency else 'rgba(255,255,255,0.08)' }}; background: {{ 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(15,23,42,0.9))' if is_emergency else 'rgba(15,23,42,0.6)' }}; padding: 1.25rem 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-      <div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span style="font-size: 1.3rem;">🚨</span>
-          <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0;">Venue Emergency Management</h3>
-        </div>
-        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0 0;">
-          When activated: online registrations are restricted, guards are alerted, exit routes are broadcast, and hardware alarms trigger.
-        </p>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-        <input
-          type="text"
-          id="emergencyReasonInput"
-          placeholder="Reason for protocol (e.g. Inclement Weather Evacuation)"
-          class="form-control"
-          style="font-size: 0.82rem; min-width: 260px;"
-        >
-        {% if is_emergency %}
-          <button type="button" onclick="toggleEmergency('resolve')" class="btn btn-outline" style="border-color: #4ADE80; color: #4ADE80; font-weight: 700;">
-            ✅ Clear / Resolve Emergency
-          </button>
-        {% else %}
-          <button type="button" onclick="toggleEmergency('activate')" class="btn btn-danger" style="background: #DC2626; border-color: #DC2626; color: #fff; font-weight: 700;">
-            🚨 Activate Emergency Mode
-          </button>
-        {% endif %}
-      </div>
-    </div>
+  <!-- ══════════════════ TAB NAVIGATION ══════════════════ -->
+  <div
+    style="display: flex; gap: 0.4rem; border-bottom: 1px solid var(--glass-border); margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.25rem;">
+    <button type="button" class="nav-tab active" onclick="switchAdminTab('tabVisitors')" id="tabBtn_tabVisitors">
+      👥 Visitor Database
+    </button>
+    <button type="button" class="nav-tab" onclick="switchAdminTab('tabToggles')" id="tabBtn_tabToggles">
+      👁️ Public Section Toggles
+    </button>
+    <button type="button" class="nav-tab" onclick="switchAdminTab('tabEvent')" id="tabBtn_tabEvent">
+      📅 Event &amp; Capacity
+    </button>
+    <button type="button" class="nav-tab" onclick="switchAdminTab('tabGuards')" id="tabBtn_tabGuards">
+      🛡️ Guard Security PIN
+    </button>
+    <button type="button" class="nav-tab" onclick="switchAdminTab('tabAudit')" id="tabBtn_tabAudit">
+      📋 Activity Log
+    </button>
   </div>
 
-  <!-- ── GUARD PORTAL CREDENTIALS & MULTI-ACCOUNT MANAGEMENT ── -->
-  <div class="card" style="margin-bottom: 1.75rem; border: 1px solid rgba(0,255,198,0.22); padding: 1.5rem;">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0 0 1rem 0; border-bottom: 1px solid var(--glass-border);">
-      <div style="display: flex; align-items: center; gap: 0.65rem;">
-        <span style="font-size: 1.35rem;">🛡️</span>
-        <div>
-          <h3 class="card-title" style="font-size: 1.12rem; color: #fff;">Guard Portal Security &amp; Checkpoint Credentials</h3>
-          <p class="card-desc">Control access to the security guard verification scanner. Stored securely with bcrypt password hashing.</p>
-        </div>
-      </div>
-      <span class="badge badge-teal" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">
-        🔒 Hash Protection Active
-      </span>
-    </div>
+  <!-- ══════════════════ TAB 1: VISITOR DATABASE ══════════════════ -->
+  <div id="tabVisitors" class="admin-tab-pane" style="display: block;">
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; padding-top: 1.25rem;">
-      <!-- Master Guard Password Update (No Plaintext Leakage!) -->
-      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
-        <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.4rem;">
-          Change Master Guard Password
-        </div>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-          Guards entering this password gain immediate scanner access at checkpoints.
-        </p>
-        <form action="{{ url_for('update_guard_password') }}" method="POST" id="updateGuardPasswordForm" style="margin: 0;">
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <input
-              type="text"
-              name="guard_password"
-              class="form-control mono-font"
-              placeholder="New guard password (min 4 chars)"
-              required
-              minlength="4"
-              style="flex: 1; min-width: 170px; font-size: 0.95rem; font-weight: 600;"
-            >
-            <button type="submit" class="btn btn-primary" style="white-space: nowrap; font-size: 0.85rem; padding: 0.45rem 1rem;">
-              💾 Save
-            </button>
-          </div>
-        </form>
+    <!-- Search & Filter Controls -->
+    <div
+      style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+
+      <!-- Search Input -->
+      <div style="flex: 1; min-width: 260px; max-width: 480px; position: relative;">
+        <input type="text" id="visitorSearchInput" class="form-control"
+          placeholder="Search by Name, Mobile, Visitor ID, or Pass Code..." oninput="handleVisitorSearch(this.value)"
+          style="padding-left: 2.2rem; font-size: 0.85rem;">
+        <span
+          style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.9rem; color: var(--text-muted);">🔍</span>
       </div>
 
-      <!-- Add Guard Account Form -->
-      <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.2rem;">
-        <div style="font-size: 0.74rem; text-transform: uppercase; color: #60A5FA; font-weight: 700; margin-bottom: 0.4rem;">
-          Add Checkpoint Guard Account
-        </div>
-        <form onsubmit="handleCreateGuardAccount(event); return false;" style="margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <input type="text" id="newGuardUsername" placeholder="Username (e.g. guard_west)" class="form-control" required style="font-size: 0.84rem;">
-            <input type="text" id="newGuardFullName" placeholder="Guard Name" class="form-control" required style="font-size: 0.84rem;">
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <input type="password" id="newGuardPassword" placeholder="PIN / Password" class="form-control" required style="font-size: 0.84rem;">
-            <select id="newGuardGate" class="form-control" style="font-size: 0.84rem;">
-              <option value="all">All Checkpoints</option>
-              <option value="gate_1">Gate 1 (Entrance)</option>
-              <option value="exit_1">Exit A (West)</option>
-              <option value="exit_2">Exit B (North)</option>
-              <option value="exit_3">Exit C (East)</option>
-              <option value="exit_4">Exit D (South)</option>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.4rem 0.8rem; align-self: flex-start;">
-            + Register Guard Account
-          </button>
-        </form>
+      <!-- Status Filter Dropdown -->
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <label for="visitorStatusFilter" style="font-size: 0.8rem; color: var(--text-muted);">Status:</label>
+        <select id="visitorStatusFilter" class="form-control" onchange="handleVisitorFilter(this.value)"
+          style="width: auto; font-size: 0.82rem; padding: 0.4rem 0.75rem;">
+          <option value="ALL">All Registrations</option>
+          <option value="VALID">Valid / Ready for Entry</option>
+          <option value="ADMITTED">Entered / Inside</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Visitors Table Wrapper -->
+    <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--glass-border);">
+      <div style="overflow-x: auto;">
+        <table class="table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.83rem;">
+          <thead>
+            <tr
+              style="background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border); color: var(--text-muted); font-size: 0.74rem; text-transform: uppercase;">
+              <th style="padding: 0.75rem 1rem;">Visitor ID / Code</th>
+              <th style="padding: 0.75rem 1rem;">Name</th>
+              <th style="padding: 0.75rem 1rem;">Mobile</th>
+              <th style="padding: 0.75rem 1rem;">Group</th>
+              <th style="padding: 0.75rem 1rem;">Assigned Exit</th>
+              <th style="padding: 0.75rem 1rem;">Entry Status</th>
+              <th style="padding: 0.75rem 1rem; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="visitorTableBody">
+            <!-- Dynamic rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="visitorTableEmptyState"
+        style="display: none; text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.6;">👥</div>
+        <strong style="color: #fff; font-size: 1rem; display: block; margin-bottom: 0.25rem;">No Visitor Records
+          Found</strong>
+        <p style="font-size: 0.8rem; margin: 0;">Try adjusting your search query or status filter.</p>
       </div>
     </div>
+
   </div>
 
-  <!-- ── GATE CAPACITY & CORRIDOR LOAD BALANCING ── -->
-  <div class="card" style="margin-bottom: 1.75rem; padding: 1.5rem;">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0 0 1rem 0; border-bottom: 1px solid var(--glass-border);">
-      <div>
-        <h3 class="card-title" style="font-size: 1.1rem;">⚖️ Safe Exit Gate Load Distribution</h3>
-        <p class="card-desc">Real-time visitor routing across normal exit corridors. Gate E is strictly staff-only.</p>
-      </div>
-      <span class="badge badge-teal">Automatic Load Balancing Active</span>
-    </div>
+  <!-- ══════════════════ TAB 2: PUBLIC SECTION SHOW/HIDE TOGGLES ══════════════════ -->
+  <div id="tabToggles" class="admin-tab-pane" style="display: none;">
+    <div class="card" style="max-width: 720px; padding: 1.75rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">
+        👁️ Public Page Display Settings (Show / Hide Toggles)
+      </h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5;">
+        Configure which sections are visible to public visitors on the homepage and navigation. Changes take effect
+        immediately.
+      </p>
 
-    <div class="gate-capacity-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; padding-top: 1.25rem;">
-      {% for gate in gate_analytics %}
-        <div class="card" style="border-left: 4px solid {{ gate.color }}; padding: 1rem; background: rgba(0,0,0,0.25);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <strong style="color: #fff; font-size: 0.95rem;">{{ gate.name }}</strong>
-            <span style="font-weight: 800; color: {{ gate.color }};">{{ gate.count }} pax</span>
-          </div>
-          <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.6rem;">
-            {{ gate.group }} · {{ gate.zone }}
-          </div>
-          <div class="progress-bar-bg" style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 3px; overflow: hidden;">
-            <div class="progress-bar-fill" style="width: {{ gate.percentage }}%; background: {{ gate.color }}; height: 100%;"></div>
-          </div>
-          <div style="font-size: 0.72rem; color: var(--text-muted); text-align: right; margin-top: 0.3rem;">
-            {{ gate.percentage }}% total crowd share
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
+      <form id="publicTogglesForm" onsubmit="return handleSavePublicToggles(event)">
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
 
-  <!-- ── VISITOR REGISTRY TABLE (SEARCH & FILTER) ── -->
-  <div class="card" style="margin-bottom: 1.75rem; padding: 1.5rem;">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 0 0 1rem 0; border-bottom: 1px solid var(--glass-border);">
-      <div>
-        <h3 class="card-title" style="font-size: 1.15rem;">📋 Master Visitor Registry</h3>
-        <p class="card-desc">All registered passes, group headcounts, assigned gates, and gate admission records.</p>
-      </div>
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <input type="text" id="registrySearchInput" placeholder="Search name, phone, code..." class="form-control" style="font-size: 0.84rem; min-width: 220px;" oninput="filterRegistryTable()">
-      </div>
-    </div>
+          <!-- Toggle 1: Why Register -->
+          <label class="toggle-control"
+            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; cursor: pointer;">
+            <div>
+              <strong style="color: #fff; font-size: 0.9rem; display: block;">"Why Register with VenueGuard"
+                Section</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Informational marketing cards on the home
+                page.</span>
+            </div>
+            <input type="checkbox" id="toggleWhyRegister"
+              style="width: 20px; height: 20px; accent-color: var(--teal); cursor: pointer;">
+          </label>
 
-    <div style="overflow-x: auto; margin-top: 1rem;">
-      <table class="table" id="masterRegistryTable" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-        <thead>
-          <tr style="border-bottom: 1px solid var(--glass-border); text-align: left; color: var(--text-muted); font-size: 0.74rem; text-transform: uppercase;">
-            <th style="padding: 0.6rem;">Pass Code</th>
-            <th style="padding: 0.6rem;">Primary Visitor</th>
-            <th style="padding: 0.6rem;">Mobile</th>
-            <th style="padding: 0.6rem;">Headcount</th>
-            <th style="padding: 0.6rem;">Assigned Exit</th>
-            <th style="padding: 0.6rem;">Status</th>
-            <th style="padding: 0.6rem;">Issued At</th>
-            <th style="padding: 0.6rem; text-align: center;">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in registrations %}
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
-            <td style="padding: 0.6rem;">
-              <a href="{{ url_for('view_pass', reg_code=r.reg_code) }}" target="_blank" class="mono-font" style="color: var(--teal); font-weight: 700; text-decoration: none;">
-                {{ r.reg_code }}
-              </a>
-            </td>
-            <td style="padding: 0.6rem; font-weight: 600; color: #fff;">
-              {{ r.primary_name }}
-              {% if r.accompanying_count and r.accompanying_count > 0 %}
-                <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">+{{ r.accompanying_count }} members</span>
-              {% endif %}
-            </td>
-            <td style="padding: 0.6rem;" class="mono-font">{{ r.mobile }}</td>
-            <td style="padding: 0.6rem;">
-              <span class="badge badge-teal" style="font-size: 0.74rem; padding: 0.15rem 0.5rem;">
-                {{ r.group_count }} pax
-              </span>
-            </td>
-            <td style="padding: 0.6rem; color: var(--text-secondary);">{{ r.assigned_gate }}</td>
-            <td style="padding: 0.6rem;">
-              {% if r.checked_out == 1 %}
-                <span style="color: #A855F7; font-weight: 700; font-size: 0.78rem;">● EXITED</span>
-              {% elif r.checked_in == 1 %}
-                <span style="color: #4ADE80; font-weight: 700; font-size: 0.78rem;">● ADMITTED</span>
-              {% else %}
-                <span style="color: var(--amber); font-weight: 600; font-size: 0.78rem;">⏳ PENDING</span>
-              {% endif %}
-            </td>
-            <td style="padding: 0.6rem; font-size: 0.76rem; color: var(--text-muted);" class="mono-font">{{ r.created_at[:16] }}</td>
-            <td style="padding: 0.6rem; text-align: center;">
-              <form action="{{ url_for('delete_registration', reg_id=r.id) }}" method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('Permanently delete registration {{ r.reg_code }}?');">
-                <button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.74rem; color: var(--red); border-color: rgba(239,68,68,0.3);">
-                  🗑️ Delete
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="8" style="padding: 2rem; text-align: center; color: var(--text-muted);">
-              No registrations recorded in database yet.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+          <!-- Toggle 2: Venue Architecture -->
+          <label class="toggle-control"
+            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; cursor: pointer;">
+            <div>
+              <strong style="color: #fff; font-size: 0.9rem; display: block;">"Venue Gates &amp; Safe Corridors"
+                Section</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Exit gate corridor cards on the home
+                page.</span>
+            </div>
+            <input type="checkbox" id="toggleVenueArchitecture"
+              style="width: 20px; height: 20px; accent-color: var(--teal); cursor: pointer;">
+          </label>
 
-  <!-- ── EVENT CONFIGURATION & AUDIT TRAIL ── -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
-    <!-- Event Settings -->
-    <div class="card" style="padding: 1.5rem;">
-      <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">⚙️ Event &amp; Venue Settings</h3>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Update public venue information and prototype capacity.</p>
-      
-      <form action="{{ url_for('update_event_settings') }}" method="POST" style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <div>
-          <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Event Name</label>
-          <input type="text" name="event_name" value="{{ event_config.event_name }}" class="form-control" required style="font-size: 0.86rem;">
+          <!-- Toggle 3: Safety Guidelines -->
+          <label class="toggle-control"
+            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; cursor: pointer;">
+            <div>
+              <strong style="color: #fff; font-size: 0.9rem; display: block;">"Visitor Safety Guidelines"
+                Section</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">First aid and on-site emergency guidance cards
+                on home page.</span>
+            </div>
+            <input type="checkbox" id="toggleSafetyGuidelines"
+              style="width: 20px; height: 20px; accent-color: var(--teal); cursor: pointer;">
+          </label>
+
+          <!-- Toggle 4: Navbar Venue & Help Links -->
+          <label class="toggle-control"
+            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; cursor: pointer;">
+            <div>
+              <strong style="color: #fff; font-size: 0.9rem; display: block;">Venue &amp; Help Links in Navigation
+                Header</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Show "Venue &amp; Gates" and "Help &amp;
+                Safety" links in the top navbar.</span>
+            </div>
+            <input type="checkbox" id="toggleNavLinks"
+              style="width: 20px; height: 20px; accent-color: var(--teal); cursor: pointer;">
+          </label>
+
+          <!-- Toggle 5: Hindi Language Switcher -->
+          <label class="toggle-control"
+            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; cursor: pointer;">
+            <div>
+              <strong style="color: #fff; font-size: 0.9rem; display: block;">Hindi Language Switcher</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Show the Hindi / English translation toggle
+                button in the header.</span>
+            </div>
+            <input type="checkbox" id="toggleHindi"
+              style="width: 20px; height: 20px; accent-color: var(--teal); cursor: pointer;">
+          </label>
+
+          <!-- Toggle 6: Extra Footer Links -->
+          <label class="toggle-control"
+            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem; cursor: pointer;">
+            <div>
+              <strong style="color: #fff; font-size: 0.9rem; display: block;">Extra Footer Service Links</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Show extra navigation and safety columns in
+                the footer.</span>
+            </div>
+            <input type="checkbox" id="toggleFooterLinks"
+              style="width: 20px; height: 20px; accent-color: var(--teal); cursor: pointer;">
+          </label>
+
         </div>
-        <div>
-          <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Venue Location</label>
-          <input type="text" name="event_venue" value="{{ event_config.event_venue }}" class="form-control" required style="font-size: 0.86rem;">
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-          <div>
-            <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Event Date</label>
-            <input type="date" name="event_date" value="{{ event_config.event_date }}" class="form-control" style="font-size: 0.86rem;">
-          </div>
-          <div>
-            <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Venue Capacity</label>
-            <input type="number" name="event_capacity" value="{{ event_config.event_capacity }}" class="form-control" required min="100" style="font-size: 0.86rem;">
-          </div>
-        </div>
-        <div>
-          <label style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Event Description</label>
-          <textarea name="event_description" class="form-control" rows="2" style="font-size: 0.84rem;">{{ event_config.event_description }}</textarea>
-        </div>
-        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem; align-self: flex-start; font-size: 0.85rem; padding: 0.45rem 1rem;">
-          💾 Save Settings
+
+        <button type="submit" class="btn btn-primary" style="font-weight: 700;">
+          <span>💾</span> Save Public Section Toggles
         </button>
       </form>
     </div>
+  </div>
 
-    <!-- Security Audit Logs -->
-    <div class="card" style="padding: 1.5rem;">
-      <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">🛡️ Security Audit Log</h3>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Recent 15 security and administrative activities.</p>
+  <!-- ══════════════════ TAB 3: EVENT & CAPACITY SETTINGS ══════════════════ -->
+  <div id="tabEvent" class="admin-tab-pane" style="display: none;">
+    <div class="card" style="max-width: 680px; padding: 1.75rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">
+        📅 Event Configuration &amp; Capacity Control
+      </h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+        Update event parameters, dates, venue names, and maximum permitted crowd capacity.
+      </p>
 
-      <div style="max-height: 340px; overflow-y: auto;">
-        {% for log in audit_logs %}
-        <div style="padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <strong style="color: var(--teal);">{{ log.action }}</strong>
-            <span style="color: var(--text-muted); font-size: 0.72rem;" class="mono-font">{{ log.timestamp }}</span>
+      <form id="eventConfigForm" onsubmit="return handleSaveEventConfig(event)">
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="cfgEventName" class="form-label" style="font-weight: 700; color: #fff; font-size: 0.84rem;">Event
+            Title</label>
+          <input type="text" id="cfgEventName" class="form-control" placeholder="Event Name..." required>
+        </div>
+
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group" style="margin: 0;">
+            <label for="cfgEventVenue" class="form-label"
+              style="font-weight: 700; color: #fff; font-size: 0.84rem;">Venue Location</label>
+            <input type="text" id="cfgEventVenue" class="form-control" placeholder="Venue Name..." required>
           </div>
-          <p style="color: var(--text-secondary); margin: 0.2rem 0 0; font-size: 0.78rem;">{{ log.details }}</p>
+          <div class="form-group" style="margin: 0;">
+            <label for="cfgEventDate" class="form-label"
+              style="font-weight: 700; color: #fff; font-size: 0.84rem;">Event Date</label>
+            <input type="date" id="cfgEventDate" class="form-control" required>
+          </div>
         </div>
-        {% else %}
-        <div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.84rem;">
-          No audit logs recorded yet.
+
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="form-group" style="margin: 0;">
+            <label for="cfgMaxCapacity" class="form-label"
+              style="font-weight: 700; color: var(--teal); font-size: 0.84rem;">
+              Maximum Permitted Capacity <span class="required">*</span>
+            </label>
+            <input type="number" id="cfgMaxCapacity" class="form-control" min="10" max="100000" required>
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
+              Registration locks automatically when capacity is reached.
+            </span>
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label for="cfgRegActive" class="form-label" style="font-weight: 700; color: #fff; font-size: 0.84rem;">
+              Online Registration Status
+            </label>
+            <select id="cfgRegActive" class="form-control">
+              <option value="1">Open for Registration</option>
+              <option value="0">Closed / Locked</option>
+            </select>
+          </div>
         </div>
-        {% endfor %}
+
+        <button type="submit" class="btn btn-primary" style="font-weight: 700;">
+          <span>💾</span> Update Event Parameters
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════════ TAB 4: GUARD SECURITY PIN ══════════════════ -->
+  <div id="tabGuards" class="admin-tab-pane" style="display: none;">
+    <div class="card" style="max-width: 520px; padding: 1.75rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">
+        🛡️ Security Guard Terminal PIN Control
+      </h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+        Change the access PIN required by on-duty guards to unlock Gate 1 scanner terminal.
+      </p>
+
+      <form onsubmit="return handleUpdateGuardPin(event)">
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="newGuardPinInput" class="form-label"
+            style="font-weight: 700; color: var(--teal); font-size: 0.84rem;">
+            New Guard Security PIN
+          </label>
+          <input type="text" id="newGuardPinInput" class="form-control" placeholder="e.g. 5678" required minlength="4"
+            maxlength="16" style="font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; letter-spacing: 0.1em;">
+          <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; display: block;">
+            Guards must use this new PIN to access the scanning terminal.
+          </span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="font-weight: 700;">
+          <span>🔒</span> Save New Guard PIN
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════════ TAB 5: ACTIVITY & AUDIT LOG ══════════════════ -->
+  <div id="tabAudit" class="admin-tab-pane" style="display: none;">
+    <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--glass-border);">
+      <div
+        style="padding: 1rem 1.25rem; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+        <strong style="color: #fff; font-size: 0.9rem;">System Activity &amp; Audit Trail</strong>
+        <button type="button" onclick="clearActivityLogs()" class="btn btn-outline"
+          style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">
+          Clear Logs
+        </button>
+      </div>
+      <div style="overflow-x: auto; max-height: 400px;">
+        <table class="table" style="width: 100%; font-size: 0.8rem;">
+          <thead>
+            <tr
+              style="background: rgba(0,0,0,0.2); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">
+              <th style="padding: 0.6rem 1rem;">Timestamp</th>
+              <th style="padding: 0.6rem 1rem;">Role</th>
+              <th style="padding: 0.6rem 1rem;">Action</th>
+              <th style="padding: 0.6rem 1rem;">Details</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
 </div>
-{% endblock %}
 
-{% block scripts %}
+<!-- ══════════════════ EDIT VISITOR MODAL ══════════════════ -->
+<div id="editVisitorModal"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;">
+  <div class="card"
+    style="width: 100%; max-width: 500px; border: 1px solid var(--teal); box-shadow: 0 0 50px rgba(0,255,198,0.2); padding: 1.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 0;">Edit Visitor Record</h3>
+      <button type="button" onclick="closeEditModal()"
+        style="background: transparent; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer;">✕</button>
+    </div>
+
+    <form id="editVisitorForm" onsubmit="return handleSaveEditVisitor(event)">
+      <input type="hidden" id="editVisCode">
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label class="form-label" style="font-size: 0.82rem; font-weight: 700;">Full Name</label>
+        <input type="text" id="editVisName" class="form-control" required>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 700;">Mobile</label>
+          <input type="tel" id="editVisMobile" class="form-control" maxlength="10" required>
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 700;">Age</label>
+          <input type="number" id="editVisAge" class="form-control" min="1" max="120" required>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label class="form-label" style="font-size: 0.82rem; font-weight: 700;">Assigned Exit Gate</label>
+        <select id="editVisGate" class="form-control">
+          <option value="Exit Gate A (North Promenade)">Exit Gate A (North Promenade)</option>
+          <option value="Exit Gate B (East Corridor)">Exit Gate B (East Corridor)</option>
+          <option value="Exit Gate C (South Plaza)">Exit Gate C (South Plaza)</option>
+          <option value="Exit Gate D (West Concourse)">Exit Gate D (West Concourse)</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label class="form-label" style="font-size: 0.82rem; font-weight: 700;">Address</label>
+        <input type="text" id="editVisAddress" class="form-control">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button type="button" onclick="closeEditModal()" class="btn btn-outline"
+          style="font-size: 0.82rem;">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="font-size: 0.82rem; font-weight: 700;">Save
+          Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
-  function toggleEmergency(action) {
-    const reason = document.getElementById('emergencyReasonInput')?.value || 'Emergency Evacuation Protocol';
-    const msg = action === 'activate'
-      ? 'Are you sure you want to ACTIVATE Venue Emergency Mode? Online registrations will be restricted and alarms triggered.'
-      : 'Resolve and clear emergency status?';
+  let activeTab = 'tabVisitors';
 
-    if (!confirm(msg)) return;
+  function switchAdminTab(tabId) {
+    document.querySelectorAll('.admin-tab-pane').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
 
-    fetch('/api/admin/emergency', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: action, reason: reason })
-    })
-    .then(res => res.json())
-    .then(data => {
-      alert(data.message || 'Emergency status updated.');
-      window.location.reload();
-    })
-    .catch(err => alert('Failed to update emergency state: ' + err));
+    const target = document.getElementById(tabId);
+    if (target) target.style.display = 'block';
+
+    const btn = document.getElementById(`tabBtn_${tabId}`);
+    if (btn) btn.classList.add('active');
+    activeTab = tabId;
   }
 
-  function handleCreateGuardAccount(e) {
+  function handleAdminLogout() {
+    if (confirm('Logout of Admin Command Center?')) {
+      sessionStorage.removeItem('vg_admin');
+      window.location.href = 'login.html';
+    }
+  }
+
+  function exportVisitorsCsv() {
+    if (window.staticExportCsv) {
+      window.staticExportCsv();
+      return;
+    }
+    window.location.href = '/admin/export-csv';
+  }
+
+  function handleSavePublicToggles(e) {
     e.preventDefault();
-    const u = document.getElementById('newGuardUsername').value.trim();
-    const n = document.getElementById('newGuardFullName').value.trim();
-    const p = document.getElementById('newGuardPassword').value.trim();
-    const g = document.getElementById('newGuardGate').value;
+    const toggles = {
+      show_why_register: document.getElementById('toggleWhyRegister').checked,
+      show_venue_architecture: document.getElementById('toggleVenueArchitecture').checked,
+      show_safety_guidelines: document.getElementById('toggleSafetyGuidelines').checked,
+      show_nav_links: document.getElementById('toggleNavLinks').checked,
+      show_hindi_toggle: document.getElementById('toggleHindi').checked,
+      show_footer_links: document.getElementById('toggleFooterLinks').checked
+    };
 
-    fetch('/api/admin/guard-accounts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u, full_name: n, password: p, assigned_gate: g })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
-        window.location.reload();
-      } else {
-        alert('Error: ' + data.message);
-      }
-    })
-    .catch(err => alert('Network error creating guard: ' + err));
+    if (window.saveSiteToggles) {
+      window.saveSiteToggles(toggles);
+      alert('✅ Public Section display toggles updated successfully!');
+      return false;
+    }
+
+    alert('✅ Settings saved.');
+    return false;
   }
 
-  function filterRegistryTable() {
-    const q = document.getElementById('registrySearchInput').value.toLowerCase();
-    const rows = document.querySelectorAll('#masterRegistryTable tbody tr');
-    rows.forEach(r => {
-      const text = r.textContent.toLowerCase();
-      r.style.display = text.includes(q) ? '' : 'none';
-    });
+  function handleSaveEventConfig(e) {
+    e.preventDefault();
+    const name = document.getElementById('cfgEventName').value.trim();
+    const venue = document.getElementById('cfgEventVenue').value.trim();
+    const date = document.getElementById('cfgEventDate').value;
+    const cap = parseInt(document.getElementById('cfgMaxCapacity').value, 10);
+    const regActive = document.getElementById('cfgRegActive').value;
+
+    if (window.saveEventConfig) {
+      window.saveEventConfig({
+        event_name: name,
+        event_venue: venue,
+        event_date: date,
+        event_capacity: cap,
+        is_registration_active: regActive
+      });
+      alert('✅ Event parameters and capacity updated successfully!');
+      return false;
+    }
+
+    alert('✅ Event parameters updated.');
+    return false;
+  }
+
+  function handleUpdateGuardPin(e) {
+    e.preventDefault();
+    const newPin = document.getElementById('newGuardPinInput').value.trim();
+    if (!newPin || newPin.length < 4) {
+      alert('PIN must be at least 4 characters.');
+      return false;
+    }
+
+    localStorage.setItem('vg_guard_pin', newPin);
+    alert(`✅ Guard PIN successfully updated to: ${newPin}`);
+    document.getElementById('newGuardPinInput').value = '';
+    return false;
+  }
+
+  function openEditModal(pass) {
+    document.getElementById('editVisCode').value = pass.reg_code;
+    document.getElementById('editVisName').value = pass.primary_name;
+    document.getElementById('editVisMobile').value = pass.mobile;
+    document.getElementById('editVisAge').value = pass.age;
+    document.getElementById('editVisAddress').value = pass.address || '';
+    document.getElementById('editVisGate').value = pass.assigned_gate || 'Exit Gate A (North Promenade)';
+
+    const modal = document.getElementById('editVisitorModal');
+    modal.style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    document.getElementById('editVisitorModal').style.display = 'none';
+  }
+
+  function handleSaveEditVisitor(e) {
+    e.preventDefault();
+    const code = document.getElementById('editVisCode').value;
+    const name = document.getElementById('editVisName').value.trim();
+    const mobile = document.getElementById('editVisMobile').value.trim();
+    const age = parseInt(document.getElementById('editVisAge').value, 10);
+    const gate = document.getElementById('editVisGate').value;
+    const address = document.getElementById('editVisAddress').value.trim();
+
+    if (window.staticUpdateVisitor) {
+      window.staticUpdateVisitor(code, { primary_name: name, mobile: mobile, age: age, assigned_gate: gate, address: address });
+      closeEditModal();
+      alert('✅ Visitor updated.');
+      return false;
+    }
+
+    closeEditModal();
+    return false;
   }
 </script>
 {% endblock %}

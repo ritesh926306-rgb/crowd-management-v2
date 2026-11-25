@@ -3,81 +3,252 @@
 {% block title %}Check Registration Pass Status · VenueGuard{% endblock %}
 
 {% block content %}
-<div style="max-width: 640px; margin: 2rem auto 4rem; padding: 0 1rem;">
+<div style="max-width: 680px; margin: 2rem auto 4rem; padding: 0 1rem;">
 
   <div style="text-align: center; margin-bottom: 2rem;">
     <div style="font-size: 2.8rem; margin-bottom: 0.5rem;">🔍</div>
     <h1 style="font-size: 1.65rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">
       Check Registration &amp; Digital Pass
     </h1>
-    <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">
-      Lookup your official digital pass, group headcount, and assigned exit gate using your Registration Code and verified mobile number.
+    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; max-width: 500px; margin: 0 auto;">
+      Lookup your official digital pass, group headcount, and assigned exit gate using your Registration ID and
+      registered mobile number.
     </p>
   </div>
 
-  <div class="card" style="border: 1px solid rgba(0,255,198,0.22); box-shadow: var(--shadow-card), 0 0 40px rgba(0,255,198,0.06);">
-    <form action="{{ url_for('check_registration') }}" method="POST" id="checkPassForm" style="margin: 0;">
-      <div style="padding: 1.5rem 0.5rem;">
+  <!-- Lookup Form Card -->
+  <div class="card"
+    style="border: 1px solid rgba(0,255,198,0.22); box-shadow: var(--shadow-card); padding: 1.75rem 1.5rem; margin-bottom: 2rem;">
+    <form id="checkPassStandaloneForm" onsubmit="return handleStandaloneLookup(event)">
 
-        <!-- Registration Code Input -->
-        <div class="form-group" style="margin-bottom: 1.25rem;">
-          <label for="lookup_reg_code" class="form-label" style="font-weight: 700; color: var(--teal);">
-            Registration Pass Code <span class="required">*</span>
-          </label>
-          <input
-            type="text"
-            id="lookup_reg_code"
-            name="reg_code"
-            class="form-control mono-font"
-            placeholder="e.g. REG-A1B2C3"
-            required
-            style="text-transform: uppercase; font-size: 1.05rem; letter-spacing: 0.08em; font-weight: 700;"
-            autocomplete="off"
-          >
-          <span style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.35rem; display: block;">
-            The unique code shown on your pass confirmation upon registering.
-          </span>
-        </div>
-
-        <!-- Mobile Number Input -->
-        <div class="form-group" style="margin-bottom: 1.75rem;">
-          <label for="lookup_mobile" class="form-label" style="font-weight: 700; color: var(--teal);">
-            Registered 10-Digit Mobile Number <span class="required">*</span>
-          </label>
-          <input
-            type="tel"
-            id="lookup_mobile"
-            name="mobile"
-            class="form-control mono-font"
-            placeholder="e.g. 9876543210"
-            required
-            maxlength="10"
-            pattern="[0-9]{10}"
-            style="font-size: 1.05rem; letter-spacing: 0.06em;"
-            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-            autocomplete="tel"
-          >
-          <span style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.35rem; display: block;">
-            For privacy and security, the mobile number must match the primary registrant.
-          </span>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-block btn-lg" id="lookupSubmitBtn" style="font-weight: 700;">
-          <span>🔍</span> Verify &amp; View Entry Pass
-        </button>
-
+      <!-- Pass ID / Reg Code Input -->
+      <div class="form-group" style="margin-bottom: 1.25rem;">
+        <label for="lookup_standalone_code" class="form-label"
+          style="font-weight: 700; color: var(--teal); font-size: 0.88rem;">
+          Visitor ID or Registration Code <span class="required">*</span>
+        </label>
+        <input type="text" id="lookup_standalone_code" class="form-control"
+          placeholder="e.g. VG-VIS-10492 or REG-A1B2C3" required
+          style="text-transform: uppercase; font-size: 1rem; letter-spacing: 0.08em; font-weight: 700; font-family: 'JetBrains Mono', monospace;"
+          autocomplete="off">
+        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; display: block;">
+          The unique ID code generated when you registered.
+        </span>
       </div>
+
+      <!-- Mobile Number Input -->
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label for="lookup_standalone_mobile" class="form-label"
+          style="font-weight: 700; color: var(--teal); font-size: 0.88rem;">
+          Registered 10-Digit Mobile Number <span class="required">*</span>
+        </label>
+        <input type="tel" id="lookup_standalone_mobile" class="form-control" placeholder="e.g. 9876543210" required
+          maxlength="10" pattern="[0-9]{10}"
+          style="font-size: 1rem; letter-spacing: 0.06em; font-family: 'JetBrains Mono', monospace;"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '')" autocomplete="tel">
+        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; display: block;">
+          Privacy protection: Mobile number must match the registration record.
+        </span>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="font-weight: 800;">
+        <span>🔍</span> Verify &amp; Display Entry Pass
+      </button>
+
+      <div id="standaloneErrorBox"
+        style="display: none; margin-top: 1rem; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-sm); color: #FCA5A5; padding: 0.75rem; font-size: 0.82rem; text-align: center;">
+      </div>
+
     </form>
   </div>
 
-  <!-- Help & Recovery Tip -->
-  <div style="margin-top: 2rem; text-align: center; font-size: 0.82rem; color: var(--text-muted); line-height: 1.6;">
-    <p>Haven't registered yet? <a href="{{ url_for('index') }}#registrationSection" style="color: var(--teal); font-weight: 600; text-decoration: none;">Register New Pass</a></p>
-    <p style="font-size: 0.76rem; color: rgba(255,255,255,0.3); margin-top: 0.5rem;">
-      🔒 End-to-end protected: Your personal contact details are never exposed to unauthenticated public inquiries.
-    </p>
+  <!-- Found Pass Result Display -->
+  <div id="standaloneCardResult" style="display: none;">
+    <!-- Same clean ID Card badge rendered dynamically -->
+    <div class="card"
+      style="background: linear-gradient(145deg, #0A1C35, #040D18); border: 2px solid rgba(0,255,198,0.35); border-radius: var(--radius-lg); padding: 1.5rem; position: relative; overflow: hidden;">
+
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.75rem;">
+        <span class="badge badge-teal" style="font-size: 0.75rem; font-weight: 800;">OFFICIAL VISITOR PASS</span>
+        <span id="standaloneStatusBadge" class="badge"
+          style="background: #00FFC6; color: #040D18; font-size: 0.75rem; font-weight: 800;">VALID</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <span style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">VISITOR NAME</span>
+          <h2 id="standaloneVisName" style="font-size: 1.4rem; font-weight: 900; color: #fff; margin: 0.1rem 0 0.3rem;">
+          </h2>
+          <div style="font-size: 0.8rem; color: var(--teal); font-family: monospace;">
+            ID: <span id="standaloneVisId"></span> · REF: <span id="standaloneRegCode"></span>
+          </div>
+          <div style="font-size: 0.82rem; color: #fff; margin-top: 0.5rem;">
+            Group Size: <strong id="standaloneGroupSize"></strong>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--teal); margin-top: 0.25rem;">
+            Assigned Exit: <strong id="standaloneExitGate" style="color: #fff;"></strong>
+          </div>
+        </div>
+
+        <div style="background: #fff; padding: 0.5rem; border-radius: 8px; text-align: center;">
+          <canvas id="standaloneQrCanvas" width="130" height="130"></canvas>
+        </div>
+      </div>
+
+      <div
+        style="display: flex; gap: 0.5rem; justify-content: flex-end; border-top: 1px solid var(--glass-border); padding-top: 0.75rem;">
+        <button type="button" onclick="downloadStandaloneCardPng()" class="btn btn-primary"
+          style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+          📱 Download PNG
+        </button>
+        <button type="button" onclick="window.print()" class="btn btn-navy"
+          style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+          🖨️ Print
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 1.5rem;">
+    <a href="{{ url_for('index') }}" style="font-size: 0.82rem; color: var(--teal); text-decoration: none;">
+      ← Back to Home &amp; Registration
+    </a>
   </div>
 
 </div>
-{% endblock %}
 
+<script>
+  let activeFoundPass = null;
+
+  function handleStandaloneLookup(e) {
+    e.preventDefault();
+    const code = document.getElementById('lookup_standalone_code').value.trim().toUpperCase();
+    const phone = document.getElementById('lookup_standalone_mobile').value.trim();
+    const errBox = document.getElementById('standaloneErrorBox');
+    errBox.style.display = 'none';
+
+    if (!code || !phone || phone.length !== 10) {
+      errBox.textContent = 'Please enter both valid Pass ID / Code and 10-digit registered mobile number.';
+      errBox.style.display = 'block';
+      return false;
+    }
+
+    if (window.staticLookupPass) {
+      const res = window.staticLookupPass(code, phone);
+      if (!res.success) {
+        errBox.textContent = res.message || 'Pass not found. Please verify details.';
+        errBox.style.display = 'block';
+        return false;
+      }
+
+      displayFoundPass(res.pass);
+      return false;
+    }
+
+    return true;
+  }
+
+  function displayFoundPass(pass) {
+    activeFoundPass = pass;
+    document.getElementById('standaloneVisName').textContent = pass.primary_name;
+    document.getElementById('standaloneVisId').textContent = pass.visitor_id || pass.reg_code;
+    document.getElementById('standaloneRegCode').textContent = pass.reg_code;
+    document.getElementById('standaloneGroupSize').textContent = `${pass.group_count} Person(s)`;
+    document.getElementById('standaloneExitGate').textContent = pass.assigned_gate || 'Exit Gate A (North Promenade)';
+
+    const canvas = document.getElementById('standaloneQrCanvas');
+    if (canvas) {
+      drawQrOnCanvas(canvas, pass.reg_code);
+    }
+
+    const resSec = document.getElementById('standaloneCardResult');
+    resSec.style.display = 'block';
+    resSec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function drawQrOnCanvas(canvas, code) {
+    const ctx = canvas.getContext('2d');
+    const size = 130;
+    canvas.width = size;
+    canvas.height = size;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000000';
+
+    // Finders
+    drawFinder(ctx, 8, 8, 30);
+    drawFinder(ctx, size - 38, 8, 30);
+    drawFinder(ctx, 8, size - 38, 30);
+
+    let h = 0;
+    for (let i = 0; i < code.length; i++) h = ((h << 5) - h) + code.charCodeAt(i);
+
+    const cell = 6;
+    for (let x = 6; x < size - 6; x += cell) {
+      for (let y = 6; y < size - 6; y += cell) {
+        if ((x < 42 && y < 42) || (x > size - 46 && y < 42) || (x < 42 && y > size - 46)) continue;
+        const seed = Math.sin(h + x * 7 + y * 11) * 10000;
+        if ((seed - Math.floor(seed)) > 0.45) {
+          ctx.fillRect(x, y, cell - 1, cell - 1);
+        }
+      }
+    }
+  }
+
+  function drawFinder(ctx, x, y, s) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x, y, s, s);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 4, y + 4, s - 8, s - 8);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + 8, y + 8, s - 16, s - 16);
+  }
+
+  function downloadStandaloneCardPng() {
+    if (!activeFoundPass) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 360;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createLinearGradient(0, 0, 600, 360);
+    grad.addColorStop(0, '#0A1C35');
+    grad.addColorStop(1, '#040D18');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 600, 360);
+
+    ctx.strokeStyle = '#00FFC6';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, 596, 356);
+
+    ctx.fillStyle = '#00FFC6';
+    ctx.fillRect(0, 0, 600, 8);
+
+    ctx.fillStyle = '#00FFC6';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('VENUEGUARD OFFICIAL DIGITAL PASS', 30, 42);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(activeFoundPass.primary_name, 30, 80);
+
+    ctx.fillStyle = '#94A8C5';
+    ctx.font = '14px monospace';
+    ctx.fillText(`ID: ${activeFoundPass.visitor_id || activeFoundPass.reg_code}  |  REF: ${activeFoundPass.reg_code}`, 30, 115);
+
+    ctx.font = '13px sans-serif';
+    ctx.fillText(`Group Size: ${activeFoundPass.group_count} Person(s)`, 30, 155);
+    ctx.fillText(`Assigned Exit: ${activeFoundPass.assigned_gate || 'Exit Gate A'}`, 30, 185);
+
+    const qr = document.getElementById('standaloneQrCanvas');
+    if (qr) ctx.drawImage(qr, 420, 50, 150, 150);
+
+    const a = document.createElement('a');
+    a.download = `Visitor_Pass_${activeFoundPass.visitor_id || activeFoundPass.reg_code}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }
+</script>
+{% endblock %}
