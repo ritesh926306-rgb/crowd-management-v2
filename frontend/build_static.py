@@ -23,7 +23,7 @@ GATES_CONFIG = [
 ]
 
 DEMO_REG = {
-    "reg_code": "DEMO-SAMPLE-8899", "primary_name": "Demo Visitor",
+    "reg_code": "DEMO-SAMPLE-8899", "visitor_id": "VG-VIS-88990", "status": "VALID", "primary_name": "Demo Visitor",
     "mobile": "9876543210", "age": 30, "address": "123 Venue Boulevard, Central City",
     "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A",
     "gate_id": "exit_a", "group_count": 2, "checked_in": 0, "checked_in_at": None,
@@ -35,10 +35,10 @@ DEMO_REG = {
 DEMO_MEMBERS = [{"member_name": "Accompanying Guest", "member_age": 28, "member_mobile": "9876543211"}]
 
 DEMO_REGISTRATIONS = [
-    { "id": 1, "reg_code": "REG-A1B2C3", "primary_name": "Rajesh Kumar",     "mobile": "9876543210", "age": 34, "address": "45 MG Road, Civil Lines",          "group_count": 2, "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A", "gate_id": "exit_a", "checked_in": 1, "checked_out": 0, "created_at": "2026-10-18 19:30:00", "checked_in_at": "2026-10-18 19:45:00", "members_summary": "Pooja Kumar (31y)" },
-    { "id": 2, "reg_code": "REG-D4E5F6", "primary_name": "Anita Verma",      "mobile": "9812345678", "age": 29, "address": "12 Lake View Apt, Sector 4",        "group_count": 3, "assigned_gate": "Exit Gate B (East Corridor)",   "assigned_group": "Group B", "gate_id": "exit_b", "checked_in": 1, "checked_out": 1, "created_at": "2026-10-18 19:40:00", "checked_in_at": "2026-10-18 20:00:00", "members_summary": "Aarav Verma (6y), Ravi Verma (32y)" },
-    { "id": 3, "reg_code": "REG-7G8H9I", "primary_name": "Sunil Patel",      "mobile": "9823456789", "age": 42, "address": "88 Sunrise Colony, Bhopal",         "group_count": 4, "assigned_gate": "Exit Gate C (South Plaza)",     "assigned_group": "Group C", "gate_id": "exit_c", "checked_in": 0, "checked_out": 0, "created_at": "2026-10-18 20:10:00", "checked_in_at": None,                  "members_summary": "Geeta Patel (39y), Karan Patel (14y), Diya Patel (10y)" },
-    { "id": 4, "reg_code": "DEMO-SAMPLE-8899", "primary_name": "Demo Visitor","mobile": "9876543210", "age": 30, "address": "123 Venue Boulevard, Central City", "group_count": 2, "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A", "gate_id": "exit_a", "checked_in": 0, "checked_out": 0, "created_at": "2026-10-18 20:00:00", "checked_in_at": None,                  "members_summary": "Accompanying Guest (28y)" },
+    { "id": 1, "reg_code": "REG-A1B2C3", "visitor_id": "VG-VIS-10492", "status": "VALID", "scan_attempts": 0, "primary_name": "Rajesh Kumar",     "mobile": "9876543210", "age": 34, "address": "45 MG Road, Civil Lines",          "group_count": 2, "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A", "gate_id": "exit_a", "checked_in": 1, "checked_out": 0, "created_at": "2026-10-18 19:30:00", "checked_in_at": "2026-10-18 19:45:00", "members_summary": "Pooja Kumar (31y)" },
+    { "id": 2, "reg_code": "REG-D4E5F6", "visitor_id": "VG-VIS-28391", "status": "VALID", "scan_attempts": 1, "primary_name": "Anita Verma",      "mobile": "9812345678", "age": 29, "address": "12 Lake View Apt, Sector 4",        "group_count": 3, "assigned_gate": "Exit Gate B (East Corridor)",   "assigned_group": "Group B", "gate_id": "exit_b", "checked_in": 1, "checked_out": 1, "created_at": "2026-10-18 19:40:00", "checked_in_at": "2026-10-18 20:00:00", "members_summary": "Aarav Verma (6y), Ravi Verma (32y)" },
+    { "id": 3, "reg_code": "REG-7G8H9I", "visitor_id": "VG-VIS-39201", "status": "VALID", "scan_attempts": 0, "primary_name": "Sunil Patel",      "mobile": "9823456789", "age": 42, "address": "88 Sunrise Colony, Bhopal",         "group_count": 4, "assigned_gate": "Exit Gate C (South Plaza)",     "assigned_group": "Group C", "gate_id": "exit_c", "checked_in": 0, "checked_out": 0, "created_at": "2026-10-18 20:10:00", "checked_in_at": None,                  "members_summary": "Geeta Patel (39y), Karan Patel (14y), Diya Patel (10y)" },
+    { "id": 4, "reg_code": "DEMO-SAMPLE-8899", "visitor_id": "VG-VIS-88990", "status": "VALID", "primary_name": "Demo Visitor","mobile": "9876543210", "age": 30, "address": "123 Venue Boulevard, Central City", "group_count": 2, "assigned_gate": "Exit Gate A (North Promenade)", "assigned_group": "Group A", "gate_id": "exit_a", "checked_in": 0, "checked_out": 0, "created_at": "2026-10-18 20:00:00", "checked_in_at": None,                  "members_summary": "Accompanying Guest (28y)" },
 ]
 
 def build():
@@ -124,6 +124,13 @@ def build():
             "current_occupancy": 2,
             "exited_people": 3,
             "remaining_capacity": 998,
+            "current_inside": 2,
+            "total_solo": 1,
+            "pending_people": 4,
+            "cancelled_count": 0,
+            "duplicate_scan_attempts": 1,
+            "is_emergency": False,
+            "search_query": "",
             "gate_analytics": [
                 {"gate_id": "exit_a", "name": "Exit Gate A (North Promenade)", "group": "Group A", "zone": "Zone Alpha (North)", "count": 4, "percentage": 44},
                 {"gate_id": "exit_b", "name": "Exit Gate B (East Corridor)",   "group": "Group B", "zone": "Zone Beta (East)",   "count": 3, "percentage": 33},
