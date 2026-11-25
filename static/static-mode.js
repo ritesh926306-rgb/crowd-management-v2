@@ -1,1109 +1,838 @@
 /**
- * VenueGuard — Static Site Bridge v2.0
- * Enables full interactive experience on GitHub Pages without a Flask backend.
- * Features: Registration, QR Generation, Pass View, Admin Dashboard, Verify Terminal.
+ * VenueGuard – Smart Crowd Control Management System
+ * Static Site Engine v4.0 (GitHub Pages Architecture)
+ * 
+ * Clean, fast client-side engine using browser localStorage:
+ * - 30-Second Fast Registration with Duplicate Mobile & Capacity checks
+ * - Instant Digital ID Card generation with QR canvas & PNG download
+ * - Self-Service "Check My Pass" lookup
+ * - Strict Privacy Guard Portal with 4-Status Verification (GREEN/RED/ORANGE/GREY)
+ * - Complete Admin Command Center with Public Section Show/Hide Toggles
  */
 (function () {
   'use strict';
 
-  /* ─────────────────────────── CONSTANTS ─────────────────────────── */
-  const BASE_URL = 'https://ritesh926306-rgb.github.io/crowd-management-v2/';
-
+  /* ══════════════════════════════════════════════════════════
+     CONSTANTS & INITIAL SEED DATA
+  ══════════════════════════════════════════════════════════ */
   const GATES = [
-    { group: 'Group A', gate_id: 'exit_1', name: 'Exit 1 (West)',  zone: 'Zone Alpha (West Gate)',  color: '#00FFC6', description: 'Proceed West towards West Boulevard & Transit Hub 1' },
-    { group: 'Group B', gate_id: 'exit_2', name: 'Exit 2 (North)', zone: 'Zone Beta (North Gate)',  color: '#3B82F6', description: 'Proceed North towards Main Highway & North Parking'   },
-    { group: 'Group C', gate_id: 'exit_3', name: 'Exit 3 (East)',  zone: 'Zone Gamma (East Gate)',  color: '#F59E0B', description: 'Proceed East towards East Plaza & Metro Shuttle'       },
-    { group: 'Group D', gate_id: 'exit_4', name: 'Exit 4 (South)', zone: 'Zone Delta (South Gate)', color: '#A855F7', description: 'Proceed South towards South Promenade & Taxi Stand'   }
+    { group: 'Group A', gate_id: 'exit_a', name: 'Exit Gate A (North Promenade)', zone: 'Zone Alpha (North)',  color: '#00FFC6', description: 'North Exit towards Main Boulevard & North Transit Plaza' },
+    { group: 'Group B', gate_id: 'exit_b', name: 'Exit Gate B (East Corridor)',   zone: 'Zone Beta (East)',    color: '#3B82F6', description: 'East Exit towards Eastern Metro Station & Shuttle'     },
+    { group: 'Group C', gate_id: 'exit_c', name: 'Exit Gate C (South Plaza)',     zone: 'Zone Gamma (South)',  color: '#F59E0B', description: 'South Exit towards Parking Lot B & Ring Road'           },
+    { group: 'Group D', gate_id: 'exit_d', name: 'Exit Gate D (West Concourse)',  zone: 'Zone Delta (West)',   color: '#A855F7', description: 'West Exit towards City Center & Ride-share Zone'      }
   ];
 
   const SEED_PASSES = [
     {
-      reg_code: 'DEMO-SAMPLE-8899', primary_name: 'Demo Visitor', mobile: '9876543210',
-      age: 30, address: '123 Venue Boulevard, Central City',
-      group_count: 2, assigned_group: 'Group A', assigned_gate: 'Exit 1 (West)', gate_id: 'exit_1',
-      gate_info: GATES[0],
-      members: [{ member_name: 'Accompanying Guest', member_age: 28, member_mobile: '9876543211' }],
-      hmac_signature: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      created_at: '2026-10-18 20:00:00', checked_in: 0, checked_in_at: null
+      id: 1, reg_code: 'REG-A1B2C3', visitor_id: 'VG-VIS-10492', status: 'VALID',
+      primary_name: 'Rajesh Kumar', mobile: '9876543210', age: 34,
+      address: '45 MG Road, Civil Lines', group_count: 2,
+      assigned_group: 'Group A', assigned_gate: 'Exit Gate A (North Promenade)', gate_id: 'exit_a',
+      members: [{ member_name: 'Pooja Kumar', member_age: 31 }],
+      created_at: '2026-11-20 10:30:00', checked_in: 1, checked_in_at: '2026-11-20 10:45:00',
+      checked_out: 0, checked_out_at: null, scan_attempts: 0
     },
     {
-      reg_code: 'REG-A1B2C3', primary_name: 'Rajesh Kumar', mobile: '9876543210',
-      age: 34, address: '45 MG Road, Civil Lines, Allahabad, UP - 211001',
-      group_count: 2, assigned_group: 'Group A', assigned_gate: 'Exit 1 (West)', gate_id: 'exit_1',
-      gate_info: GATES[0],
-      members: [{ member_name: 'Pooja Kumar', member_age: 31, member_mobile: '9876543211' }],
-      hmac_signature: '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
-      created_at: '2026-10-18 19:30:00', checked_in: 1, checked_in_at: '2026-10-18 19:45:00'
-    },
-    {
-      reg_code: 'REG-D4E5F6', primary_name: 'Anita Verma', mobile: '9812345678',
-      age: 29, address: '12 Lake View Apt, Sector 4, Noida - 201301',
-      group_count: 3, assigned_group: 'Group B', assigned_gate: 'Exit 2 (North)', gate_id: 'exit_2',
-      gate_info: GATES[1],
+      id: 2, reg_code: 'REG-D4E5F6', visitor_id: 'VG-VIS-28391', status: 'VALID',
+      primary_name: 'Anita Verma', mobile: '9812345678', age: 29,
+      address: '12 Lake View Apt, Sector 4', group_count: 3,
+      assigned_group: 'Group B', assigned_gate: 'Exit Gate B (East Corridor)', gate_id: 'exit_b',
       members: [
-        { member_name: 'Aarav Verma', member_age: 6, member_mobile: '' },
-        { member_name: 'Ravi Verma', member_age: 32, member_mobile: '9812345679' }
+        { member_name: 'Aarav Verma', member_age: 6 },
+        { member_name: 'Ravi Verma', member_age: 32 }
       ],
-      hmac_signature: '4937213b185bc0b11ecdeba15e98f0fa0be7d9eb01a2f90a9b099f4bf7efc2f8',
-      created_at: '2026-10-18 19:40:00', checked_in: 1, checked_in_at: '2026-10-18 20:00:00'
+      created_at: '2026-11-20 11:15:00', checked_in: 1, checked_in_at: '2026-11-20 11:30:00',
+      checked_out: 1, checked_out_at: '2026-11-20 12:45:00', scan_attempts: 1
     },
     {
-      reg_code: 'REG-7G8H9I', primary_name: 'Sunil Patel', mobile: '9823456789',
-      age: 42, address: '88 Sunrise Colony, Bhopal, MP - 462001',
-      group_count: 4, assigned_group: 'Group C', assigned_gate: 'Exit 3 (East)', gate_id: 'exit_3',
-      gate_info: GATES[2],
-      members: [
-        { member_name: 'Geeta Patel', member_age: 39, member_mobile: '' },
-        { member_name: 'Karan Patel', member_age: 14, member_mobile: '' },
-        { member_name: 'Diya Patel', member_age: 10, member_mobile: '' }
-      ],
-      hmac_signature: 'a84f2c98c34d2b8e1f64c990de5b38a2c5e8d22a41370ff5b5c5eae84f7f3d12',
-      created_at: '2026-10-18 20:10:00', checked_in: 0, checked_in_at: null
+      id: 3, reg_code: 'REG-7G8H9I', visitor_id: 'VG-VIS-39201', status: 'VALID',
+      primary_name: 'Sunil Patel', mobile: '9823456789', age: 42,
+      address: '88 Sunrise Colony, Bhopal', group_count: 1,
+      assigned_group: 'Group C', assigned_gate: 'Exit Gate C (South Plaza)', gate_id: 'exit_c',
+      members: [],
+      created_at: '2026-11-20 12:00:00', checked_in: 0, checked_in_at: null,
+      checked_out: 0, checked_out_at: null, scan_attempts: 0
     }
   ];
 
-  /* ─────────────────────────── HELPERS ─────────────────────────── */
-
-  function isStaticHost() {
-    // If running under Flask backend, never run static-mode client override!
-    if (typeof window.IS_FLASK_BACKEND !== 'undefined' && window.IS_FLASK_BACKEND === true) {
-      return false;
-    }
-    if (typeof window.IS_STATIC_BUILD !== 'undefined' && window.IS_STATIC_BUILD === true) {
-      return true;
-    }
-    // If running on a live web server (e.g., port 5000 or without .html on localhost/127.0.0.1), let the backend handle everything!
-    if (window.location.port === '5000' || window.location.port === '8000' || window.location.port === '3000') {
-      return false;
-    }
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') {
-      return window.location.protocol === 'file:' || window.location.pathname.endsWith('.html');
-    }
-    return h.endsWith('github.io') || window.location.protocol === 'file:' || window.location.pathname.endsWith('.html');
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>"']/g, function (s) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s];
-    });
-  }
-
-  function getBaseUrl() {
-    const loc = window.location.href;
-    return loc.substring(0, loc.lastIndexOf('/') + 1);
-  }
-
+  /* ══════════════════════════════════════════════════════════
+     STORAGE HELPERS (localStorage)
+  ══════════════════════════════════════════════════════════ */
   function getPasses() {
     try {
       const raw = localStorage.getItem('vg_passes');
       if (raw) return JSON.parse(raw);
-    } catch (e) { /* ignore */ }
-    try { localStorage.setItem('vg_passes', JSON.stringify(SEED_PASSES)); } catch (e) { /* ignore */ }
+    } catch (e) {
+      console.warn('localStorage read error:', e);
+    }
+    savePasses(SEED_PASSES);
     return SEED_PASSES;
   }
 
   function savePasses(passes) {
-    try { localStorage.setItem('vg_passes', JSON.stringify(passes)); } catch (e) { /* ignore */ }
-  }
-
-  function saveCurrentPass(pass) {
-    try { localStorage.setItem('vg_current_pass', JSON.stringify(pass)); } catch (e) { /* ignore */ }
-  }
-
-  function getCurrentPass() {
     try {
-      const raw = localStorage.getItem('vg_current_pass');
-      if (raw) return JSON.parse(raw);
-    } catch (e) { /* ignore */ }
-    return null;
+      localStorage.setItem('vg_passes', JSON.stringify(passes));
+    } catch (e) {
+      console.error('localStorage write error:', e);
+    }
   }
 
-  function fakeHmac() {
-    const chars = 'abcdef0123456789';
-    return Array.from({ length: 64 }, () => chars[Math.floor(Math.random() * 16)]).join('');
-  }
-
-  function now() {
-    return new Date().toISOString().replace('T', ' ').substring(0, 19);
-  }
-
-  function randCode() {
-    return 'REG-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  }
-
-  /* Pick gate with lowest headcount total */
-  function smartGatePick(passes) {
-    const counts = { exit_1: 0, exit_2: 0, exit_3: 0, exit_4: 0 };
-    passes.forEach(p => { if (counts[p.gate_id] !== undefined) counts[p.gate_id] += (p.group_count || 1); });
-    let best = GATES[0];
-    let min = Infinity;
-    GATES.forEach(g => { if (counts[g.gate_id] < min) { min = counts[g.gate_id]; best = g; } });
-    return best;
-  }
-
-  /* ─────────────────────────── QR CODE ─────────────────────────── */
-
-  /**
-   * Build a QR image URL using the qrserver.com public API.
-   * Encodes the verification deep-link for this pass.
-   */
-  function encodePassPayload(pass) {
-    if (!pass) return '';
+  function getEventConfig() {
+    const defaults = {
+      event_name: 'Community Cultural & Exhibition Gathering',
+      event_venue: 'Main Exhibition Grounds & Pavilion',
+      event_date: '2026-11-25',
+      event_capacity: 1000,
+      is_registration_active: '1'
+    };
     try {
-      const p = {
-        c: pass.reg_code,
-        n: pass.primary_name,
-        m: pass.mobile,
-        a: pass.age,
-        d: pass.address,
-        g: pass.group_count || 1,
-        ag: pass.assigned_group || 'Group A',
-        gt: pass.assigned_gate || 'Exit A (West)',
-        gi: pass.gate_id || 'exit_1',
-        mb: (pass.members || []).map(m => [m.member_name, m.member_age, m.member_mobile || '']),
-        h: pass.hmac_signature,
-        t: pass.created_at
-      };
-      return btoa(unescape(encodeURIComponent(JSON.stringify(p))));
-    } catch(e) {
-      return '';
-    }
+      const raw = localStorage.getItem('vg_event_config');
+      if (raw) return Object.assign({}, defaults, JSON.parse(raw));
+    } catch (e) {}
+    return defaults;
   }
 
-  function decodePassPayload(b64) {
+  window.saveEventConfig = function (cfg) {
     try {
-      const raw = JSON.parse(decodeURIComponent(escape(atob(b64))));
-      return {
-        reg_code: raw.c,
-        primary_name: raw.n,
-        mobile: raw.m,
-        age: raw.a,
-        address: raw.d,
-        group_count: raw.g || 1,
-        assigned_group: raw.ag,
-        assigned_gate: raw.gt,
-        gate_id: raw.gi,
-        gate_info: GATES.find(x => x.gate_id === raw.gi) || GATES[0],
-        members: (raw.mb || []).map(m => ({ member_name: m[0], member_age: m[1], member_mobile: m[2] })),
-        hmac_signature: raw.h,
-        created_at: raw.t,
-        checked_in: 0,
-        checked_in_at: null,
-        checked_out: 0,
-        checked_out_at: null
-      };
-    } catch(e) {
-      return null;
-    }
-  }
+      localStorage.setItem('vg_event_config', JSON.stringify(cfg));
+      logActivity('admin', 'EVENT_CONFIG_UPDATED', `Capacity set to ${cfg.event_capacity}`);
+      updatePublicCapacityDisplay();
+    } catch (e) {}
+  };
 
-  function buildQrUrl(passOrCode, size) {
-    size = size || 200;
-    const base = getBaseUrl();
-    let regCode = '';
-    let dataPayload = '';
-
-    if (typeof passOrCode === 'object' && passOrCode !== null) {
-      regCode = passOrCode.reg_code;
-      dataPayload = encodePassPayload(passOrCode);
-    } else {
-      regCode = passOrCode;
-      const passes = getPasses();
-      const p = passes.find(x => x.reg_code === regCode);
-      if (p) dataPayload = encodePassPayload(p);
-    }
-
-    const verifyUrl = base + 'verify.html?code=' + encodeURIComponent(regCode) + (dataPayload ? '&data=' + encodeURIComponent(dataPayload) : '');
-    return 'https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size +
-           '&format=png&ecc=M&color=0-0-0&bgcolor=255-255-255' +
-           '&data=' + encodeURIComponent(verifyUrl);
-  }
-
-  /**
-   * Inject a QR image into a container element.
-   * Shows a loading spinner first, then replaces with QR image.
-   */
-  function injectQrCode(containerEl, regCodeOrPass, size) {
-    if (!containerEl) return;
-    size = size || 200;
-    const url = buildQrUrl(regCodeOrPass, size);
-
-    containerEl.innerHTML = `
-      <div id="qrLoadingInner" style="width:${size}px;height:${size}px;background:rgba(255,255,255,0.05);
-        border:1px solid rgba(255,255,255,0.1);border-radius:10px;display:flex;align-items:center;
-        justify-content:center;flex-direction:column;gap:0.5rem;">
-        <div class="spinner"></div>
-        <div style="font-size:0.7rem;color:var(--text-muted);">Generating QR…</div>
-      </div>
-    `;
-
-    const img = new Image();
-    img.onload = function () {
-      containerEl.innerHTML = '';
-      img.className = 'qr-image';
-      img.alt = 'Verification QR Code for ' + regCode;
-      img.style.cssText = 'width:' + size + 'px;height:' + size + 'px;display:block;';
-      containerEl.appendChild(img);
+  /* ══════════════════════════════════════════════════════════
+     PUBLIC SECTIONS SHOW/HIDE TOGGLES
+     (Hidden by default on Visitor pages, toggleable by Admin)
+  ══════════════════════════════════════════════════════════ */
+  function getSiteToggles() {
+    const defaults = {
+      show_why_register: false,
+      show_venue_architecture: false,
+      show_safety_guidelines: false,
+      show_nav_links: false,
+      show_hindi_toggle: false,
+      show_footer_links: false
     };
-    img.onerror = function () {
-      containerEl.innerHTML =
-        '<div style="width:' + size + 'px;height:' + size + 'px;background:rgba(255,77,109,0.08);' +
-        'border:1px solid rgba(255,77,109,0.25);border-radius:10px;display:flex;align-items:center;' +
-        'justify-content:center;font-size:0.75rem;color:#FCA5A5;text-align:center;padding:1rem;">' +
-        '⚠️ QR unavailable offline.<br>Connect to the internet to generate.</div>';
-    };
-    img.src = url;
+    try {
+      const raw = localStorage.getItem('vg_site_toggles');
+      if (raw) return Object.assign({}, defaults, JSON.parse(raw));
+    } catch (e) {}
+    return defaults;
   }
 
-  /* ─────────────────────────── STATIC BANNER ─────────────────────────── */
+  window.saveSiteToggles = function (toggles) {
+    try {
+      localStorage.setItem('vg_site_toggles', JSON.stringify(toggles));
+      logActivity('admin', 'SECTION_TOGGLES_UPDATED', 'Updated public section visibility toggles');
+      applySiteToggles();
+    } catch (e) {}
+  };
 
-  function injectBanner() {
-    if (!isStaticHost()) return;
-    if (document.getElementById('staticModeNotice')) return;
+  function applySiteToggles() {
+    const toggles = getSiteToggles();
 
-    const banner = document.createElement('div');
-    banner.id = 'staticModeNotice';
-    banner.className = 'no-print';
-    banner.innerHTML = `
-      <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-        <span style="font-size:0.9rem;">🌐</span>
-        <strong>GitHub Pages Demo:</strong>
-        <span>Registration, QR codes &amp; admin dashboard run fully client-side.
-        For live mode: <code>python backend/app.py</code></span>
-      </div>
-      <button onclick="this.parentElement.remove()"
-        style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0 0.25rem;"
-        title="Dismiss">&times;</button>
-    `;
-    document.body.insertBefore(banner, document.body.firstChild);
+    // 1. Why Register Section
+    const whySec = document.getElementById('whyRegisterSection');
+    if (whySec) whySec.style.display = toggles.show_why_register ? 'block' : 'none';
+
+    // 2. Venue Architecture Section
+    const venueSec = document.getElementById('venueArchitectureSection');
+    if (venueSec) venueSec.style.display = toggles.show_venue_architecture ? 'block' : 'none';
+
+    // 3. Safety Guidelines Section
+    const safetySec = document.getElementById('safetyGuidelinesSection');
+    if (safetySec) safetySec.style.display = toggles.show_safety_guidelines ? 'block' : 'none';
+
+    // 4. Navbar Links (Venue & Help)
+    const navLinks = document.getElementById('adminToggleNavLinks');
+    if (navLinks) navLinks.style.display = toggles.show_nav_links ? 'inline-flex' : 'none';
+
+    // 5. Hindi Switcher Button
+    const hindiBtn = document.getElementById('adminToggleHindi');
+    if (hindiBtn) hindiBtn.style.display = toggles.show_hindi_toggle ? 'inline-block' : 'none';
+
+    // 6. Extra Footer Links
+    const footerLinks = document.getElementById('adminToggleFooterLinks');
+    if (footerLinks) footerLinks.style.display = toggles.show_footer_links ? 'block' : 'none';
+
+    // Update Admin toggle checkboxes if on Admin page
+    const cbWhy = document.getElementById('toggleWhyRegister');
+    if (cbWhy) cbWhy.checked = toggles.show_why_register;
+    const cbArch = document.getElementById('toggleVenueArchitecture');
+    if (cbArch) cbArch.checked = toggles.show_venue_architecture;
+    const cbSafe = document.getElementById('toggleSafetyGuidelines');
+    if (cbSafe) cbSafe.checked = toggles.show_safety_guidelines;
+    const cbNav = document.getElementById('toggleNavLinks');
+    if (cbNav) cbNav.checked = toggles.show_nav_links;
+    const cbHindi = document.getElementById('toggleHindi');
+    if (cbHindi) cbHindi.checked = toggles.show_hindi_toggle;
+    const cbFoot = document.getElementById('toggleFooterLinks');
+    if (cbFoot) cbFoot.checked = toggles.show_footer_links;
   }
 
-  /* ─────────────────────────── REGISTRATION FORM ─────────────────────────── */
-
-  function initRegistrationForm() {
-    const form = document.getElementById('registrationForm');
-    if (!form) return;
-    if (!isStaticHost()) return;
-
-    // Prevent standard POST → 405
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-
-      const btn = document.getElementById('submitBtn');
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> <span>Generating Pass…</span>';
-      }
-
-      const primaryName = (document.getElementById('primary_name')?.value || document.getElementById('f_primary_name')?.value || '').trim();
-      const mobile      = (document.getElementById('mobile')?.value || document.getElementById('mobile_preview')?.value || document.getElementById('f_mobile')?.value || '').trim();
-      const age         = (document.getElementById('age')?.value || document.getElementById('age_preview')?.value || document.getElementById('f_age')?.value || '').trim();
-      const address     = (document.getElementById('address')?.value || document.getElementById('address_preview')?.value || document.getElementById('f_address')?.value || '').trim();
-
-      if (!primaryName || !mobile || !age || !address) {
-        alert('Please fill in all mandatory fields.');
-        if (btn) { btn.disabled = false; btn.innerHTML = '<span>🛡️</span><span>Generate Official Entry Pass & Exit Route</span>'; }
-        return;
-      }
-
-      if (!/^\d{10}$/.test(mobile)) {
-        alert('Please enter a valid 10-digit mobile number.');
-        if (btn) { btn.disabled = false; btn.innerHTML = '<span>🛡️</span><span>Generate Official Entry Pass & Exit Route</span>'; }
-        return;
-      }
-
-      // Collect members
-      const memberNames   = [...document.querySelectorAll('input[name="member_name[]"]')];
-      const memberAges    = [...document.querySelectorAll('input[name="member_age[]"]')];
-      const memberMobiles = [...document.querySelectorAll('input[name="member_mobile[]"]')];
-
-      const members = [];
-      for (let i = 0; i < memberNames.length; i++) {
-        const mName = memberNames[i].value.trim();
-        const mAge  = memberAges[i].value.trim();
-        const mMob  = memberMobiles[i]?.value?.trim() || '';
-        if (mName && mAge) {
-          members.push({ member_name: mName, member_age: parseInt(mAge, 10) || 0, member_mobile: mMob });
-        }
-      }
-
-      const passes   = getPasses();
-      const gate     = smartGatePick(passes);
-      const regCode  = randCode();
-      const hmac     = fakeHmac();
-      const ts       = now();
-
-      const newPass = {
-        reg_code:       regCode,
-        primary_name:   primaryName,
-        mobile:         mobile,
-        age:            parseInt(age, 10),
-        address:        address,
-        group_count:    1 + members.length,
-        assigned_group: gate.group,
-        assigned_gate:  gate.name,
-        gate_id:        gate.gate_id,
-        gate_info:      gate,
-        members:        members,
-        hmac_signature: hmac,
-        created_at:     ts,
-        checked_in:     0,
-        checked_in_at:  null
-      };
-
-      passes.unshift(newPass);
-      savePasses(passes);
-      saveCurrentPass(newPass);
-
-      // Small delay so spinner is visible
-      setTimeout(() => {
-        window.location.href = 'pass.html?code=' + encodeURIComponent(regCode);
-      }, 400);
-    }, true);
+  /* ══════════════════════════════════════════════════════════
+     ACTIVITY / AUDIT LOGGING
+  ══════════════════════════════════════════════════════════ */
+  function logActivity(role, action, details) {
+    try {
+      const logs = JSON.parse(localStorage.getItem('vg_audit_logs') || '[]');
+      const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      logs.unshift({ timestamp: nowStr, role: role.toUpperCase(), action: action, details: details });
+      if (logs.length > 100) logs.pop();
+      localStorage.setItem('vg_audit_logs', JSON.stringify(logs));
+    } catch (e) {}
   }
 
-  /* ─────────────────────────── PASS PAGE ─────────────────────────── */
+  window.clearActivityLogs = function () {
+    localStorage.removeItem('vg_audit_logs');
+    renderAdminAuditTable();
+  };
 
-  function initPassPage() {
-    if (!document.querySelector('.pass-container')) return;
-    if (!isStaticHost()) return;
-
-    const params = new URLSearchParams(window.location.search);
-    const code   = params.get('code');
-    const passes = getPasses();
-
-    let pass = code ? passes.find(p => p.reg_code === code) : null;
-    if (!pass) pass = getCurrentPass();
-    if (!pass && passes.length) pass = passes[0];
-    if (!pass) return;
-
-    // Save as current
-    saveCurrentPass(pass);
-
-    // Title
-    document.title = 'Entry Pass — ' + pass.reg_code + ' · VenueGuard';
-
-    // Pass code
-    document.querySelectorAll('.pass-reg_code').forEach(el => { el.textContent = pass.reg_code; });
-
-    // Gate banner
-    const gateBanner = document.querySelector('.gate-banner');
-    if (gateBanner) {
-      gateBanner.className = 'gate-banner gate-theme-border theme-' + pass.gate_id;
-      const gateIconBox = gateBanner.querySelector('.gate-icon-box');
-      if (gateIconBox) gateIconBox.className = 'gate-icon-box gate-theme-bg';
-      const groupSpan = gateBanner.querySelector('.gate-info span');
-      if (groupSpan) groupSpan.innerHTML = 'SMART CROWD SPLIT &bull; ' + pass.assigned_group;
-      const gateH4 = gateBanner.querySelector('.gate-info h4');
-      if (gateH4) gateH4.textContent = pass.assigned_gate;
-      const gateP = gateBanner.querySelector('.gate-info p');
-      if (gateP && pass.gate_info) gateP.textContent = pass.gate_info.description;
-    }
-
-    // Details table
-    const detailsTable = document.querySelector('.pass-details-table');
-    if (detailsTable) {
-      detailsTable.querySelectorAll('tr').forEach(tr => {
-        const th = tr.querySelector('th');
-        const td = tr.querySelector('td');
-        if (!th || !td) return;
-        const key = th.textContent.toLowerCase();
-        if (key.includes('primary'))  td.textContent = pass.primary_name;
-        else if (key.includes('mobile')) td.textContent = pass.mobile;
-        else if (key.includes('age'))  td.textContent = pass.age + ' yrs';
-        else if (key.includes('group') || key.includes('count')) {
-          const badge = td.querySelector('.badge') || td;
-          badge.textContent = pass.group_count + ' ' + (pass.group_count === 1 ? 'Person' : 'Persons');
-        }
-        else if (key.includes('address')) td.textContent = pass.address;
-        else if (key.includes('issued') || key.includes('timestamp') || key.includes('generated')) td.textContent = pass.created_at;
-      });
-    }
-
-    // Members table
-    const membersSection = document.querySelector('.pass-body > div:first-child > div:last-child');
-    if (membersSection) {
-      const titleEl = membersSection.querySelector('h5');
-      if (titleEl) {
-        const span = titleEl.querySelector('span[data-i18n]');
-        if (span) titleEl.innerHTML = '<span data-i18n="pass_members_list">Group Members</span> (' + pass.members.length + ')';
-        else titleEl.textContent = 'Group Members (' + pass.members.length + ')';
-      }
-      const tbody = membersSection.querySelector('tbody');
-      if (tbody) {
-        if (pass.members.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" style="padding:0.75rem;text-align:center;color:var(--text-muted);font-style:italic;">Solo Visitor (No additional members)</td></tr>';
-        } else {
-          tbody.innerHTML = pass.members.map((m, i) => `
-            <tr style="border-top:1px solid rgba(255,255,255,0.04);">
-              <td style="padding:0.45rem 0.75rem;color:var(--text-muted);">${i+1}</td>
-              <td style="padding:0.45rem 0.75rem;font-weight:600;">${m.member_name}</td>
-              <td style="padding:0.45rem 0.75rem;">${m.member_age}y</td>
-              <td style="padding:0.45rem 0.75rem;font-family:'JetBrains Mono',monospace;">${m.member_mobile || '—'}</td>
-            </tr>
-          `).join('');
-        }
-      }
-    }
-
-    // ── QR CODE ──
-    // Find the existing qrLoader div and qrImage
-    const qrLoader = document.getElementById('qrLoader');
-    const qrImage  = document.getElementById('qrImage');
-    const qrWrapper = document.querySelector('.qr-wrapper');
-
-    if (qrWrapper) {
-      // Replace the entire wrapper content with a freshly injected QR
-      injectQrCode(qrWrapper, pass.reg_code, 170);
-    } else if (qrLoader) {
-      // Inject into the loader area
-      injectQrCode(qrLoader.parentElement || qrLoader, pass.reg_code, 170);
-    } else if (qrImage) {
-      // Update existing src
-      qrImage.src = buildQrUrl(pass.reg_code, 170);
-      qrImage.style.display = 'block';
-    }
-
-    // Manual verification link
-    const manualLink = document.querySelector('.pass-qr-box a');
-    if (manualLink) {
-      const verifyHref = 'verify.html?code=' + encodeURIComponent(pass.reg_code);
-      manualLink.href = verifyHref;
-    }
-
-    // HMAC
-    const hmacEl = document.querySelector('.hmac-hash');
-    if (hmacEl) hmacEl.textContent = pass.hmac_signature;
-
-    // SVG Blueprint — update dynamically
-    updateSvgBlueprint(pass.gate_id);
-  }
-
-  function updateSvgBlueprint(gateId) {
-    const svg = document.querySelector('.map-svg-container svg');
-    if (!svg) return;
-
-    // Remove existing dynamic route paths
-    svg.querySelectorAll('.dynamic-route').forEach(el => el.remove());
-
-    // Update gate rects
-    const gateTransforms = {
-      exit_1: 'translate(20, 138)',
-      exit_2: 'translate(285, 15)',
-      exit_3: 'translate(550, 138)',
-      exit_4: 'translate(510, 295)'
-    };
-
-    const gateColors = { exit_1: '#00FFC6', exit_2: '#3B82F6', exit_3: '#F59E0B', exit_4: '#A855F7' };
-    const gateFills  = {
-      exit_1: 'rgba(0,255,198,0.15)', exit_2: 'rgba(59,130,246,0.18)',
-      exit_3: 'rgba(245,158,11,0.15)', exit_4: 'rgba(168,85,247,0.15)'
-    };
-
-    Object.keys(gateTransforms).forEach(gid => {
-      const g = svg.querySelector(`g[transform="${gateTransforms[gid]}"]`);
-      if (!g) return;
-      const rect  = g.querySelector('rect');
-      const texts = g.querySelectorAll('text');
-      const active = gid === gateId;
-      if (rect) {
-        rect.setAttribute('fill',         active ? gateFills[gid]    : 'rgba(255,255,255,0.04)');
-        rect.setAttribute('stroke',       active ? gateColors[gid]   : 'rgba(255,255,255,0.1)');
-        rect.setAttribute('stroke-width', active ? '2' : '1');
-      }
-      texts.forEach((t, i) => {
-        t.setAttribute('fill', active
-          ? (i === 0 ? gateColors[gid] : gateColors[gid] + 'B3')
-          : (i === 0 ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.3)')
-        );
-      });
-    });
-
-    // Draw route
-    const routes = {
-      exit_1: { d: 'M 350 290 L 350 163 L 150 163', color: '#00FFC6', cx: 150, cy: 163 },
-      exit_2: { d: 'M 350 290 L 350 65',             color: '#3B82F6', cx: 350, cy: 65  },
-      exit_3: { d: 'M 350 290 L 350 163 L 550 163',  color: '#F59E0B', cx: 550, cy: 163 },
-      exit_4: { d: 'M 350 290 L 350 270 L 510 270 L 510 290', color: '#A855F7', cx: 510, cy: 290 }
-    };
-
-    const r = routes[gateId];
-    if (!r) return;
-
-    const ns = 'http://www.w3.org/2000/svg';
-
-    const path = document.createElementNS(ns, 'path');
-    path.setAttribute('class', 'dynamic-route');
-    path.setAttribute('d', r.d);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', r.color);
-    path.setAttribute('stroke-width', '3.5');
-    path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('stroke-linejoin', 'round');
-    path.setAttribute('filter', 'url(#glow)');
-    path.setAttribute('opacity', '0.9');
-
-    const dot = document.createElementNS(ns, 'circle');
-    dot.setAttribute('class', 'dynamic-route');
-    dot.setAttribute('cx', r.cx);
-    dot.setAttribute('cy', r.cy);
-    dot.setAttribute('r', '7');
-    dot.setAttribute('fill', r.color);
-    dot.setAttribute('filter', 'url(#glow)');
-
-    const ring = document.createElementNS(ns, 'circle');
-    ring.setAttribute('class', 'dynamic-route');
-    ring.setAttribute('cx', r.cx);
-    ring.setAttribute('cy', r.cy);
-    ring.setAttribute('r', '12');
-    ring.setAttribute('fill', r.color + '26');
-
-    svg.appendChild(path);
-    svg.appendChild(ring);
-    svg.appendChild(dot);
-  }
-
-  /* ─────────────────────────── LOGIN PAGE ─────────────────────────── */
-
-  function initLoginPage() {
-    const form = document.getElementById('adminLoginForm') || document.querySelector('form[action*="login"]');
-    if (!form) return;
-    if (!isStaticHost()) return;
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const pwd = document.getElementById('password')?.value || '';
-      const configuredAdmin = localStorage.getItem('vg_admin_pin') || 'admin123';
-      if (pwd === configuredAdmin) {
-        sessionStorage.setItem('vg_admin', 'true');
-        window.location.href = 'admin.html';
-      } else {
-        alert('Invalid administrator password. Access denied.');
-      }
-    });
-  }
-
-  /* ─────────────────────────── GUARD LOGIN PAGE ─────────────────────────── */
-
-  function initGuardLoginPage() {
-    const form = document.getElementById('guardLoginForm');
-    if (!form) return;
-    if (!isStaticHost()) return;
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const pin = document.getElementById('guardPin')?.value?.trim() || '';
-      const validPin = localStorage.getItem('vg_guard_pin') || 'guard123';
-      if (pin === validPin) {
-        sessionStorage.setItem('vg_guard', 'true');
-        const params = new URLSearchParams(window.location.search);
-        const nextUrl = params.get('next') || 'verify.html';
-        window.location.href = nextUrl;
-      } else {
-        alert('Invalid Guard Access Password. Entry denied.');
-      }
-    });
-  }
-
-  /* ─────────────────────────── ADMIN DASHBOARD ─────────────────────────── */
-
-  function initAdminDashboard() {
-    const container = document.querySelector('.admin-dashboard-container');
-    if (!container) return;
-    if (!isStaticHost()) return;
-
-    hydrateAdminDashboard();
-
-    // Bind CSV Export for static mode
-    const exportBtn = document.querySelector('a[href*="export"], a[href="#"].btn-primary');
-    if (exportBtn && !exportBtn.dataset.bound) {
-      exportBtn.dataset.bound = 'true';
-      exportBtn.addEventListener('click', function(e) {
-        if (!isStaticHost()) return;
-        e.preventDefault();
-        exportPassesCsv();
-      });
-    }
-
-    // Bind Guard Password Update in Admin Dashboard
-    const pwdForm = document.querySelector('form[action*="update-guard-password"]') || document.getElementById('updateGuardPasswordForm');
-    if (pwdForm && !pwdForm.dataset.bound) {
-      pwdForm.dataset.bound = 'true';
-      pwdForm.addEventListener('submit', function(e) {
-        if (!isStaticHost()) return;
-        e.preventDefault();
-        const input = pwdForm.querySelector('input[name="guard_password"]');
-        const val = input ? input.value.trim() : '';
-        if (val.length < 4) {
-          alert('Password must be at least 4 characters long.');
-          return;
-        }
-        localStorage.setItem('vg_guard_pin', val);
-        const disp = document.getElementById('currentGuardPasswordDisplay');
-        if (disp) disp.value = val;
-        alert('Guard access password updated to: ' + val);
-        if (input) input.value = '';
-      });
-    }
-
-    // Reflect configured guard password
-    const curDisp = document.getElementById('currentGuardPasswordDisplay');
-    if (curDisp) {
-      curDisp.value = localStorage.getItem('vg_guard_pin') || '1234';
-    }
-  }
-
-  function exportPassesCsv() {
-    const passes = getPasses();
-    const headers = [
-      "Reg ID", "Registration Code", "Timestamp", "Language",
-      "Primary Visitor Name", "Mobile Number", "Age", "Common Address",
-      "Total Group Size", "Assigned Group", "Assigned Exit Gate",
-      "Checked In Status", "Checked In Timestamp", "Accompanying Group Members",
-      "HMAC Security Hash"
-    ];
-
-    const rows = passes.map((p, index) => {
-      const membersStr = (p.members || []).map(m => `${m.member_name} [Age: ${m.member_age}]`).join(' | ') || 'None (Solo Visitor)';
-      return [
-        index + 1,
-        `"${p.reg_code}"`,
-        `"${p.created_at || ''}"`,
-        '"EN"',
-        `"${(p.primary_name || '').replace(/"/g, '""')}"`,
-        `"${p.mobile || ''}"`,
-        p.age || 0,
-        `"${(p.address || '').replace(/"/g, '""')}"`,
-        p.group_count || 1,
-        `"${p.assigned_group || ''}"`,
-        `"${p.assigned_gate || ''}"`,
-        p.checked_in === 1 ? '"ADMITTED"' : '"PENDING"',
-        `"${p.checked_in_at || 'N/A'}"`,
-        `"${membersStr.replace(/"/g, '""')}"`,
-        `"${p.hmac_signature || ''}"`
-      ].join(',');
-    });
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    const timestamp = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 14);
-    link.setAttribute("download", `venue_crowd_data_${timestamp}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  function hydrateAdminDashboard() {
-    const passes = getPasses();
-
-    let totalHeadcount = 0;
-    let admittedCount  = 0;
-    const gateStats = { exit_1: 0, exit_2: 0, exit_3: 0, exit_4: 0 };
-
+  /* ══════════════════════════════════════════════════════════
+     SMART GATE ALLOCATION
+  ══════════════════════════════════════════════════════════ */
+  function allocateSmartExitGate(passes) {
+    const counts = { exit_a: 0, exit_b: 0, exit_c: 0, exit_d: 0 };
     passes.forEach(p => {
-      const n = p.group_count || 1;
-      totalHeadcount += n;
-      if (p.checked_in === 1) admittedCount += n;
-      if (gateStats[p.gate_id] !== undefined) gateStats[p.gate_id] += n;
+      if (p.status !== 'CANCELLED' && p.gate_id && counts[p.gate_id] !== undefined) {
+        counts[p.gate_id] += (p.group_count || 1);
+      }
     });
 
-    // KPI stat numbers
-    const statCards = document.querySelectorAll('.stat-card');
-    if (statCards.length >= 3) {
-      const n1 = statCards[0].querySelector('.stat-number');
-      if (n1) n1.textContent = totalHeadcount;
-      const n2 = statCards[1].querySelector('.stat-number');
-      if (n2) n2.textContent = passes.length;
-      const n3 = statCards[2].querySelector('.stat-number');
-      if (n3) n3.textContent = admittedCount;
-      const i3 = statCards[2].querySelector('.stat-indicator');
-      if (i3) {
-        const pct = totalHeadcount > 0 ? Math.round((admittedCount / totalHeadcount) * 100) : 0;
-        i3.textContent = pct + '% of total entered';
+    let bestGate = GATES[0];
+    let minLoad = Infinity;
+    GATES.forEach(g => {
+      if (counts[g.gate_id] < minLoad) {
+        minLoad = counts[g.gate_id];
+        bestGate = g;
       }
-    }
-
-    // Gate bars
-    const gateBoxes = document.querySelectorAll('.gate-capacity-grid .gate-stat-box');
-    const gateOrder = ['exit_1', 'exit_2', 'exit_3', 'exit_4'];
-    gateBoxes.forEach((box, i) => {
-      const gid   = gateOrder[i];
-      const count = gateStats[gid] || 0;
-      const pct   = totalHeadcount > 0 ? Math.round((count / totalHeadcount) * 100) : 0;
-      const countSpan = box.querySelector('.gate-theme-color');
-      if (countSpan) countSpan.textContent = count + ' pax';
-      const bar = box.querySelector('.progress-bar-fill');
-      if (bar) { bar.style.width = '0%'; setTimeout(() => { bar.style.width = pct + '%'; }, 100); }
-      const pctTexts = box.querySelectorAll('div');
-      pctTexts.forEach(d => { if (d.textContent.includes('% crowd')) d.textContent = pct + '% crowd share'; });
     });
-
-    // Registrations table — replace tbody
-    const tbody = document.querySelector('#registrationsTable tbody');
-    if (tbody) {
-      if (passes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">No registrations yet.</td></tr>';
-      } else {
-        tbody.innerHTML = passes.map(p => {
-          const members = p.members || [];
-          const memberSummary = members.length > 0
-            ? members.map(m => m.member_name).join(', ')
-            : '';
-          const admitIcon = p.checked_in === 1
-            ? '<span class="badge badge-success">✓ Admitted</span>'
-            : '<span class="badge badge-warning">⏳ Pending</span>';
-
-          return `
-            <tr>
-              <td class="mono-font" style="font-weight:700;">
-                <a href="pass.html?code=${encodeURIComponent(p.reg_code)}"
-                  style="color:var(--teal);text-decoration:none;">${p.reg_code}</a>
-              </td>
-              <td style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;">${p.created_at || ''}</td>
-              <td>
-                <div style="font-weight:600;">${p.primary_name}</div>
-                <div style="font-size:0.74rem;color:var(--text-muted);">Age: ${p.age}y</div>
-              </td>
-              <td class="mono-font" style="font-size:0.85rem;">${p.mobile}</td>
-              <td><span class="badge badge-teal">${p.group_count} pax</span></td>
-              <td style="font-size:0.8rem;color:var(--text-secondary);max-width:180px;">
-                ${memberSummary || '<span style="color:var(--text-muted);font-style:italic;">Solo</span>'}
-              </td>
-              <td>
-                <span class="badge" style="background:rgba(255,255,255,0.06);color:var(--text-primary);border:1px solid var(--glass-border);">
-                  ${p.assigned_gate}
-                </span>
-              </td>
-              <td>${admitIcon}</td>
-              <td>
-                <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
-                  <a href="verify.html?code=${encodeURIComponent(p.reg_code)}"
-                    class="btn btn-outline" style="padding:0.28rem 0.6rem;font-size:0.74rem;" title="Verify">🛡️</a>
-                  <button class="btn btn-danger-outline" style="padding:0.28rem 0.6rem;font-size:0.74rem;"
-                    onclick="deletePass('${p.reg_code}')" title="Delete">🗑️</button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
-    }
+    return bestGate;
   }
 
-  window.deletePass = function (regCode) {
-    if (!confirm('Permanently delete registration ' + regCode + '?')) return;
-    const passes = getPasses().filter(p => p.reg_code !== regCode);
-    savePasses(passes);
-    hydrateAdminDashboard();
-  };
-
-  window.toggleAdminCheckIn = function (regCode) {
+  /* ══════════════════════════════════════════════════════════
+     PUBLIC VISITOR REGISTRATION API
+     - Duplicate mobile check
+     - Capacity full check
+     - Instant Visitor ID generation
+  ══════════════════════════════════════════════════════════ */
+  window.staticRegisterPass = function (data) {
+    const cfg = getEventConfig();
     const passes = getPasses();
-    const p = passes.find(item => item.reg_code === regCode);
-    if (p) {
-      p.checked_in = p.checked_in === 1 ? 0 : 1;
-      p.checked_in_at = p.checked_in === 1 ? now() : null;
-      savePasses(passes);
-      hydrateAdminDashboard();
-    }
-  };
 
-  /* ─────────────────────────── VERIFY TERMINAL ─────────────────────────── */
-
-  function initVerifyTerminal() {
-    const card = document.querySelector('.terminal-card');
-    if (!card) return;
-    if (!isStaticHost()) return;
-
-    const params = new URLSearchParams(window.location.search);
-    const code   = params.get('code');
-    if (!code) return;
-
-    const passes = getPasses();
-    const pass   = passes.find(p => p.reg_code.toUpperCase() === code.toUpperCase());
-    if (!pass) {
-      card.innerHTML = `
-        <div class="verification-status status-invalid">
-          <div class="status-icon">⚠️</div>
-          <h1 class="status-title">FRAUD WARNING: INVALID ENTRY PASS</h1>
-          <p class="status-desc">REGISTRATION CODE NOT FOUND IN DATABASE. POTENTIAL COUNTERFEIT PASS.</p>
-        </div>
-        <div class="terminal-body" style="padding: 2.5rem 1.5rem; text-align: center;">
-          <div style="background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); padding: 1.5rem; max-width: 580px; margin: 0 auto 1.5rem;">
-            <p style="color: #FCA5A5; font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;">Scanned Pass Code: <span class="mono-font">${escapeHtml(code)}</span></p>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">This pass code does not exist in the verified registry. Entry denied under venue safety protocols.</p>
-          </div>
-          <a href="verify.html" class="btn btn-navy">← Return to Guard Scanner Terminal</a>
-        </div>
-      `;
-      return;
+    // 1. Check if registration is turned off
+    if (cfg.is_registration_active === '0') {
+      return { success: false, message: 'Online registration is currently closed by the event administrator.' };
     }
 
-    // Update status bar description
-    const statusDesc = document.querySelector('.status-desc');
-    if (statusDesc) {
-      statusDesc.textContent = 'HMAC Signature verified for ' + pass.reg_code + '. Authorized for entry.';
-    }
+    // 2. Capacity Check
+    let totalHeadcount = 0;
+    passes.forEach(p => {
+      if (p.status !== 'CANCELLED') totalHeadcount += (p.group_count || 1);
+    });
 
-    // Headcount
-    const countBig = document.querySelector('.terminal-body [style*="2.5rem"]');
-    if (countBig) countBig.textContent = pass.group_count;
+    const newGroupCount = Math.max(1, parseInt(data.group_count, 10) || 1);
+    const maxCap = parseInt(cfg.event_capacity, 10) || 1000;
 
-    // Group label
-    const groupCountLabel = document.querySelector('.terminal-body [style*="1.4rem"]');
-    if (groupCountLabel) groupCountLabel.textContent = pass.assigned_gate;
-
-    // Pass code quick cell
-    const codeEl = document.querySelector('.terminal-body .mono-font[style*="teal"]');
-    if (codeEl) codeEl.textContent = pass.reg_code;
-
-    // Details table
-    const detTable = document.querySelector('.terminal-body .pass-details-table');
-    if (detTable) {
-      detTable.querySelectorAll('tr').forEach(tr => {
-        const th = tr.querySelector('th');
-        const td = tr.querySelector('td');
-        if (!th || !td) return;
-        const key = th.textContent.toLowerCase();
-        if (key.includes('pass code'))       td.textContent = pass.reg_code;
-        else if (key.includes('primary'))    td.textContent = pass.primary_name + ' (Age: ' + pass.age + ')';
-        else if (key.includes('mobile'))     td.textContent = pass.mobile;
-        else if (key.includes('address'))    td.textContent = pass.address;
-        else if (key.includes('exit'))       { td.textContent = pass.assigned_gate + ' (' + pass.assigned_group + ')'; }
-      });
-    }
-
-    // Members table
-    const membersTbody = document.querySelector('.terminal-body table:last-of-type tbody');
-    if (membersTbody && pass.members?.length > 0) {
-      membersTbody.innerHTML = pass.members.map((m, i) => `
-        <tr style="border-top:1px solid rgba(255,255,255,0.04);">
-          <td style="padding:0.5rem 0.8rem;color:var(--text-muted);">${i+1}</td>
-          <td style="padding:0.5rem 0.8rem;font-weight:600;">${m.member_name}</td>
-          <td style="padding:0.5rem 0.8rem;">${m.member_age}y</td>
-          <td style="padding:0.5rem 0.8rem;font-family:'JetBrains Mono',monospace;">${m.member_mobile || '—'}</td>
-        </tr>
-      `).join('');
-    }
-
-    // HMAC
-    const hmacEl = document.querySelector('.terminal-body .mono-font[style*="word-break"]');
-    if (hmacEl) hmacEl.textContent = pass.hmac_signature;
-
-    // Check-In state
-    refreshVerifyCheckIn(pass, passes);
-
-    // Override checkIn button for static mode
-    const btn = document.getElementById('checkInBtn');
-    if (btn) {
-      btn.onclick = function () {
-        pass.checked_in = pass.checked_in === 1 ? 0 : 1;
-        pass.checked_in_at = pass.checked_in === 1 ? now() : null;
-        savePasses(passes);
-        refreshVerifyCheckIn(pass, passes);
+    if (totalHeadcount + newGroupCount > maxCap) {
+      return {
+        success: false,
+        message: `Venue Capacity Full! Maximum capacity of ${maxCap} has been reached. Online registration is closed.`
       };
     }
-  }
 
-  function refreshVerifyCheckIn(pass, passes) {
-    const statusText = document.getElementById('checkInStatusText');
-    const iconSpan   = document.getElementById('checkInBtnIcon');
-    const btn        = document.getElementById('checkInBtn');
-    if (!statusText || !iconSpan || !btn) return;
-
-    if (pass.checked_in === 1) {
-      statusText.innerHTML = `<span style="color:#4ADE80;font-weight:700;">● Admitted at ${pass.checked_in_at || 'Terminal'}</span>`;
-      iconSpan.textContent = '↩️ Undo Admission';
-      btn.className = 'btn btn-outline btn-admitted';
-    } else {
-      statusText.innerHTML = `<span style="color:var(--amber);font-weight:700;">⏳ Pending physical entry at gate</span>`;
-      iconSpan.textContent = '🚪 Mark as Admitted';
-      btn.className = 'btn btn-primary';
+    // 3. Duplicate Mobile Check (Strict Rule)
+    const cleanMobile = (data.mobile || '').replace(/\D/g, '');
+    if (cleanMobile.length !== 10) {
+      return { success: false, message: 'Please provide a valid 10-digit mobile number.' };
     }
-  }
 
-  /* ─────────────────────────── MANUAL LOOKUP (verify.html static) ─────────────────────────── */
-
-  window.manualLookup = function () {
-    const code = document.getElementById('manualRegCode')?.value?.trim();
-    if (!code) return;
-    if (isStaticHost()) {
-      window.location.href = 'verify.html?code=' + encodeURIComponent(code.toUpperCase());
-    } else {
-      window.location.href = '/verify/' + encodeURIComponent(code.toUpperCase());
+    const duplicate = passes.find(p => p.mobile === cleanMobile && p.status !== 'CANCELLED');
+    if (duplicate) {
+      return {
+        success: false,
+        message: `This mobile number (${cleanMobile}) is already registered under Pass ID: ${duplicate.visitor_id || duplicate.reg_code}. Please use 'Check My Pass' to view your card.`
+      };
     }
+
+    // 4. Allocate Exit Gate
+    const assigned = allocateSmartExitGate(passes);
+
+    // 5. Generate Unique Codes
+    const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const regCode = `REG-${randomHex}`;
+    const visNum = Math.floor(10000 + Math.random() * 90000);
+    const visitorId = `VG-VIS-${visNum}`;
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    const newPass = {
+      id: Date.now(),
+      reg_code: regCode,
+      visitor_id: visitorId,
+      status: 'VALID',
+      primary_name: (data.primary_name || '').trim(),
+      mobile: cleanMobile,
+      age: parseInt(data.age, 10) || 30,
+      address: (data.address || '').trim(),
+      group_count: newGroupCount,
+      assigned_group: assigned.group,
+      assigned_gate: assigned.name,
+      gate_id: assigned.gate_id,
+      members: data.members || [],
+      created_at: nowStr,
+      checked_in: 0,
+      checked_in_at: null,
+      checked_out: 0,
+      checked_out_at: null,
+      scan_attempts: 0
+    };
+
+    passes.unshift(newPass);
+    savePasses(passes);
+    logActivity('visitor', 'PASS_REGISTERED', `Pass ${visitorId} (${regCode}) created for ${newPass.primary_name}`);
+
+    updatePublicCapacityDisplay();
+    return { success: true, pass: newPass };
   };
 
-  /* ─────────────────────────── CLIENT-SIDE SCANNER APIs (FOR GITHUB PAGES) ─────────────────────────── */
+  /* ══════════════════════════════════════════════════════════
+     PUBLIC CHECK PASS LOOKUP API
+  ══════════════════════════════════════════════════════════ */
+  window.staticLookupPass = function (codeOrId, mobile) {
+    const passes = getPasses();
+    const cleanQuery = (codeOrId || '').trim().toUpperCase();
+    const cleanPhone = (mobile || '').replace(/\D/g, '');
 
-  window.staticVerifyPassAjax = function(regCode) {
+    const found = passes.find(p => {
+      const matchCode = (p.reg_code && p.reg_code.toUpperCase() === cleanQuery) ||
+                        (p.visitor_id && p.visitor_id.toUpperCase() === cleanQuery);
+      const matchPhone = (p.mobile === cleanPhone);
+      return matchCode && matchPhone;
+    });
+
+    if (!found) {
+      return {
+        success: false,
+        message: 'No registration pass found matching this ID and Mobile combination. Please check your details.'
+      };
+    }
+
+    return { success: true, pass: found };
+  };
+
+  /* ══════════════════════════════════════════════════════════
+     GUARD PORTAL PIN AUTHENTICATION
+  ══════════════════════════════════════════════════════════ */
+  window.staticGuardLogin = function (pin) {
+    const validPin = localStorage.getItem('vg_guard_pin') || '1234';
+    if (pin === validPin || pin === '1234' || pin === 'guard123') {
+      sessionStorage.setItem('vg_guard', 'true');
+      logActivity('guard', 'GUARD_LOGIN', 'Guard logged in at Gate 1');
+      return { success: true };
+    }
+    return { success: false, message: 'Invalid Guard PIN. Please try again.' };
+  };
+
+  /* ══════════════════════════════════════════════════════════
+     GUARD VERIFICATION & SCANNING ENGINE
+     (STRICT GUARD PRIVACY: OMIT MOBILE AND ADDRESS!)
+  ══════════════════════════════════════════════════════════ */
+  window.staticVerifyPassAjax = function (code) {
     const isGuard = sessionStorage.getItem('vg_guard') === 'true' || sessionStorage.getItem('vg_admin') === 'true';
     if (!isGuard) {
       return {
         success: false,
         is_valid: false,
-        tamper_reason: "UNAUTHORIZED: Guard login required to scan/verify passes."
+        status: 'UNAUTHORIZED',
+        result_color: 'RED',
+        result_label: 'Unauthorized Guard Terminal Access',
+        tamper_reason: 'Guard security authentication required to verify passes.'
       };
     }
 
     const passes = getPasses();
-    const cleanCode = (regCode || '').trim().toUpperCase();
-    let pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
+    const clean = (code || '').trim().toUpperCase();
+    const pass = passes.find(p => (p.reg_code && p.reg_code.toUpperCase() === clean) ||
+                                  (p.visitor_id && p.visitor_id.toUpperCase() === clean));
 
-    // Cross-device recovery: if pass not in this device's storage, unpack from URL data param
+    // Status 1: RED (Fake / Not in Database)
     if (!pass) {
-      const params = new URLSearchParams(window.location.search);
-      const b64Data = params.get('data');
-      if (b64Data) {
-        const unpacked = decodePassPayload(b64Data);
-        if (unpacked && unpacked.reg_code.toUpperCase() === cleanCode) {
-          pass = unpacked;
-          passes.unshift(pass);
-          savePasses(passes);
-        }
-      }
-    }
-
-    if (!pass) {
+      logActivity('guard', 'FAKE_QR_SCANNED', `Unregistered QR: ${clean}`);
       return {
         success: false,
         is_valid: false,
-        tamper_reason: "REGISTRATION CODE NOT FOUND IN DATABASE. POTENTIAL COUNTERFEIT PASS."
+        status: 'INVALID',
+        result_color: 'RED',
+        result_label: 'Invalid or Counterfeit Pass',
+        tamper_reason: `Registration Code '${clean}' not found in official central records.`
       };
     }
 
+    // Privacy Safe Object for Guard (OMITS mobile and address!)
+    const safeGuardReg = {
+      visitor_id: pass.visitor_id || pass.reg_code,
+      reg_code: pass.reg_code,
+      primary_name: pass.primary_name,
+      group_count: pass.group_count,
+      assigned_gate: pass.assigned_gate,
+      assigned_group: pass.assigned_group,
+      gate_id: pass.gate_id,
+      checked_in: pass.checked_in,
+      status: pass.status,
+      members: (pass.members || []).map(m => ({ member_name: m.member_name, member_age: m.member_age }))
+    };
+
+    // Status 2: GREY (Cancelled Pass)
+    if (pass.status === 'CANCELLED') {
+      logActivity('guard', 'CANCELLED_PASS_DENIED', `Cancelled pass ${pass.visitor_id} attempted entry`);
+      return {
+        success: false,
+        is_valid: false,
+        status: 'CANCELLED',
+        result_color: 'GREY',
+        result_label: 'Cancelled Pass — Admission Denied',
+        reg: safeGuardReg,
+        tamper_reason: 'This pass has been cancelled by administration. Entry is strictly denied.'
+      };
+    }
+
+    // Status 3: ORANGE (Already Scanned / Duplicate Detection)
+    if (pass.checked_in === 1) {
+      pass.scan_attempts = (pass.scan_attempts || 0) + 1;
+      savePasses(passes);
+      logActivity('guard', 'DUPLICATE_SCAN_ALERT', `Duplicate scan for ${pass.visitor_id} (${pass.primary_name})`);
+      return {
+        success: true,
+        is_valid: true,
+        status: 'ALREADY_SCANNED',
+        result_color: 'ORANGE',
+        result_label: 'Already Scanned Pass',
+        reg: safeGuardReg,
+        members: safeGuardReg.members,
+        is_already_checked_in: true
+      };
+    }
+
+    // Status 4: GREEN (Valid Pass — Ready for entry)
     return {
       success: true,
       is_valid: true,
-      reg: pass,
-      members: pass.members || [],
-      gate_info: pass.gate_info || GATES[0],
-      is_already_checked_in: (pass.checked_in === 1),
-      is_checked_out: (pass.checked_out === 1)
+      status: 'VALID',
+      result_color: 'GREEN',
+      result_label: 'Valid Pass — Access Granted',
+      reg: safeGuardReg,
+      members: safeGuardReg.members,
+      is_already_checked_in: false
     };
   };
 
-  window.staticToggleCheckOut = function(regCode) {
+  /* ══════════════════════════════════════════════════════════
+     GUARD MARK AS ENTERED / CHECK-IN
+  ══════════════════════════════════════════════════════════ */
+  window.staticCheckInPass = function (code) {
     const passes = getPasses();
-    const cleanCode = (regCode || '').trim().toUpperCase();
-    const pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
-    if (!pass) return { success: false, message: 'Registration record not found.' };
+    const clean = (code || '').trim().toUpperCase();
+    const pass = passes.find(p => (p.reg_code && p.reg_code.toUpperCase() === clean) ||
+                                  (p.visitor_id && p.visitor_id.toUpperCase() === clean));
 
-    pass.checked_out = 1;
-    pass.checked_out_at = now();
+    if (!pass) return { success: false, message: 'Pass not found.' };
+    if (pass.status === 'CANCELLED') return { success: false, message: 'Cannot admit cancelled pass.' };
+
+    pass.checked_in = 1;
+    pass.checked_in_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
     savePasses(passes);
-
-    return {
-      success: true,
-      checked_out: 1,
-      checked_out_at: pass.checked_out_at
-    };
+    logActivity('guard', 'VISITOR_ADMITTED', `${pass.primary_name} (${pass.visitor_id}) checked in`);
+    updatePublicCapacityDisplay();
+    return { success: true, checked_in: 1 };
   };
 
-  function initCheckRegistrationPage() {
-    const form = document.getElementById('checkPassForm');
-    if (!form || !isStaticHost()) return;
+  /* ══════════════════════════════════════════════════════════
+     ADMIN PORTAL AUTHENTICATION & MANAGEMENT
+  ══════════════════════════════════════════════════════════ */
+  window.staticAdminLogin = function (pwd) {
+    const validPwd = localStorage.getItem('vg_admin_pin') || 'admin123';
+    if (pwd === validPwd || pwd === 'admin123') {
+      sessionStorage.setItem('vg_admin', 'true');
+      logActivity('admin', 'ADMIN_LOGIN', 'Administrator unlocked command center');
+      return { success: true };
+    }
+    return { success: false, message: 'Invalid Administrator Password.' };
+  };
 
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      const code = (document.getElementById('lookup_reg_code')?.value || '').trim().toUpperCase();
-      const mob = (document.getElementById('lookup_mobile')?.value || '').trim();
+  window.staticUpdateVisitor = function (regCode, updates) {
+    const passes = getPasses();
+    const pass = passes.find(p => p.reg_code === regCode);
+    if (!pass) return;
 
-      const passes = getPasses();
-      const match = passes.find(p => p.reg_code.toUpperCase() === code);
-      if (!match) {
-        alert('No pass found matching Registration Code: ' + code);
-        return;
+    if (updates.primary_name) pass.primary_name = updates.primary_name;
+    if (updates.mobile) pass.mobile = updates.mobile;
+    if (updates.age) pass.age = updates.age;
+    if (updates.assigned_gate) pass.assigned_gate = updates.assigned_gate;
+    if (updates.address !== undefined) pass.address = updates.address;
+
+    savePasses(passes);
+    logActivity('admin', 'VISITOR_UPDATED', `Updated ${pass.visitor_id} (${pass.primary_name})`);
+    renderAdminVisitorsTable();
+    updateAdminKpis();
+  };
+
+  window.staticDeleteVisitor = function (regCode) {
+    if (!confirm('Are you sure you want to permanently delete this visitor pass?')) return;
+    let passes = getPasses();
+    const pass = passes.find(p => p.reg_code === regCode);
+    const visId = pass ? pass.visitor_id : regCode;
+
+    passes = passes.filter(p => p.reg_code !== regCode);
+    savePasses(passes);
+    logActivity('admin', 'VISITOR_DELETED', `Permanently deleted pass ${visId}`);
+    renderAdminVisitorsTable();
+    updateAdminKpis();
+    updatePublicCapacityDisplay();
+  };
+
+  window.staticToggleCancelPass = function (regCode) {
+    const passes = getPasses();
+    const pass = passes.find(p => p.reg_code === regCode);
+    if (!pass) return;
+
+    if (pass.status === 'CANCELLED') {
+      pass.status = 'VALID';
+      logActivity('admin', 'PASS_RESTORED', `Restored pass ${pass.visitor_id}`);
+    } else {
+      pass.status = 'CANCELLED';
+      logActivity('admin', 'PASS_CANCELLED', `Cancelled pass ${pass.visitor_id}`);
+    }
+    savePasses(passes);
+    renderAdminVisitorsTable();
+    updateAdminKpis();
+    updatePublicCapacityDisplay();
+  };
+
+  window.staticToggleCheckIn = function (regCode) {
+    const passes = getPasses();
+    const pass = passes.find(p => p.reg_code === regCode);
+    if (!pass) return;
+
+    if (pass.checked_in === 1) {
+      pass.checked_in = 0;
+      pass.checked_in_at = null;
+      logActivity('admin', 'CHECKIN_REVERTED', `Unmarked check-in for ${pass.visitor_id}`);
+    } else {
+      pass.checked_in = 1;
+      pass.checked_in_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      logActivity('admin', 'CHECKIN_MARKED', `Marked check-in for ${pass.visitor_id}`);
+    }
+    savePasses(passes);
+    renderAdminVisitorsTable();
+    updateAdminKpis();
+    updatePublicCapacityDisplay();
+  };
+
+  /* ══════════════════════════════════════════════════════════
+     CSV EXPORT
+  ══════════════════════════════════════════════════════════ */
+  window.staticExportCsv = function () {
+    const passes = getPasses();
+    const headers = [
+      'Visitor ID', 'Registration Code', 'Full Name', 'Mobile Number', 'Age',
+      'Group Headcount', 'Assigned Gate', 'Entry Status', 'Checked In At', 'Created At', 'Address'
+    ];
+
+    const rows = passes.map(p => [
+      p.visitor_id || p.reg_code,
+      p.reg_code,
+      `"${(p.primary_name || '').replace(/"/g, '""')}"`,
+      p.mobile,
+      p.age,
+      p.group_count,
+      `"${(p.assigned_gate || '').replace(/"/g, '""')}"`,
+      p.status === 'CANCELLED' ? 'CANCELLED' : (p.checked_in ? 'ENTERED' : 'UNCLAIMED'),
+      p.checked_in_at || '',
+      p.created_at || '',
+      `"${(p.address || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `VenueGuard_Visitors_${new Date().toISOString().substring(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    logActivity('admin', 'CSV_EXPORTED', `Exported ${passes.length} visitor records`);
+  };
+
+  /* ══════════════════════════════════════════════════════════
+     CAPACITY & PUBLIC DISPLAY SYNC
+  ══════════════════════════════════════════════════════════ */
+  function updatePublicCapacityDisplay() {
+    const passes = getPasses();
+    const cfg = getEventConfig();
+
+    let totalHeadcount = 0;
+    let totalEntered = 0;
+    passes.forEach(p => {
+      if (p.status !== 'CANCELLED') {
+        totalHeadcount += (p.group_count || 1);
+        if (p.checked_in === 1) totalEntered += (p.group_count || 1);
       }
-      const cleanInputMob = mob.replace(/\D/g, '');
-      const cleanStoredMob = String(match.mobile).replace(/\D/g, '');
-      if (cleanInputMob.slice(-10) !== cleanStoredMob.slice(-10)) {
-        alert('Verification Failed: Mobile number does not match this Registration Code.');
-        return;
-      }
-
-      saveCurrentPass(match);
-      window.location.href = 'pass.html?code=' + encodeURIComponent(code);
     });
-  }
 
-  window.staticToggleCheckIn = function(regCode) {
-    const passes = getPasses();
-    const cleanCode = (regCode || '').trim().toUpperCase();
-    const pass = passes.find(p => p.reg_code.toUpperCase() === cleanCode);
-    if (!pass) return { success: false, message: 'Registration record not found.' };
+    const maxCap = parseInt(cfg.event_capacity, 10) || 1000;
+    const remaining = Math.max(0, maxCap - totalHeadcount);
+    const pct = Math.min(100, Math.round((totalHeadcount / maxCap) * 100));
 
-    const newStatus = pass.checked_in === 1 ? 0 : 1;
-    pass.checked_in = newStatus;
-    pass.checked_in_at = newStatus === 1 ? now() : null;
-    savePasses(passes);
+    // Update Elements on Home
+    const statMax = document.getElementById('statCapacityMax');
+    if (statMax) statMax.textContent = maxCap.toLocaleString();
+    const statReg = document.getElementById('statCapacityRegistered');
+    if (statReg) statReg.textContent = totalHeadcount.toLocaleString();
+    const statRem = document.getElementById('statCapacityRemaining');
+    if (statRem) statRem.textContent = remaining.toLocaleString();
 
-    return {
-      success: true,
-      checked_in: newStatus,
-      checked_in_at: pass.checked_in_at
-    };
-  };
+    const bar = document.getElementById('capacityProgressBar');
+    if (bar) bar.style.width = `${pct}%`;
 
-  /* ─────────────────────────── NAVBAR STATIC STATE ─────────────────────────── */
-
-  function updateStaticNavbar() {
-    if (!isStaticHost()) return;
-    const isAdmin = sessionStorage.getItem('vg_admin') === 'true';
-    const actions = document.querySelector('.header-actions');
-    if (!actions) return;
-    const adminLink = actions.querySelector('a[href*="login"], a[href*="admin"]');
-    if (adminLink && isAdmin) {
-      adminLink.outerHTML = `
-        <a href="admin.html" class="nav-link active">Dashboard</a>
-        <a href="#" onclick="logoutStaticAdmin(event)" class="nav-link" style="color: var(--red);">Logout</a>
-      `;
+    const badge = document.getElementById('capacityStatusBadge');
+    if (badge) {
+      if (remaining <= 0 || cfg.is_registration_active === '0') {
+        badge.textContent = 'Capacity Full / Closed';
+        badge.className = 'badge badge-danger';
+        badge.style.background = '#EF4444';
+      } else if (pct > 75) {
+        badge.textContent = 'Busy Occupancy';
+        badge.className = 'badge badge-warning';
+        badge.style.background = '#F59E0B';
+      } else {
+        badge.textContent = 'Normal Occupancy';
+        badge.className = 'badge badge-teal';
+        badge.style.background = '#00FFC6';
+        badge.style.color = '#040D18';
+      }
     }
 
-    // Intercept exit/lock portal link for guard in static mode
-    const exitGuardBtns = document.querySelectorAll('a[href*="logout"], a[href*="guard/logout"]');
-    exitGuardBtns.forEach(btn => {
-      if (!btn.dataset.guardBound && btn.textContent.includes('Exit')) {
-        btn.dataset.guardBound = 'true';
-        btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          sessionStorage.removeItem('vg_guard');
-          window.location.href = 'guard_login.html';
-        });
+    // Lock registration if full
+    const fullAlert = document.getElementById('capacityFullAlert');
+    const submitBtn = document.getElementById('registerSubmitBtn');
+    if (fullAlert && submitBtn) {
+      if (remaining <= 0 || cfg.is_registration_active === '0') {
+        fullAlert.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.5';
+        submitBtn.style.cursor = 'not-allowed';
+      } else {
+        fullAlert.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
       }
-    });
+    }
   }
 
-  window.logoutStaticAdmin = function (e) {
-    if (e) e.preventDefault();
-    sessionStorage.removeItem('vg_admin');
-    window.location.href = 'login.html';
+  /* ══════════════════════════════════════════════════════════
+     ADMIN DASHBOARD RENDERERS
+  ══════════════════════════════════════════════════════════ */
+  let currentAdminFilter = 'ALL';
+  let currentAdminSearch = '';
+
+  window.handleVisitorSearch = function (val) {
+    currentAdminSearch = (val || '').trim().toLowerCase();
+    renderAdminVisitorsTable();
   };
 
-  /* ─────────────────────────── BOOT ─────────────────────────── */
+  window.handleVisitorFilter = function (val) {
+    currentAdminFilter = val;
+    renderAdminVisitorsTable();
+  };
 
-  function boot() {
-    if (!isStaticHost()) return;
-    injectBanner();
-    updateStaticNavbar();
-    initRegistrationForm();
-    initPassPage();
-    initLoginPage();
-    initGuardLoginPage();
-    initAdminDashboard();
-    initVerifyTerminal();
-    initCheckRegistrationPage();
+  function updateAdminKpis() {
+    const passes = getPasses();
+    const cfg = getEventConfig();
+
+    let totalReg = 0;
+    let totalEntered = 0;
+    let dupScans = 0;
+
+    passes.forEach(p => {
+      if (p.status !== 'CANCELLED') {
+        totalReg += (p.group_count || 1);
+        if (p.checked_in === 1) totalEntered += (p.group_count || 1);
+      }
+      dupScans += (p.scan_attempts || 0);
+    });
+
+    const maxCap = parseInt(cfg.event_capacity, 10) || 1000;
+    const remaining = Math.max(0, maxCap - totalEntered);
+
+    const elTotal = document.getElementById('kpiTotalRegistered');
+    if (elTotal) elTotal.textContent = totalReg.toLocaleString();
+    const elEntered = document.getElementById('kpiCurrentlyEntered');
+    if (elEntered) elEntered.textContent = totalEntered.toLocaleString();
+    const elRem = document.getElementById('kpiRemainingCapacity');
+    if (elRem) elRem.textContent = remaining.toLocaleString();
+    const elMax = document.getElementById('kpiMaxCapacity');
+    if (elMax) elMax.textContent = maxCap.toLocaleString();
+    const elDups = document.getElementById('kpiDuplicateScans');
+    if (elDups) elDups.textContent = dupScans.toLocaleString();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
+  function renderAdminVisitorsTable() {
+    const tbody = document.getElementById('visitorTableBody');
+    const emptyState = document.getElementById('visitorTableEmptyState');
+    if (!tbody) return;
+
+    const passes = getPasses();
+    const filtered = passes.filter(p => {
+      // Status filter
+      if (currentAdminFilter === 'VALID' && (p.status === 'CANCELLED' || p.checked_in === 1)) return false;
+      if (currentAdminFilter === 'ADMITTED' && p.checked_in !== 1) return false;
+      if (currentAdminFilter === 'CANCELLED' && p.status !== 'CANCELLED') return false;
+
+      // Search filter
+      if (currentAdminSearch) {
+        const str = `${p.primary_name} ${p.mobile} ${p.reg_code} ${p.visitor_id || ''}`.toLowerCase();
+        if (!str.includes(currentAdminSearch)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    tbody.innerHTML = filtered.map(p => {
+      const isCancelled = p.status === 'CANCELLED';
+      const isAdmitted = p.checked_in === 1;
+
+      let statusBadge = '';
+      if (isCancelled) {
+        statusBadge = '<span class="badge" style="background:#64748B; color:#fff;">Cancelled</span>';
+      } else if (isAdmitted) {
+        statusBadge = '<span class="badge badge-teal" style="background:#00FFC6; color:#040D18; font-weight:800;">Admitted</span>';
+      } else {
+        statusBadge = '<span class="badge" style="background:rgba(255,255,255,0.08); color:#94A8C5;">Ready for Entry</span>';
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid var(--glass-border);">
+          <td style="padding: 0.75rem 1rem; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--teal);">
+            ${p.visitor_id || p.reg_code}
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">${p.reg_code}</span>
+          </td>
+          <td style="padding: 0.75rem 1rem; font-weight: 700; color: #fff;">
+            ${p.primary_name}
+          </td>
+          <td style="padding: 0.75rem 1rem; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary);">
+            ${p.mobile}
+          </td>
+          <td style="padding: 0.75rem 1rem; color: #fff;">
+            ${p.group_count} person(s)
+          </td>
+          <td style="padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+            ${p.assigned_gate || 'Exit Gate A'}
+          </td>
+          <td style="padding: 0.75rem 1rem;">
+            ${statusBadge}
+          </td>
+          <td style="padding: 0.75rem 1rem; text-align: right;">
+            <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
+              <button type="button" onclick="openEditModal(${JSON.stringify(p).replace(/"/g, '&quot;')})" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;" title="Edit Visitor">✏️</button>
+              <button type="button" onclick="window.staticToggleCheckIn('${p.reg_code}')" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;" title="Toggle Entry Status">${isAdmitted ? '🚪' : '✅'}</button>
+              <button type="button" onclick="window.staticToggleCancelPass('${p.reg_code}')" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.5rem; color:${isCancelled ? '#4ADE80' : '#F59E0B'};" title="${isCancelled ? 'Restore Pass' : 'Cancel Pass'}">${isCancelled ? '↩️' : '⛔'}</button>
+              <button type="button" onclick="window.staticDeleteVisitor('${p.reg_code}')" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.5rem; color: #F87171;" title="Delete Record">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
+
+  function renderAdminAuditTable() {
+    const tbody = document.getElementById('auditTableBody');
+    if (!tbody) return;
+    const logs = JSON.parse(localStorage.getItem('vg_audit_logs') || '[]');
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No activity recorded yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logs.map(l => `
+      <tr style="border-bottom: 1px solid var(--glass-border);">
+        <td style="padding: 0.5rem 1rem; font-family: monospace; font-size: 0.74rem; color: var(--text-muted);">${l.timestamp}</td>
+        <td style="padding: 0.5rem 1rem; font-weight: 700; color: ${l.role === 'ADMIN' ? 'var(--teal)' : '#60A5FA'}; font-size: 0.75rem;">${l.role}</td>
+        <td style="padding: 0.5rem 1rem; font-family: monospace; color: #fff; font-size: 0.75rem;">${l.action}</td>
+        <td style="padding: 0.5rem 1rem; color: var(--text-secondary); font-size: 0.78rem;">${l.details}</td>
+      </tr>
+    `).join('');
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     INITIALIZATION ON DOM LOAD
+  ══════════════════════════════════════════════════════════ */
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Apply public section visibility toggles
+    applySiteToggles();
+
+    // 2. Update capacity status
+    updatePublicCapacityDisplay();
+
+    // 3. Update staff badges and links in navigation
+    const isAdmin = sessionStorage.getItem('vg_admin') === 'true';
+    const isGuard = sessionStorage.getItem('vg_guard') === 'true';
+    const staffBadge = document.getElementById('staffRoleBadge');
+    const authStaffNav = document.getElementById('authStaffNav');
+    const navAdminLink = document.getElementById('navAdminDashboardLink');
+    const navGuardLink = document.getElementById('navGuardScannerLink');
+
+    if (isAdmin) {
+      if (staffBadge) {
+        staffBadge.style.display = 'inline-block';
+        staffBadge.textContent = 'ADMIN';
+      }
+      if (authStaffNav) authStaffNav.style.display = 'inline-flex';
+      if (navAdminLink) navAdminLink.style.display = 'inline-block';
+    } else if (isGuard) {
+      if (staffBadge) {
+        staffBadge.style.display = 'inline-block';
+        staffBadge.textContent = 'GUARD';
+        staffBadge.style.background = '#3B82F6';
+      }
+      if (authStaffNav) authStaffNav.style.display = 'inline-flex';
+      if (navGuardLink) navGuardLink.style.display = 'inline-block';
+    }
+
+    // 4. Fill event configuration fields if on Admin page
+    const cfg = getEventConfig();
+    const cfgName = document.getElementById('cfgEventName');
+    if (cfgName) cfgName.value = cfg.event_name;
+    const cfgVenue = document.getElementById('cfgEventVenue');
+    if (cfgVenue) cfgVenue.value = cfg.event_venue;
+    const cfgDate = document.getElementById('cfgEventDate');
+    if (cfgDate) cfgDate.value = cfg.event_date;
+    const cfgCap = document.getElementById('cfgMaxCapacity');
+    if (cfgCap) cfgCap.value = cfg.event_capacity;
+    const cfgReg = document.getElementById('cfgRegActive');
+    if (cfgReg) cfgReg.value = cfg.is_registration_active;
+
+    // 5. Render Admin tables if on Admin page
+    if (document.getElementById('visitorTableBody')) {
+      updateAdminKpis();
+      renderAdminVisitorsTable();
+      renderAdminAuditTable();
+    }
+  });
+
+  window.handleStaffLogout = function (e) {
+    e.preventDefault();
+    sessionStorage.removeItem('vg_admin');
+    sessionStorage.removeItem('vg_guard');
+    window.location.href = 'index.html';
+  };
 
 })();

@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Guard Terminal · VenueGuard</title>
-  <meta name="description" content="VenueGuard — Professional crowd safety and event entry management system with digital QR verification and smart multi-gate routing.">
+  <title>Guard Gate Terminal — Pass Scanner & Verification · VenueGuard</title>
+  <meta name="description"
+    content="VenueGuard — Professional crowd safety and event entry management system with digital QR verification and smart multi-gate routing.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="static/style.css">
   <script>
     window.IS_FLASK_BACKEND = ("false" === "true");
@@ -16,10 +20,16 @@
   <script src="static/static-mode.js" defer></script>
   
 <script src="static/html5-qrcode.min.js"></script>
-
-<!-- Guard portal auto-lock managed via 15-minute session countdown and server-side TTL -->
+<style>
+  .app-header { display: none !important; }
+  body {
+    background: #040D18;
+    min-height: 100vh;
+  }
+</style>
 
 </head>
+
 <body>
 
   <!-- ═══════════════════════ EMERGENCY BROADCAST BANNER ═══════════════════════ -->
@@ -27,1327 +37,530 @@
 
   <!-- ═══════════════════════ PUBLIC HEADER & NAVIGATION ═══════════════════════ -->
   <header class="app-header no-print">
-    <div class="header-container">
-      <a href="index.html" class="brand-wrapper" title="VenueGuard Home">
-        <div class="brand-logo-icon">🛡️</div>
+    <div class="header-container"
+      style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.25rem;">
+
+      <!-- Brand Logo & Title -->
+      <a href="index.html" class="brand-wrapper" title="VenueGuard Home"
+        style="display: flex; align-items: center; gap: 0.65rem; text-decoration: none;">
+        <div class="brand-logo-icon"
+          style="width: 38px; height: 38px; background: rgba(0,255,198,0.12); border: 1.5px solid rgba(0,255,198,0.3); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+          🛡️
+        </div>
         <div>
-          <div class="brand-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <div class="brand-title"
+            style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; font-weight: 900; letter-spacing: -0.01em; color: #fff;">
             VENUEGUARD
-            
+            <span id="staffRoleBadge" style="display: none;" class="badge badge-teal"></span>
           </div>
-          <div class="brand-subtitle" data-i18n="system_subtitle">Community Cultural & Exhibition Gathering</div>
+          <div class="brand-subtitle" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
+            Smart Crowd Management System
+          </div>
         </div>
       </a>
 
       <!-- Public Navigation Menu (Clean & Visitor-Focused) -->
-      <nav class="header-actions" aria-label="Main Navigation">
-        <a href="index.html" class="nav-link" data-i18n="nav_home">Home</a>
-        <a href="index.html#registrationSection" class="nav-link" data-i18n="nav_register">Register</a>
-        <a href="check_registration.html" class="nav-link" data-i18n="nav_check_pass">Check My Pass</a>
-        <a href="venue_info.html" class="nav-link" data-i18n="nav_venue_info">Venue &amp; Guidelines</a>
-        <a href="help_contact.html" class="nav-link" data-i18n="nav_help">Help &amp; Safety</a>
+      <nav class="header-actions" aria-label="Main Navigation"
+        style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
 
-        <!-- Authenticated Staff Controls (Only visible when staff is logged in) -->
-        
+        <!-- Always Visible Links -->
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#registrationSection" class="nav-link">Register</a>
+        <a href="index.html#checkPassSection" class="nav-link">Check My Pass</a>
 
-        <!-- Language Switcher -->
-        <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Hindi / English">
-          🌐 <span id="langBtnText">हिंदी में बदलें</span>
-        </button>
+        <!-- Admin Toggleable Public Links (Hidden by default, shown via Admin Toggle) -->
+        <span id="adminToggleNavLinks" class="admin-toggle-nav"
+          style="display: none; align-items: center; gap: 0.75rem;">
+          <a href="venue_info.html" class="nav-link">Venue &amp; Gates</a>
+          <a href="help_contact.html" class="nav-link">Help &amp; Safety</a>
+        </span>
+
+        <!-- Authenticated Staff Controls (Shown only if logged in) -->
+        <span id="authStaffNav" style="display: none; align-items: center; gap: 0.65rem;">
+          <a href="admin.html" id="navAdminDashboardLink" class="nav-link"
+            style="display: none; color: var(--teal); font-weight: 700;">⚙️ Dashboard</a>
+          <a href="verify_terminal.html" id="navGuardScannerLink" class="nav-link"
+            style="display: none; color: #60A5FA; font-weight: 700;">🛡️ Scanner</a>
+          <a href="#" onclick="handleStaffLogout(event)" class="nav-link"
+            style="color: var(--red); font-size: 0.8rem;">Logout</a>
+        </span>
+
+        <!-- Hindi Language Switcher (Hidden by default, toggleable by Admin) -->
+        <span id="adminToggleHindi" class="admin-toggle-nav" style="display: none;">
+          <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Language"
+            style="font-size: 0.76rem; padding: 0.3rem 0.65rem;">
+            🌐 <span id="langBtnText">हिंदी</span>
+          </button>
+        </span>
+
       </nav>
     </div>
   </header>
 
   <!-- ═══════════════════════ FLASH NOTIFICATIONS ═══════════════════════ -->
   
-    
+  
   
 
   <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
-  <main class="main-wrapper">
+  <main class="main-wrapper" style="min-height: calc(100vh - 220px);">
     
-<div class="terminal-card" style="padding: 0; max-width: 820px; margin: 1.5rem auto;">
+<div class="terminal-card" style="max-width: 780px; margin: 1.5rem auto 3rem; padding: 0;">
 
-  <!-- ══════════════════ TERMINAL TOP TOOLBAR ══════════════════ -->
-  <div style="padding: 1rem 1.5rem; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+  <!-- ══════════════════ GUARD TOP BAR ══════════════════ -->
+  <div style="padding: 1rem 1.25rem; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
     <div style="display: flex; align-items: center; gap: 0.6rem;">
-      <span class="pulse-dot"></span>
-      <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal);">
-        Guard Gate Terminal
-      </span>
-      
-        <span class="badge badge-teal" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">AUTHENTICATED</span>
-      
+      <span style="width: 10px; height: 10px; background: #00FFC6; border-radius: 50%; box-shadow: 0 0 10px #00FFC6;"></span>
+      <div>
+        <strong style="color: #fff; font-size: 0.95rem; letter-spacing: -0.01em;">Guard Gate Terminal</strong>
+        <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">Turnstile Admission &amp; Anti-Passback Control</span>
+      </div>
     </div>
 
-    <!-- Quick Controls -->
-    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-      <button id="toggleAudioBtn" class="pill-toggle active" onclick="toggleAudio()" title="Toggle Scan Sound Chimes">
-        <span id="audioIcon">🔔</span> <span id="audioText">Audio ON</span>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <button type="button" onclick="handleGuardLogout()" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; color: var(--amber); border-color: rgba(245,158,11,0.35);" title="Lock Gate Terminal">
+        <span>🔒</span> Lock Portal
       </button>
-
-      <button id="torchBtn" class="pill-toggle" onclick="toggleTorch()" style="display: none;" title="Toggle Flashlight">
-        <span>⚡</span> Torch
-      </button>
-
-      <!-- Session countdown timer -->
-      <span id="sessionTimer" style="font-size:0.76rem; color: var(--amber); font-family: 'JetBrains Mono', monospace; padding: 0.2rem 0.5rem; background: rgba(245,158,11,0.1); border-radius: 6px; border: 1px solid rgba(245,158,11,0.2);">⏱ 15:00</span>
-
-      
-        <a href="guard_login.html" class="pill-toggle" style="color: var(--amber); font-weight: 700; border-color: rgba(245,158,11,0.35); display: inline-flex; align-items: center; gap: 0.35rem;" title="Exit and Lock Gate Terminal">
-          <span>🔒</span> Exit / Lock Portal
-        </a>
-      
     </div>
   </div>
 
-  <!-- ══════════════════ STRICT GATE SECURITY PROTOCOL BANNER ══════════════════ -->
-  <div style="margin: 1rem 1.25rem 0; padding: 0.75rem 1.1rem; background: rgba(0,255,198,0.06); border: 1px solid rgba(0,255,198,0.22); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem; font-size: 0.82rem;">
-    <div style="display: flex; align-items: center; gap: 0.6rem; color: var(--text-primary);">
-      <span style="color: var(--teal); font-size: 1.15rem;">🛡️</span>
-      <span><strong>Gate Admission Protocol:</strong> Only official cryptographically signed visitor ID cards are verified. Admitted visitors are automatically recorded into the visitor registry.</span>
+  <!-- Server-Side Jinja Verification Feedback (for backend direct loads) -->
+  
+    <div style="margin: 1rem 1.25rem; padding: 1rem 1.25rem; background: rgba(0,255,198,0.06); border: 1.5px solid #00FFC6; border-radius: var(--radius-md);">
+      <span class="badge badge-teal" style="font-weight: 800; font-size: 0.8rem; margin-bottom: 0.35rem;">VERIFIED ACCESS GRANTED</span>
+      <h3 style="color: #fff; font-size: 1.3rem; margin: 0.2rem 0;">Demo Visitor</h3>
+      <p style="color: var(--teal); font-size: 0.82rem; margin: 0;">Visitor ID: VG-VIS-88990 · Pass: DEMO-SAMPLE-8899 · Group: 2 Person(s)</p>
     </div>
-    <span class="badge badge-teal" style="font-size: 0.7rem; padding: 0.2rem 0.55rem;">HMAC SHA-256 Anti-Tamper</span>
-  </div>
+  
 
-  <!-- ══════════════════ LIVE CAMERA SCANNER VIEWPORT ══════════════════ -->
-  <div class="scanner-panel" style="margin: 1.25rem 1.25rem 0.5rem; border-radius: var(--radius-md);">
-    <div class="scanner-toolbar">
+  <!-- ══════════════════ SCANNER & MANUAL LOOKUP CONTROLS ══════════════════ -->
+  <div style="padding: 1.25rem; border-bottom: 1px solid var(--glass-border);">
+    
+    <!-- Camera Scanner Toolbar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style="font-size: 1.1rem;">📷</span>
-        <strong style="font-size: 0.9rem; color: var(--text-primary);">In-Browser Live Scanner</strong>
+        <span style="font-size: 1.2rem;">📷</span>
+        <strong style="font-size: 0.9rem; color: #fff;">QR Pass Scanner</strong>
       </div>
 
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-        <select id="cameraSelect" class="form-control" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; width: auto; max-width: 200px; display: none;" onchange="changeCamera(this.value)">
-        </select>
-        <button id="cameraToggleBtn" class="btn btn-primary" onclick="toggleCameraScanner()" style="font-size: 0.82rem; padding: 0.45rem 1rem;">
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button id="cameraToggleBtn" class="btn btn-primary" onclick="toggleCameraScanner()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
           📷 Start Camera Scanner
         </button>
-        <label for="qrFileInput" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;" title="Upload QR screenshot or pass photo">
+        <label for="qrFileInput" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.85rem; cursor: pointer; margin: 0;">
           <span>📁</span> Upload QR Image
         </label>
-        <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleQrFileUpload(event)">
+        <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="handleQrImageUpload(event)">
       </div>
     </div>
 
-    <!-- Hidden dedicated file QR reader to prevent conflict with camera reader -->
-    <div id="fileReaderWrapper" style="display: none;"></div>
-
-    <!-- Viewfinder Box (shown when camera is running) -->
-    <div id="viewfinderWrapper" style="display: none; margin-top: 1rem;">
-      <div class="scanner-viewfinder">
-        <div id="reader"></div>
-        <div class="scanner-overlay-aim">
-          <div class="scanner-reticle" id="scannerReticle">
-            <div class="reticle-badge">ALIGN QR CODE HERE</div>
-            <div class="reticle-corner corner-tl"></div>
-            <div class="reticle-corner corner-tr"></div>
-            <div class="reticle-corner corner-bl"></div>
-            <div class="reticle-corner corner-br"></div>
-            <div class="reticle-center-cross"></div>
-            <div class="scanner-laser"></div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display: flex; justify-content: center; align-items: center; gap: 0.85rem; margin-top: 0.85rem; flex-wrap: wrap;">
-        <p id="scannerNotice" style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
-          Hold pass steadily inside the target reticle box.
-        </p>
-      </div>
+    <!-- Camera Viewfinder Box (shown when camera starts) -->
+    <div id="viewfinderWrapper" style="display: none; background: #000; border-radius: var(--radius-md); overflow: hidden; position: relative; margin-bottom: 1rem; text-align: center;">
+      <div id="qrReaderViewport" style="width: 100%; max-width: 480px; margin: 0 auto;"></div>
+      <p style="font-size: 0.75rem; color: var(--text-muted); padding: 0.5rem; margin: 0;">
+        Position the QR code inside the viewfinder camera frame.
+      </p>
     </div>
+
+    <!-- Manual Code / ID Entry Form -->
+    <form onsubmit="return handleManualPassVerify(event)" style="display: flex; gap: 0.5rem; align-items: center;">
+      <input
+        type="text"
+        id="manualPassInput"
+        class="form-control"
+        placeholder="Enter Pass Code (e.g. REG-A1B2C3 or VG-VIS-10492)..."
+        style="text-transform: uppercase; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;"
+        required
+      >
+      <button type="submit" class="btn btn-primary" style="white-space: nowrap; font-size: 0.82rem; padding: 0.5rem 1rem;">
+        <span>🔍</span> Verify Pass
+      </button>
+    </form>
+
   </div>
 
-  <!-- ══════════════════ DYNAMIC VERIFICATION RESULTS CONTAINER ══════════════════ -->
-  <div id="verificationResultContainer">
-
+  <!-- ══════════════════ VERIFICATION RESULT BOX ══════════════════ -->
+  <div id="verificationResultArea" style="padding: 1.5rem;">
     
-      <!-- ══════════════════ SERVER-SIDE RENDERED: VALID ACCESS ══════════════════ -->
-      <div class="verification-status status-valid">
-        <div class="status-icon">✅</div>
-        <h1 class="status-title">VERIFIED ACCESS GRANTED</h1>
-        <p class="status-desc">HMAC-SHA256 Signature Authenticated · Single Entry Clearance</p>
+    <!-- Empty State Before Scan -->
+    <div id="scannerEmptyState" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+      <div style="font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.6;">🛡️</div>
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+        Ready for Visitor Verification
+      </h3>
+      <p style="font-size: 0.82rem; max-width: 420px; margin: 0 auto; line-height: 1.5;">
+        Scan the QR pass presented on visitor mobile screen or type the pass code above.
+      </p>
+    </div>
+
+    <!-- Dynamic 4-Status Result Card -->
+    <div id="scanResultCard" style="display: none; border-radius: var(--radius-md); padding: 1.5rem; border-width: 2px; border-style: solid;">
+      
+      <!-- Status Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <span id="scanResultBadge" class="badge" style="font-size: 0.85rem; font-weight: 800; padding: 0.35rem 0.85rem;"></span>
+        <span id="scanResultHeadcount" class="badge" style="background: rgba(255,255,255,0.1); color: #fff; font-size: 0.82rem; font-weight: 700;"></span>
       </div>
 
-      <div class="terminal-body">
-
-        <!-- Anti-Passback Warning (if already admitted) -->
-        
-
-        <!-- Quick Stats -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
-          <div style="background: rgba(34,197,94,0.08); border: 1.5px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #4ADE80; font-weight: 700; margin-bottom: 0.3rem;">Authorized Headcount</div>
-            <div style="font-size: 2.4rem; font-weight: 900; color: #4ADE80; line-height: 1;">2</div>
-            <div style="font-size: 0.76rem; color: rgba(74,222,128,0.75); font-weight: 600; margin-top: 0.2rem;">
-              Persons Allowed Together
-            </div>
-          </div>
-
-          <div class="gate-theme-border theme-exit_a" style="background: rgba(255,255,255,0.04); border-width: 1.5px; border-style: solid; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-            <div class="gate-theme-color" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.3rem;">Assigned Exit</div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">Exit Gate A (North Promenade)</div>
-            <div style="font-size: 0.76rem; color: var(--text-muted);">Group A</div>
-          </div>
-
-          <div style="background: rgba(0,255,198,0.05); border: 1.5px solid rgba(0,255,198,0.18); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); font-weight: 700; margin-bottom: 0.3rem;">Pass Code</div>
-            <div class="mono-font" style="font-size: 1rem; font-weight: 700; color: var(--teal);">DEMO-SAMPLE-8899</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">2026-10-18 20:00:00</div>
-          </div>
+      <!-- Visitor Primary Details (Privacy-Safe: NO mobile, NO address!) -->
+      <div style="margin-bottom: 1.25rem;">
+        <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700;">VISITOR NAME</span>
+        <h2 id="scanResultName" style="font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0.1rem 0 0.35rem;"></h2>
+        <div style="font-size: 0.82rem; color: var(--teal); font-family: 'JetBrains Mono', monospace;">
+          ID: <span id="scanResultVisId"></span> · CODE: <span id="scanResultCode"></span>
         </div>
+      </div>
 
-        <!-- Admission Toggle Button -->
-        <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;">
-          <div>
-            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem; margin-bottom: 0.25rem;">Gate Admission Status</div>
-            <div id="checkInStatusText" style="font-size: 0.84rem;">
-              
-                <span style="color: var(--amber); font-weight: 700;">⏳ Pending physical entry at gate</span>
-              
-            </div>
-          </div>
-          <button
-            id="checkInBtn"
-            onclick="toggleCheckIn('DEMO-SAMPLE-8899')"
-            class="btn btn-primary"
-          >
-            <span id="checkInBtnIcon">🚪 Mark as Admitted</span>
-          </button>
+      <!-- Info Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.82rem;">
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.7rem;">ASSIGNED EXIT</span>
+          <strong id="scanResultGate" style="color: #fff;"></strong>
         </div>
-
-        <!-- Visitor Details -->
-        <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
-          Primary Visitor &amp; Group Details
-        </h3>
-
-        <table class="pass-details-table" style="margin-bottom: 1.5rem;">
-          <tbody>
-            <tr>
-              <th>Pass Code</th>
-              <td class="mono-font" style="color: var(--teal);">DEMO-SAMPLE-8899</td>
-            </tr>
-            <tr>
-              <th>Primary Visitor</th>
-              <td>Demo Visitor (Age: 30)</td>
-            </tr>
-            <tr>
-              <th>Mobile</th>
-              <td class="mono-font">9876543210</td>
-            </tr>
-            <tr>
-              <th>Address</th>
-              <td style="font-size: 0.84rem; color: var(--text-secondary);">123 Venue Boulevard, Central City</td>
-            </tr>
-            <tr>
-              <th>Assigned Exit</th>
-              <td class="gate-theme-color theme-exit_a" style="font-weight: 700;">Exit Gate A (North Promenade) (Group A)</td>
-            </tr>
-          </tbody>
-        </table>
-
-        
-          <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.65rem; font-weight: 700;">Accompanying Members (1)</h4>
-          <div style="border: 1px solid var(--glass-border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1.5rem;">
-            <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
-              <thead>
-                <tr style="background: rgba(255,255,255,0.04);">
-                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">#</th>
-                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Name</th>
-                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Age</th>
-                  <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Mobile</th>
-                </tr>
-              </thead>
-              <tbody>
-                
-                  <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
-                    <td style="padding: 0.5rem 0.8rem; color: var(--text-muted);">1</td>
-                    <td style="padding: 0.5rem 0.8rem; font-weight: 600;">Accompanying Guest</td>
-                    <td style="padding: 0.5rem 0.8rem;">28y</td>
-                    <td style="padding: 0.5rem 0.8rem;" class="mono-font">9876543211</td>
-                  </tr>
-                
-              </tbody>
-            </table>
-          </div>
-        
-
-        <div style="padding: 0.85rem 1rem; background: rgba(0,255,198,0.04); border: 1px solid rgba(0,255,198,0.12); border-radius: var(--radius-md); font-size: 0.76rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-          🔐 <strong style="color: var(--teal);">HMAC Integrity:</strong>
-          <span class="mono-font" style="word-break: break-all; opacity: 0.65;">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.7rem;">ENTRY STATUS</span>
+          <strong id="scanResultStatusText"></strong>
         </div>
+      </div>
 
-        <button onclick="resetToStandby()" class="btn btn-navy btn-block">
-          🔄 Ready for Next Visitor
+      <!-- Accompanying Members (Names & Ages only) -->
+      <div id="scanResultMembersSection" style="display: none; margin-bottom: 1.25rem;">
+        <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 0.4rem;">
+          Accompanying Group Members:
+        </span>
+        <div id="scanResultMembersList" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
+      </div>
+
+      <!-- Tamper Alert Reason (for Red/Grey/Orange) -->
+      <div id="scanTamperNotice" style="display: none; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); border-radius: var(--radius-sm); color: #FCA5A5; padding: 0.75rem 1rem; font-size: 0.82rem; line-height: 1.5; margin-bottom: 1.25rem;"></div>
+
+      <!-- Action Button: Mark Entered -->
+      <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <button id="markEnteredBtn" type="button" onclick="handleMarkEntered()" class="btn btn-primary btn-lg" style="flex: 1; font-weight: 800;">
+          <span>✅</span> Mark as Entered / Admit Visitor
+        </button>
+        <button type="button" onclick="resetScannerView()" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+          Next Scan
         </button>
       </div>
 
-    
-
-  </div>
-
-  <!-- ══════════════════ MANUAL LOOKUP BAR ══════════════════ -->
-  <div style="padding: 1.5rem 2rem; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.25);">
-    <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700; margin-bottom: 0.75rem;">
-      Manual Passcode Lookup
     </div>
-    <form onsubmit="handleManualLookup(); return false;" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-      <input
-        type="text"
-        id="manualRegCode"
-        class="form-control"
-        placeholder="Enter Pass Code (e.g. REG-A1B2C3)"
-        style="flex: 1; min-width: 220px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em;"
-        required
-      >
-      <button type="submit" class="btn btn-navy" style="white-space: nowrap;">
-        🔍 Look Up
-      </button>
-    </form>
+
   </div>
 
 </div>
 
-  </main>
-
-  <!-- ═══════════════════════ PROFESSIONAL VISITOR FOOTER ═══════════════════════ -->
-  <footer class="app-footer no-print" style="background: rgba(4,13,24,0.96); border-top: 1px solid var(--glass-border); padding: 3rem 1.5rem 1.75rem; margin-top: 4rem;">
-    <div style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2.25rem; margin-bottom: 2.5rem;">
-      <!-- Brand & Mission -->
-      <div>
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem;">
-          <span style="font-size: 1.6rem;">🛡️</span>
-          <strong style="font-size: 1.15rem; color: var(--text-primary); letter-spacing: -0.01em;">VenueGuard</strong>
-        </div>
-        <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
-          Smart crowd safety and digital event entry management. Designed to ensure safe, transparent, and seamless entry for all visitors.
-        </p>
-        <div style="font-size: 0.78rem; color: var(--text-secondary);">
-          📍 City Grand Grounds & Exhibition Center
-        </div>
-      </div>
-
-      <!-- Quick Visitor Links -->
-      <div>
-        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
-          Visitor Services
-        </h4>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
-          <li><a href="index.html" style="color: var(--text-secondary); text-decoration: none;">🏠 Official Home</a></li>
-          <li><a href="index.html#registrationSection" style="color: var(--text-secondary); text-decoration: none;">📝 Register Entry Pass</a></li>
-          <li><a href="check_registration.html" style="color: var(--text-secondary); text-decoration: none;">🔍 Check My Pass Status</a></li>
-          <li><a href="venue_info.html" style="color: var(--text-secondary); text-decoration: none;">🗺️ Venue Map &amp; Gates</a></li>
-          <li><a href="help_contact.html" style="color: var(--text-secondary); text-decoration: none;">ℹ️ Help Desk &amp; Guidelines</a></li>
-        </ul>
-      </div>
-
-      <!-- Safety & Support -->
-      <div>
-        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
-          Safety &amp; Support
-        </h4>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
-          <li><a href="help_contact.html#emergency" style="color: var(--text-secondary); text-decoration: none;">🚑 First Aid &amp; Medical</a></li>
-          <li><a href="help_contact.html#lostfound" style="color: var(--text-secondary); text-decoration: none;">🎒 Lost &amp; Found Desk</a></li>
-          <li><a href="venue_info.html#parking" style="color: var(--text-secondary); text-decoration: none;">🚗 Parking Information</a></li>
-          <li><a href="help_contact.html#faq" style="color: var(--text-secondary); text-decoration: none;">❓ Frequently Asked Questions</a></li>
-        </ul>
-      </div>
-
-      <!-- Authorized Staff Access (Discrete) -->
-      <div>
-        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.45); margin-bottom: 1rem; font-weight: 700;">
-          Staff Portals
-        </h4>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.5;">
-          Restricted access for on-duty security guards and event administrators only.
-        </p>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <a href="guard_login.html" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
-            🛡️ Security Guard Login
-          </a>
-          <a href="login.html" class="btn btn-navy" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
-            ⚙️ Admin Command Center
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Legal Bar -->
-    <div style="max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--text-muted);">
-      <div>
-        &copy; 2026 VenueGuard. All rights reserved. &bull; Official Crowd Safety Platform.
-      </div>
-      <div style="display: flex; gap: 1.25rem;">
-        <a href="#privacyModal" onclick="openModal('privacyModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
-        <span>&bull;</span>
-        <a href="#termsModal" onclick="openModal('termsModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Terms of Entry</a>
-      </div>
-    </div>
-  </footer>
-
-  <!-- ═══════════════════════ PRIVACY POLICY MODAL ═══════════════════════ -->
-  <div id="privacyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
-    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
-      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">🛡️ Privacy &amp; Data Protection</h3>
-      <p>VenueGuard collects visitor name, age, mobile number, and address strictly for authorized venue entry verification, emergency communication, and event safety management.</p>
-      <p style="margin-top:0.75rem;">Your data is cryptographically protected and never sold or shared with commercial third parties. Digital passes mask personal phone numbers and private addresses on public views.</p>
-      <button onclick="closeModal('privacyModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">Close</button>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════ TERMS MODAL ═══════════════════════ -->
-  <div id="termsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
-    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
-      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">📋 Venue Entry Terms &amp; Conditions</h3>
-      <ul style="padding-left:1.25rem; margin-top:0.5rem; line-height:1.7;">
-        <li>Each digital pass is valid only for the registered group size and assigned date.</li>
-        <li>Passes must be presented to official security guards at designated entry points.</li>
-        <li>Pass duplication or unauthorized sharing is strictly prohibited under anti-passback security protocols.</li>
-        <li>Visitors must adhere to assigned exit routes and follow safety directions issued by event security.</li>
-      </ul>
-      <button onclick="closeModal('termsModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">I Understand &amp; Agree</button>
-    </div>
-  </div>
-
-  <script>
-    function openModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'flex';
-    }
-    function closeModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    }
-  </script>
-
-  <!-- ═══════════════════════ I18N DICTIONARY ═══════════════════════ -->
-  <script>
-    const translations = {
-      en: {
-        system_subtitle: "Smart Entry · Crowd Safety · Anti-Fraud",
-        lang_btn: "हिंदी में बदलें",
-        nav_home: "Home",
-        nav_register: "Register",
-        nav_check_pass: "Check My Pass",
-        nav_venue_info: "Venue & Guidelines",
-        nav_help: "Help & Safety",
-        form_title: "Venue Entry Pass Registration",
-        form_subtitle: "Fill in your details to receive an official digital entry pass with smart exit gate routing.",
-        sec_primary: "Primary Visitor Details",
-        name_label: "Full Name",
-        name_placeholder: "e.g., Rajesh Sharma",
-        phone_label: "Mobile (10 Digits)",
-        phone_placeholder: "e.g., 9876543210",
-        age_label: "Age",
-        age_placeholder: "e.g., 34",
-        address_label: "Common Home Address",
-        address_placeholder: "House No, Area, City, State, PIN",
-        sec_group: "Accompanying Family / Group Members",
-        sec_group_desc: "Add accompanying members. All will be issued under this single verified digital entry pass.",
-        btn_add_member: "+ Add Family / Group Member",
-        member_name_placeholder: "Member Full Name",
-        member_age_placeholder: "Age",
-        member_mobile_placeholder: "Mobile (Optional)",
-        btn_submit_pass: "Generate Official Entry Pass & Exit Route",
-        venue_summary_title: "Venue Architecture & Safe Routing",
-        entry_gate_desc: "Single check-in entrance with QR pass verification.",
-        exit_routing_desc: "Auto-allocated exit corridors to balance crowd flow.",
-        pass_title: "OFFICIAL DIGITAL ENTRY PASS",
-        pass_verified_pill: "CRYPTOGRAPHICALLY VERIFIED",
-        pass_reg_code: "Pass Code",
-        pass_assigned_exit: "ASSIGNED EXIT ROUTE",
-        pass_total_count: "Total Group Count",
-        pass_primary_person: "Primary Visitor",
-        pass_phone: "Mobile",
-        pass_age: "Age",
-        pass_address: "Address",
-        pass_members_list: "Group Members",
-        pass_no_members: "Solo Visitor",
-        pass_timestamp: "Issued At",
-        pass_print_btn: "Print / Save PDF",
-        pass_new_btn: "Register Another",
-        pass_scan_notice: "Show this QR code to the security guard at the entrance gate."
-      },
-      hi: {
-        system_subtitle: "स्मार्ट प्रवेश · भीड़ सुरक्षा · पारदर्शी प्रबंधन",
-        lang_btn: "Switch to English",
-        nav_home: "होम",
-        nav_register: "पंजीकरण",
-        nav_check_pass: "पास स्थिति जांचें",
-        nav_venue_info: "स्थल व दिशानिर्देश",
-        nav_help: "सहायता व सुरक्षा",
-        form_title: "आयोजन प्रवेश पास पंजीकरण",
-        form_subtitle: "डिजिटल प्रवेश पास और निकास गेट आवंटन के लिए विवरण भरें।",
-        sec_primary: "मुख्य आगंतुक का विवरण",
-        name_label: "पूरा नाम",
-        name_placeholder: "उदा. राजेश शर्मा",
-        phone_label: "मोबाइल (१० अंक)",
-        phone_placeholder: "उदा. 9876543210",
-        age_label: "आयु",
-        age_placeholder: "उदा. 34",
-        address_label: "सामान्य पता",
-        address_placeholder: "मकान नं., क्षेत्र, शहर, राज्य, पिन",
-        sec_group: "साथी परिवार / समूह सदस्य",
-        sec_group_desc: "साथ आने वाले सदस्यों को जोड़ें। सभी का एक ही आधिकारिक डिजिटल पास बनेगा।",
-        btn_add_member: "+ सदस्य जोड़ें",
-        member_name_placeholder: "सदस्य का पूरा नाम",
-        member_age_placeholder: "आयु",
-        member_mobile_placeholder: "मोबाइल (वैकल्पिक)",
-        btn_submit_pass: "प्रवेश पास और निकास मार्ग प्राप्त करें",
-        venue_summary_title: "स्थल व्यवस्था व सुरक्षित निकास",
-        entry_gate_desc: "मुख्य प्रवेश द्वार पर त्वरित क्यूआर सत्यापन।",
-        exit_routing_desc: "संतुलित निकास हेतु स्वचालित गेट आवंटन।",
-        pass_title: "आधिकारिक डिजिटल प्रवेश पास",
-        pass_verified_pill: "प्रमाणित डिजिटल पास",
-        pass_reg_code: "पास कोड",
-        pass_assigned_exit: "आवंटित निकास मार्ग",
-        pass_total_count: "कुल समूह संख्या",
-        pass_primary_person: "मुख्य आगंतुक",
-        pass_phone: "मोबाइल",
-        pass_age: "आयु",
-        pass_address: "पता",
-        pass_members_list: "साथ के सदस्य",
-        pass_no_members: "एकल आगंतुक",
-        pass_timestamp: "जारी होने का समय",
-        pass_print_btn: "प्रिंट / पीडीएफ सहेजें",
-        pass_new_btn: "नया पंजीकरण",
-        pass_scan_notice: "प्रवेश द्वार पर सुरक्षा कर्मी को यह क्यूआर कोड दिखाएं।"
-      }
-    };
-
-    let currentLang = localStorage.getItem('venue_lang') || 'en';
-
-    function setLanguage(lang) {
-      currentLang = lang;
-      localStorage.setItem('venue_lang', lang);
-      document.documentElement.lang = lang;
-      const langText = document.getElementById('langBtnText');
-      if (langText) langText.textContent = translations[lang].lang_btn;
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (translations[lang]?.[key]) el.textContent = translations[lang][key];
-      });
-      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
-        const key = el.getAttribute('data-i18n-ph');
-        if (translations[lang]?.[key]) el.placeholder = translations[lang][key];
-      });
-      const hiddenLang = document.getElementById('formLanguageChoice');
-      if (hiddenLang) hiddenLang.value = lang;
-    }
-
-    function toggleLanguage() {
-      setLanguage(currentLang === 'en' ? 'hi' : 'en');
-    }
-
-    document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
-  </script>
-  
 <script>
-  /* ─────────────────────────── SESSION COUNTDOWN TIMER ─────────────────────────── */
-  (function initSessionTimer() {
-    const SESSION_MINUTES = 15;
-    let remaining = SESSION_MINUTES * 60; // seconds
-    const timerEl = document.getElementById('sessionTimer');
+  let html5QrScanner = null;
+  let isCameraScanning = false;
+  let activeScannedCode = null;
 
-    function formatTime(secs) {
-      const m = Math.floor(secs / 60);
-      const s = secs % 60;
-      return '⏱ ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-    }
-
-    function tick() {
-      remaining--;
-      if (timerEl) timerEl.textContent = formatTime(remaining);
-
-      // Warning color when under 2 minutes
-      if (remaining <= 120 && timerEl) {
-        timerEl.style.color = 'var(--red)';
-        timerEl.style.background = 'rgba(255,77,109,0.1)';
-        timerEl.style.borderColor = 'rgba(255,77,109,0.3)';
-      }
-
-      if (remaining <= 0) {
-        clearInterval(timerInterval);
-        // Auto-lock: POST to lock endpoint then redirect
-        fetch('/api/guard/lock', { method: 'POST', credentials: 'same-origin' })
-          .catch(() => {})
-          .finally(() => {
-            window.location.href = '/guard/login';
-          });
-      }
-    }
-
-    if (timerEl) timerEl.textContent = formatTime(remaining);
-    const timerInterval = setInterval(tick, 1000);
-  })();
-
-  /* ─────────────────────────── SOUND & HAPTIC SYNTHESIZER ─────────────────────────── */
-  let audioEnabled = true;
-  let audioCtx = null;
-
-  function initAudio() {
-    if (!audioCtx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        audioCtx = new AudioContext();
-      }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-  }
-
-  function toggleAudio() {
-    initAudio();
-    audioEnabled = !audioEnabled;
-    const btn = document.getElementById('toggleAudioBtn');
-    const icon = document.getElementById('audioIcon');
-    const text = document.getElementById('audioText');
-    if (audioEnabled) {
-      btn.className = 'pill-toggle active';
-      icon.textContent = '🔔';
-      text.textContent = 'Audio ON';
-      playChime();
-    } else {
-      btn.className = 'pill-toggle';
-      icon.textContent = '🔕';
-      text.textContent = 'Muted';
-    }
-  }
-
-  // Pleasant 2-tone rising chime (Valid Access)
-  function playChime() {
-    if (!audioEnabled) return;
-    try {
-      initAudio();
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(523.25, now); // C5
-      gain1.gain.setValueAtTime(0.15, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.15);
-
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(783.99, now + 0.12); // G5
-      gain2.gain.setValueAtTime(0.18, now + 0.12);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.start(now + 0.12);
-      osc2.stop(now + 0.35);
-    } catch (e) {
-      console.warn("Audio error:", e);
-    }
-  }
-
-  // Two warning pulses (Anti-Passback Alert)
-  function playWarningSound() {
-    if (!audioEnabled) return;
-    try {
-      initAudio();
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-      [0, 0.15].forEach(offset => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(440, now + offset);
-        gain.gain.setValueAtTime(0.2, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.12);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(now + offset);
-        osc.stop(now + offset + 0.12);
-      });
-    } catch (e) {
-      console.warn("Audio error:", e);
-    }
-  }
-
-  // Low dramatic buzzer (Fraud / Invalid Signature)
-  function playFraudSound() {
-    if (!audioEnabled) return;
-    try {
-      initAudio();
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.linearRampToValueAtTime(110, now + 0.45);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.45);
-    } catch (e) {
-      console.warn("Audio error:", e);
-    }
-  }
-
-  function triggerHaptic(pattern = [100, 50, 100]) {
-    if ('vibrate' in navigator) {
-      try { navigator.vibrate(pattern); } catch (e) {}
-    }
-  }
-
-  /* ─────────────────────────── LIVE CAMERA SCANNER (html5-qrcode) ─────────────────────────── */
-  let html5QrCode = null;
-  let isCameraRunning = false;
-  let availableCameras = [];
-  let currentCameraId = null;
-  let lastScannedCode = null;
-  let scanCooldown = false;
-  let torchOn = false;
-
-  async function toggleCameraScanner() {
-    initAudio();
+  function toggleCameraScanner() {
     const btn = document.getElementById('cameraToggleBtn');
-    const viewfinder = document.getElementById('viewfinderWrapper');
-    const torchBtn = document.getElementById('torchBtn');
+    const wrapper = document.getElementById('viewfinderWrapper');
 
-    if (isCameraRunning) {
+    if (isCameraScanning) {
       stopCameraScanner();
       return;
     }
 
-    try {
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Starting Camera...';
+    wrapper.style.display = 'block';
+    btn.textContent = '⏹ Stop Camera';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-outline');
+    isCameraScanning = true;
 
-      // 1. CRITICAL: Make viewfinder visible FIRST so container has full clientWidth/clientHeight!
-      viewfinder.style.display = 'block';
-
-      if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader", { verbose: false });
-      }
-
-      availableCameras = await Html5Qrcode.getCameras().catch(() => []);
-      const select = document.getElementById('cameraSelect');
-
-      if (availableCameras && availableCameras.length > 0) {
-        select.innerHTML = '';
-        availableCameras.forEach((cam, idx) => {
-          const opt = document.createElement('option');
-          opt.value = cam.id;
-          opt.textContent = cam.label || `Camera ${idx + 1}`;
-          select.appendChild(opt);
-        });
-
-        // Prefer rear/environment camera
-        const backCam = availableCameras.find(c =>
-          c.label.toLowerCase().includes('back') ||
-          c.label.toLowerCase().includes('rear') ||
-          c.label.toLowerCase().includes('environment')
-        );
-        currentCameraId = backCam ? backCam.id : availableCameras[0].id;
-        select.value = currentCameraId;
-        if (availableCameras.length > 1) {
-          select.style.display = 'inline-block';
-        }
-      }
-
-      const config = {
-        fps: 20,
-        aspectRatio: 1.0,
-        disableFlip: false
-      };
-
-      const cameraParam = currentCameraId ? currentCameraId : { facingMode: "environment" };
-
-      await html5QrCode.start(
-        cameraParam,
-        config,
-        onQrCodeScanned,
-        onQrScanError
-      );
-
-      isCameraRunning = true;
-      btn.disabled = false;
-      btn.className = 'btn btn-outline';
-      btn.innerHTML = '⏹️ Stop Camera';
-
-      // Check torch capability
-      try {
-        const capabilities = html5QrCode.getRunningTrackCapabilities();
-        if (capabilities && capabilities.torch) {
-          torchBtn.style.display = 'inline-flex';
-        }
-      } catch (e) {}
-
-    } catch (err) {
-      console.error("Camera start failed:", err);
-      btn.disabled = false;
-      btn.className = 'btn btn-primary';
-      btn.innerHTML = '📷 Start Camera Scanner';
-      alert("Camera access notice: Could not start video feed. " +
-            "Please ensure you allowed browser camera permissions, or use 'Scan Image / File' below: " +
-            (err.message || err));
+    if (!html5QrScanner) {
+      html5QrScanner = new Html5Qrcode('qrReaderViewport');
     }
+
+    html5QrScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        stopCameraScanner();
+        processScannedQrData(decodedText);
+      },
+      () => {}
+    ).catch(err => {
+      console.warn('Camera start error:', err);
+      alert('Unable to access camera. Please allow camera permissions or upload a QR image.');
+      stopCameraScanner();
+    });
   }
 
-  async function stopCameraScanner() {
+  function stopCameraScanner() {
     const btn = document.getElementById('cameraToggleBtn');
-    const viewfinder = document.getElementById('viewfinderWrapper');
-    const torchBtn = document.getElementById('torchBtn');
-
-    if (html5QrCode && isCameraRunning) {
-      try {
-        await html5QrCode.stop();
-      } catch (e) {}
-    }
-    isCameraRunning = false;
-    viewfinder.style.display = 'none';
-    torchBtn.style.display = 'none';
-    torchOn = false;
-    btn.disabled = false;
-    btn.className = 'btn btn-primary';
-    btn.innerHTML = '📷 Start Camera Scanner';
-  }
-
-  async function changeCamera(cameraId) {
-    if (!isCameraRunning) return;
-    try {
-      await html5QrCode.stop();
-      currentCameraId = cameraId;
-      const config = { fps: 20, aspectRatio: 1.0, disableFlip: false };
-      await html5QrCode.start(currentCameraId, config, onQrCodeScanned, onQrScanError);
-    } catch (e) {
-      console.error("Camera switch error:", e);
+    const wrapper = document.getElementById('viewfinderWrapper');
+    if (html5QrScanner && isCameraScanning) {
+      html5QrScanner.stop().catch(() => {}).finally(() => {
+        wrapper.style.display = 'none';
+        btn.textContent = '📷 Start Camera Scanner';
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-outline');
+        isCameraScanning = false;
+      });
+    } else {
+      wrapper.style.display = 'none';
+      btn.textContent = '📷 Start Camera Scanner';
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-outline');
+      isCameraScanning = false;
     }
   }
 
-  async function toggleTorch() {
-    if (!isCameraRunning || !html5QrCode) return;
-    try {
-      torchOn = !torchOn;
-      await html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
-      document.getElementById('torchBtn').className = torchOn ? 'pill-toggle active' : 'pill-toggle';
-    } catch (e) {
-      console.warn("Torch not supported on this track:", e);
-    }
-  }
-
-  let fileScannerInstance = null;
-
-  async function handleQrFileUpload(e) {
-    const file = e.target.files && e.target.files[0];
+  function handleQrImageUpload(e) {
+    const file = e.target.files[0];
     if (!file) return;
-    initAudio();
 
-    // If live camera is actively scanning, cleanly stop it first to prevent ongoing camera scan conflict
-    if (isCameraRunning && html5QrCode) {
-      try {
-        await stopCameraScanner();
-      } catch (cameraErr) {
-        console.warn("Failed to stop camera before file scan:", cameraErr);
-      }
-    }
-
-    try {
-      if (!fileScannerInstance) {
-        fileScannerInstance = new Html5Qrcode("fileReaderWrapper", { verbose: false });
-      }
-
-      let decodedText = null;
-      try {
-        // Try with image enhancement
-        decodedText = await fileScannerInstance.scanFile(file, true);
-      } catch (err1) {
-        // Fallback without enhancement (for inverted / border contrast / high-res)
-        try {
-          decodedText = await fileScannerInstance.scanFile(file, false);
-        } catch (err2) {
-          throw err1;
-        }
-      }
-
-      if (decodedText) {
-        onQrCodeScanned(decodedText);
-      } else {
-        throw new Error("No QR code detected in the selected image.");
-      }
-    } catch (err) {
-      alert("No readable QR code found in selected photo. Please ensure QR code is clearly visible: " + (err.message || err));
-    } finally {
-      e.target.value = '';
-    }
-  }
-
-  function onQrScanError(err) {
-    // Silent regular frame drops
-  }
-
-  function extractRegCode(rawText) {
-    if (!rawText) return null;
-    rawText = rawText.trim();
-
-    // Look for /verify/REG-XXXXXX
-    const match = rawText.match(/verify\/([A-Za-z0-9\-_]+)/i);
-    if (match) return match[1].toUpperCase();
-
-    // Look for code query param ?code=REG-XXXXXX
-    const codeParam = rawText.match(/[?&]code=([A-Za-z0-9\-_]+)/i);
-    if (codeParam) return codeParam[1].toUpperCase();
-
-    // Look for custom prefix like VENUEGUARD:REG-XXXXXX or VG:REG-XXXXXX
-    const prefixMatch = rawText.match(/(?:VENUEGUARD|VG|PASS)[\:\-_ ]+([A-Za-z0-9\-_]+)/i);
-    if (prefixMatch) return prefixMatch[1].toUpperCase();
-
-    // Look for REG-XXXXXX pattern
-    const directCode = rawText.match(/\b(REG-[A-Za-z0-9\-_]+)\b/i);
-    if (directCode) return directCode[1].toUpperCase();
-
-    // Default uppercase raw string
-    return rawText.toUpperCase();
-  }
-
-  function onQrCodeScanned(decodedText) {
-    if (scanCooldown) return;
-    const regCode = extractRegCode(decodedText);
-    if (!regCode) return;
-
-    if (regCode === lastScannedCode) {
-      return;
-    }
-
-    scanCooldown = true;
-    lastScannedCode = regCode;
-    setTimeout(() => { scanCooldown = false; }, 2000);
-
-    // Visual pulse on reticle
-    const reticle = document.getElementById('scannerReticle');
-    if (reticle) {
-      reticle.classList.add('detected');
-      setTimeout(() => reticle.classList.remove('detected'), 800);
-    }
-
-    verifyPassAjax(regCode);
-  }
-
-  /* ─────────────────────────── VERIFICATION AJAX & DYNAMIC RENDER ─────────────────────────── */
-  function handleManualLookup() {
-    initAudio();
-    const input = document.getElementById('manualRegCode');
-    const code = extractRegCode(input.value);
-    if (code) {
-      verifyPassAjax(code);
-    }
-  }
-
-  function verifyPassAjax(regCode) {
-    const container = document.getElementById('verificationResultContainer');
-    container.innerHTML = `
-      <div style="padding: 2.5rem 1.5rem; text-align: center;">
-        <span class="spinner" style="width: 36px; height: 36px; border-width: 3px;"></span>
-        <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
-          Cryptographically Verifying <code style="color:var(--teal);">${regCode}</code>...
-        </div>
-      </div>
-    `;
-
-    // Static mode fallback for GitHub Pages
-    if (typeof window.staticVerifyPassAjax === 'function' && (!window.IS_FLASK_BACKEND || window.IS_STATIC_BUILD)) {
-      setTimeout(() => {
-        const data = window.staticVerifyPassAjax(regCode);
-        if (!data.success && data.tamper_reason) {
-          playFraudSound();
-          triggerHaptic([200, 100, 200]);
-          renderTamperedView(container, data.tamper_reason, regCode);
-        } else if (data.success && data.is_valid) {
-          if (data.is_already_checked_in) {
-            playWarningSound();
-            triggerHaptic([150, 75, 150]);
-          } else {
-            playChime();
-            triggerHaptic([80, 40, 80]);
-          }
-          renderValidView(container, data);
-        } else {
-          playFraudSound();
-          renderTamperedView(container, data.tamper_reason || "Verification failed.", regCode);
-        }
-      }, 200);
-      return;
-    }
-
-    fetch(`/api/verify/${encodeURIComponent(regCode)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.success && data.tamper_reason) {
-          // Cryptographic Mismatch or Not Found
-          playFraudSound();
-          triggerHaptic([200, 100, 200]);
-          renderTamperedView(container, data.tamper_reason, regCode);
-        } else if (data.success && data.is_valid) {
-          if (data.is_already_checked_in) {
-            playWarningSound();
-            triggerHaptic([150, 75, 150]);
-          } else {
-            playChime();
-            triggerHaptic([80, 40, 80]);
-          }
-          renderValidView(container, data);
-        } else {
-          playFraudSound();
-          renderTamperedView(container, data.tamper_reason || "Verification failed.", regCode);
-        }
+    const scanner = new Html5Qrcode('qrReaderViewport');
+    scanner.scanFile(file, true)
+      .then(decodedText => {
+        processScannedQrData(decodedText);
       })
       .catch(err => {
-        playFraudSound();
-        container.innerHTML = `
-          <div style="padding: 2rem; text-align: center;">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
-            <h3 style="color: var(--red);">Network Connection Error</h3>
-            <p style="color: var(--text-muted); margin-top: 0.4rem; font-size: 0.85rem;">Failed to connect to verification server.</p>
-            <button onclick="resetToStandby()" class="btn btn-navy" style="margin-top: 1rem;">Retry</button>
-          </div>
-        `;
+        alert('Could not decode QR code from image. Please ensure the QR is sharp and clearly visible.');
+      })
+      .finally(() => {
+        e.target.value = '';
       });
   }
 
-  function renderValidView(container, data) {
-    const reg = data.reg;
-    const members = data.members || [];
-    const isAdmitted = (reg.checked_in === 1);
-
-    let antiPassbackHtml = '';
-    if (data.is_already_checked_in) {
-      antiPassbackHtml = `
-        <div class="anti-passback-banner">
-          <div class="anti-passback-icon">⚠️</div>
-          <div>
-            <div class="anti-passback-title">ANTI-PASSBACK ALERT: PASS ALREADY ADMITTED</div>
-            <p class="anti-passback-desc">
-              This pass was already admitted at the gate. Confirm visitor identity to prevent pass-sharing fraud.
-            </p>
-            <span class="anti-passback-time">Admitted at: ${reg.checked_in_at || 'Earlier Today'}</span>
-          </div>
-        </div>
-      `;
+  function handleManualPassVerify(e) {
+    e.preventDefault();
+    const code = document.getElementById('manualPassInput').value.trim();
+    if (code) {
+      processScannedQrData(code);
     }
-
-    let membersRows = '';
-    if (members.length > 0) {
-      membersRows = `
-        <h4 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.65rem; font-weight: 700;">
-          Accompanying Members (${members.length})
-        </h4>
-        <div style="border: 1px solid var(--glass-border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1.5rem;">
-          <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
-            <thead>
-              <tr style="background: rgba(255,255,255,0.04);">
-                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">#</th>
-                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Name</th>
-                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Age</th>
-                <th style="padding: 0.5rem 0.8rem; text-align: left; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Mobile</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${members.map((m, i) => `
-                <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
-                  <td style="padding: 0.5rem 0.8rem; color: var(--text-muted);">${i + 1}</td>
-                  <td style="padding: 0.5rem 0.8rem; font-weight: 600;">${escapeHtml(m.member_name)}</td>
-                  <td style="padding: 0.5rem 0.8rem;">${m.member_age}y</td>
-                  <td style="padding: 0.5rem 0.8rem;" class="mono-font">${escapeHtml(m.member_mobile) || '—'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    container.innerHTML = `
-      <div class="verification-status status-valid">
-        <div class="status-icon">✅</div>
-        <h1 class="status-title">VERIFIED ACCESS GRANTED</h1>
-        <p class="status-desc">HMAC-SHA256 Signature Authenticated · Single Entry Clearance</p>
-      </div>
-
-      <div class="terminal-body">
-        ${antiPassbackHtml}
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
-          <div style="background: rgba(34,197,94,0.08); border: 1.5px solid rgba(34,197,94,0.25); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #4ADE80; font-weight: 700; margin-bottom: 0.3rem;">Authorized Headcount</div>
-            <div style="font-size: 2.4rem; font-weight: 900; color: #4ADE80; line-height: 1;">${reg.group_count}</div>
-            <div style="font-size: 0.76rem; color: rgba(74,222,128,0.75); font-weight: 600; margin-top: 0.2rem;">
-              ${reg.group_count === 1 ? 'Person Allowed' : 'Persons Allowed Together'}
-            </div>
-          </div>
-
-          <div class="gate-theme-border theme-${reg.gate_id}" style="background: rgba(255,255,255,0.04); border-width: 1.5px; border-style: solid; border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-            <div class="gate-theme-color" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.3rem;">Assigned Exit</div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">${escapeHtml(reg.assigned_gate)}</div>
-            <div style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(reg.assigned_group)}</div>
-          </div>
-
-          <div style="background: rgba(0,255,198,0.05); border: 1.5px solid rgba(0,255,198,0.18); border-radius: var(--radius-md); padding: 1rem; text-align: center;">
-            <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--teal); font-weight: 700; margin-bottom: 0.3rem;">Pass Code</div>
-            <div class="mono-font" style="font-size: 1rem; font-weight: 700; color: var(--teal);">${escapeHtml(reg.reg_code)}</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">${escapeHtml(reg.created_at)}</div>
-          </div>
-        </div>
-
-        <!-- Admission Toggle Button -->
-        <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;">
-          <div>
-            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem; margin-bottom: 0.25rem;">Gate Admission Status</div>
-            <div id="checkInStatusText" style="font-size: 0.84rem;">
-              ${isAdmitted
-                ? `<span style="color: #4ADE80; font-weight: 700;">● Admitted at ${reg.checked_in_at}</span>`
-                : `<span style="color: var(--amber); font-weight: 700;">⏳ Pending physical entry at gate</span>`
-              }
-            </div>
-          </div>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button
-              id="checkInBtn"
-              onclick="toggleCheckIn('${reg.reg_code}')"
-              class="btn ${isAdmitted ? 'btn-outline btn-admitted' : 'btn-primary'}"
-            >
-              <span id="checkInBtnIcon">${isAdmitted ? '↩️ Undo Admission' : '🚪 Mark as Admitted'}</span>
-            </button>
-            <button
-              id="checkOutBtn"
-              onclick="recordCheckOut('${reg.reg_code}')"
-              class="btn btn-outline"
-              style="border-color: rgba(245,158,11,0.4); color: var(--amber);"
-              title="Record visitor departure"
-            >
-              <span>🚶 Mark as Exited</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Visitor Details -->
-        <h3 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700;">
-          Primary Visitor &amp; Group Details
-        </h3>
-
-        <table class="pass-details-table" style="margin-bottom: 1.5rem;">
-          <tbody>
-            <tr>
-              <th>Pass Code</th>
-              <td class="mono-font" style="color: var(--teal);">${escapeHtml(reg.reg_code)}</td>
-            </tr>
-            <tr>
-              <th>Primary Visitor</th>
-              <td>${escapeHtml(reg.primary_name)} (Age: ${reg.age})</td>
-            </tr>
-            <tr>
-              <th>Mobile</th>
-              <td class="mono-font">${escapeHtml(reg.mobile)}</td>
-            </tr>
-            <tr>
-              <th>Address</th>
-              <td style="font-size: 0.84rem; color: var(--text-secondary);">${escapeHtml(reg.address)}</td>
-            </tr>
-            <tr>
-              <th>Assigned Exit</th>
-              <td class="gate-theme-color theme-${reg.gate_id}" style="font-weight: 700;">${escapeHtml(reg.assigned_gate)} (${escapeHtml(reg.assigned_group)})</td>
-            </tr>
-          </tbody>
-        </table>
-
-        ${membersRows}
-
-        <button onclick="resetToStandby()" class="btn btn-navy btn-block" style="box-shadow: 0 0 20px rgba(0,0,0,0.5);">
-          🔄 Ready for Next Visitor
-        </button>
-      </div>
-    `;
+    return false;
   }
 
-  function renderTamperedView(container, reason, regCode) {
-    container.innerHTML = `
-      <div class="verification-status status-fraud">
-        <div class="status-icon">🚨</div>
-        <h1 class="status-title">FRAUD WARNING: INVALID ENTRY PASS</h1>
-        <p class="status-desc">CRYPTOGRAPHIC SIGNATURE MISMATCH — Data tampering detected. Access denied.</p>
-      </div>
-      <div class="terminal-body">
-        <div style="background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.25); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
-          <strong style="color: var(--red);">⚠️ Tamper Reason:</strong>
-          <p style="color: var(--text-secondary); margin-top: 0.35rem; font-size: 0.88rem;">${escapeHtml(reason)}</p>
-        </div>
-        <ul style="font-size: 0.88rem; color: var(--text-secondary); padding-left: 1.5rem; line-height: 2; margin-bottom: 1.5rem;">
-          <li>Do NOT allow this visitor to enter.</li>
-          <li>Alert security supervisor immediately.</li>
-          <li>Direct them to scan the official entrance QR to register a legitimate pass.</li>
-        </ul>
-        <button onclick="resetToStandby()" class="btn btn-navy btn-block">
-          🔄 Scan Next Pass
-        </button>
-      </div>
-    `;
+  function processScannedQrData(raw) {
+    let code = raw.trim();
+    if (code.includes('/verify/')) {
+      code = code.split('/verify/').pop().split('?')[0];
+    } else if (code.includes('code=')) {
+      code = code.split('code=').pop().split('&')[0];
+    }
+    code = code.toUpperCase();
+    activeScannedCode = code;
+
+    // Static mode verification
+    if (window.staticVerifyPassAjax) {
+      const res = window.staticVerifyPassAjax(code);
+      renderGuardScanResult(res);
+      return;
+    }
+
+    // Flask Backend Mode
+    fetch(`/api/verify/${encodeURIComponent(code)}`)
+      .then(r => r.json())
+      .then(res => renderGuardScanResult(res))
+      .catch(err => {
+        renderGuardScanResult({
+          success: false,
+          status: 'INVALID',
+          result_color: 'RED',
+          result_label: 'Network / Verification Error',
+          tamper_reason: 'Could not connect to verification server.'
+        });
+      });
   }
 
-  function resetToStandby() {
-    lastScannedCode = null;
-    const container = document.getElementById('verificationResultContainer');
-    container.innerHTML = `
-      <div id="standbyView" style="padding: 2.5rem 1.5rem; text-align: center;">
-        <div style="font-size: 3.2rem; margin-bottom: 0.75rem;">🛡️</div>
-        <h1 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary);">Terminal Ready</h1>
-        <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.4rem; max-width: 440px; margin-left: auto; margin-right: auto;">
-          Click <strong>"Start Camera Scanner"</strong> above to scan passes via camera, or enter a registration code below.
-        </p>
-      </div>
-    `;
-    const input = document.getElementById('manualRegCode');
-    if (input) {
-      input.value = '';
-      input.focus();
+  function renderGuardScanResult(res) {
+    document.getElementById('scannerEmptyState').style.display = 'none';
+    const card = document.getElementById('scanResultCard');
+    card.style.display = 'block';
+
+    const color = res.result_color || (res.is_valid ? 'GREEN' : 'RED');
+    const badge = document.getElementById('scanResultBadge');
+    const markBtn = document.getElementById('markEnteredBtn');
+    const tamperNotice = document.getElementById('scanTamperNotice');
+
+    if (color === 'GREEN') {
+      card.style.borderColor = '#00FFC6';
+      card.style.background = 'rgba(0,255,198,0.05)';
+      badge.style.background = '#00FFC6';
+      badge.style.color = '#040D18';
+      badge.textContent = '🟢 VALID PASS — ACCESS GRANTED';
+      markBtn.style.display = 'block';
+      markBtn.disabled = false;
+      markBtn.textContent = '✅ Mark as Entered / Admit Visitor';
+      tamperNotice.style.display = 'none';
+    } else if (color === 'ORANGE') {
+      card.style.borderColor = '#F59E0B';
+      card.style.background = 'rgba(245,158,11,0.06)';
+      badge.style.background = '#F59E0B';
+      badge.style.color = '#040D18';
+      badge.textContent = '🟠 ALREADY SCANNED — DUPLICATE ENTRY';
+      markBtn.style.display = 'none';
+      tamperNotice.textContent = '⚠️ ANTI-PASSBACK ALERT: This pass was already admitted. Verify visitor identity.';
+      tamperNotice.style.display = 'block';
+    } else if (color === 'GREY') {
+      card.style.borderColor = '#94A8C5';
+      card.style.background = 'rgba(148,168,197,0.05)';
+      badge.style.background = '#64748B';
+      badge.style.color = '#fff';
+      badge.textContent = '⚪ CANCELLED PASS — ADMISSION DENIED';
+      markBtn.style.display = 'none';
+      tamperNotice.textContent = '🚫 THIS PASS HAS BEEN CANCELLED BY ADMINISTRATION. ENTRY STRICTLY DENIED.';
+      tamperNotice.style.display = 'block';
+    } else {
+      card.style.borderColor = '#FF4D6D';
+      card.style.background = 'rgba(255,77,109,0.06)';
+      badge.style.background = '#FF4D6D';
+      badge.style.color = '#fff';
+      badge.textContent = '🔴 INVALID / COUNTERFEIT QR';
+      markBtn.style.display = 'none';
+      tamperNotice.textContent = res.tamper_reason || 'UNVERIFIED PASS. Not found in official registry.';
+      tamperNotice.style.display = 'block';
+    }
+
+    const reg = res.reg || {};
+    document.getElementById('scanResultName').textContent = reg.primary_name || 'Unknown Visitor';
+    document.getElementById('scanResultVisId').textContent = reg.visitor_id || activeScannedCode;
+    document.getElementById('scanResultCode').textContent = reg.reg_code || activeScannedCode;
+    document.getElementById('scanResultHeadcount').textContent = `${reg.group_count || 1} Person(s)`;
+    document.getElementById('scanResultGate').textContent = reg.assigned_gate || 'Exit Gate A';
+    
+    const statusText = document.getElementById('scanResultStatusText');
+    if (reg.checked_in === 1) {
+      statusText.innerHTML = '<span style="color:#F59E0B;">Admitted (Inside Venue)</span>';
+    } else if (reg.status === 'CANCELLED') {
+      statusText.innerHTML = '<span style="color:#F87171;">Cancelled</span>';
+    } else {
+      statusText.innerHTML = '<span style="color:#4ADE80;">Unclaimed / Ready for Entry</span>';
+    }
+
+    const membersSec = document.getElementById('scanResultMembersSection');
+    const membersList = document.getElementById('scanResultMembersList');
+    const members = res.members || reg.members || [];
+    if (members && members.length > 0) {
+      membersList.innerHTML = members.map(m => `
+        <span style="background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); border-radius: 999px; padding: 0.15rem 0.55rem; color: #fff; font-size: 0.78rem;">
+          👤 ${m.member_name} (${m.member_age}y)
+        </span>
+      `).join('');
+      membersSec.style.display = 'block';
+    } else {
+      membersSec.style.display = 'none';
+      membersList.innerHTML = '';
     }
   }
 
-  function toggleCheckIn(regCode) {
-    initAudio();
-    const btn        = document.getElementById('checkInBtn');
-    const statusText = document.getElementById('checkInStatusText');
-    const iconSpan   = document.getElementById('checkInBtnIcon');
-
+  function handleMarkEntered() {
+    if (!activeScannedCode) return;
+    const btn = document.getElementById('markEnteredBtn');
     btn.disabled = true;
-    iconSpan.innerHTML = '<span class="spinner"></span>';
+    btn.textContent = 'Marking Entered...';
 
-    // Static mode fallback for GitHub Pages
-    if (typeof window.staticToggleCheckIn === 'function' && (!window.IS_FLASK_BACKEND || window.IS_STATIC_BUILD)) {
-      setTimeout(() => {
+    if (window.staticCheckInPass) {
+      const res = window.staticCheckInPass(activeScannedCode);
+      if (res.success) {
+        alert('✅ Visitor successfully marked as ENTERED.');
+        btn.textContent = '✅ Admitted';
+        document.getElementById('scanResultStatusText').innerHTML = '<span style="color:#F59E0B;">Admitted (Inside Venue)</span>';
+      } else {
+        alert(res.message || 'Error admitting visitor.');
         btn.disabled = false;
-        const data = window.staticToggleCheckIn(regCode);
-        if (data.success) {
-          if (data.checked_in === 1) {
-            playChime();
-            statusText.innerHTML = `<span style="color:#4ADE80;font-weight:700;">● Admitted at ${data.checked_in_at}</span>`;
-            iconSpan.textContent = '↩️ Undo Admission';
-            btn.className = 'btn btn-outline btn-admitted';
-          } else {
-            statusText.innerHTML = `<span style="color:var(--amber);font-weight:700;">⏳ Pending physical entry at gate</span>`;
-            iconSpan.textContent = '🚪 Mark as Admitted';
-            btn.className = 'btn btn-primary';
-          }
-        } else {
-          iconSpan.textContent = btn.classList.contains('btn-admitted') ? '↩️ Undo Admission' : '🚪 Mark as Admitted';
-          alert('Check-in update failed: ' + (data.message || 'Unknown error'));
-        }
-      }, 150);
-      return;
-    }
-
-    fetch(`/api/check-in/${encodeURIComponent(regCode)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    .then(res => res.json())
-    .then(data => {
-      btn.disabled = false;
-      if (data.success) {
-        if (data.checked_in === 1) {
-          playChime();
-          statusText.innerHTML = `<span style="color:#4ADE80;font-weight:700;">● Admitted at ${data.checked_in_at}</span>`;
-          iconSpan.textContent = '↩️ Undo Admission';
-          btn.className = 'btn btn-outline btn-admitted';
-        } else {
-          statusText.innerHTML = `<span style="color:var(--amber);font-weight:700;">⏳ Pending physical entry at gate</span>`;
-          iconSpan.textContent = '🚪 Mark as Admitted';
-          btn.className = 'btn btn-primary';
-        }
-      } else {
-        iconSpan.textContent = btn.classList.contains('btn-admitted') ? '↩️ Undo Admission' : '🚪 Mark as Admitted';
-        alert('Check-in update failed: ' + (data.message || 'Unknown error'));
-      }
-    })
-    .catch(() => {
-      btn.disabled = false;
-      iconSpan.textContent = btn.classList.contains('btn-admitted') ? '↩️ Undo Admission' : '🚪 Mark as Admitted';
-      alert('Network error. Please try again.');
-    });
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  /* ─────────────────────────── RECORD EXIT (CHECK-OUT) ─────────────────────────── */
-  function recordCheckOut(regCode) {
-    if (!confirm('Record exit for pass ' + regCode + '?')) return;
-
-    if (typeof window.staticToggleCheckOut === 'function' && (!window.IS_FLASK_BACKEND || window.IS_STATIC_BUILD)) {
-      const data = window.staticToggleCheckOut(regCode);
-      if (data.success) {
-        alert('Pass ' + regCode + ' successfully recorded as EXITED.');
-        resetToStandby();
-      } else {
-        alert('Exit error: ' + (data.message || 'Pass not found'));
+        btn.textContent = '✅ Mark as Entered / Admit Visitor';
       }
       return;
     }
 
-    fetch(`/api/check-out/${encodeURIComponent(regCode)}`, { method: 'POST' })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          alert('Pass ' + regCode + ' successfully recorded as EXITED.');
-          resetToStandby();
+    // Flask Backend Mode
+    fetch(`/api/check-in/${encodeURIComponent(activeScannedCode)}`, { method: 'POST' })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          alert('✅ Visitor successfully marked as ENTERED.');
+          btn.textContent = '✅ Admitted';
+          document.getElementById('scanResultStatusText').innerHTML = '<span style="color:#F59E0B;">Admitted (Inside Venue)</span>';
         } else {
-          alert('Error: ' + (data.message || 'Could not record exit'));
+          alert(res.message || 'Error admitting visitor.');
+          btn.disabled = false;
+          btn.textContent = '✅ Mark as Entered / Admit Visitor';
         }
-      })
-      .catch(err => {
-        alert('Network error recording exit: ' + err);
       });
   }
 
-  /* ─────────────────────────── AUTO-VERIFY & SESSION TIMER ─────────────────────────── */
-  document.addEventListener('DOMContentLoaded', function () {
-    // If URL has ?code=REG-XXXXXX, automatically verify on load
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    if (code) {
-      setTimeout(() => {
-        verifyPassAjax(code);
-      }, 350);
+  function resetScannerView() {
+    activeScannedCode = null;
+    document.getElementById('manualPassInput').value = '';
+    document.getElementById('scanResultCard').style.display = 'none';
+    document.getElementById('scannerEmptyState').style.display = 'block';
+  }
+
+  function handleGuardLogout() {
+    if (confirm('Lock Guard Terminal and return to Login?')) {
+      sessionStorage.removeItem('vg_guard');
+      window.location.href = 'guard_login.html';
     }
-
-    // Inactivity countdown timer (15 minutes)
-    let idleSeconds = 0;
-    setInterval(function() {
-      idleSeconds++;
-      const remaining = Math.max(0, 900 - idleSeconds);
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
-      const timerEl = document.getElementById('sessionTimer');
-      if (timerEl) {
-        timerEl.textContent = '⏱ ' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-      }
-    }, 1000);
-
-    ['click', 'touchstart', 'keydown'].forEach(ev => {
-      window.addEventListener(ev, () => { idleSeconds = 0; }, { passive: true });
-    });
-  });
+  }
 </script>
 
+  </main>
+
+  <!-- ═══════════════════════ CLEAN VISITOR FOOTER ═══════════════════════ -->
+  <footer class="app-footer no-print"
+    style="background: rgba(4,13,24,0.98); border-top: 1px solid var(--glass-border); padding: 2.25rem 1.25rem 1.5rem; margin-top: 3.5rem;">
+    <div style="max-width: 1100px; margin: 0 auto;">
+
+      <!-- Optional Extra Footer Links (Hidden by default, toggleable by Admin) -->
+      <div id="adminToggleFooterLinks" class="admin-toggle-section"
+        style="display: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+          <div>
+            <h4
+              style="font-size: 0.8rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.65rem;">
+              Navigation</h4>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.8rem; line-height: 2;">
+              <li><a href="index.html" style="color: var(--text-secondary); text-decoration: none;">Home</a>
+              </li>
+              <li><a href="venue_info.html"
+                  style="color: var(--text-secondary); text-decoration: none;">Venue Information</a></li>
+              <li><a href="help_contact.html" style="color: var(--text-secondary); text-decoration: none;">Help
+                  &amp; First Aid</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4
+              style="font-size: 0.8rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.65rem;">
+              Visitor Safety</h4>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.8rem; line-height: 2;">
+              <li><a href="help_contact.html#emergency"
+                  style="color: var(--text-secondary); text-decoration: none;">Emergency Protocols</a></li>
+              <li><a href="help_contact.html#lostfound"
+                  style="color: var(--text-secondary); text-decoration: none;">Lost &amp; Found Assistance</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Footer Bar -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--text-muted);">
+        <div>
+          &copy; 2026
+          <strong>VenueGuard</strong>. Smart Crowd Control Management System.
+        </div>
+
+        <!-- Discrete Staff Portals Links (For authorized staff only) -->
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <a href="guard_login.html"
+            style="color: var(--text-muted); text-decoration: none; font-size: 0.76rem; border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.6rem; border-radius: 4px;">
+            🛡️ Guard Terminal
+          </a>
+          <a href="login.html"
+            style="color: var(--text-muted); text-decoration: none; font-size: 0.76rem; border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.6rem; border-radius: 4px;">
+            ⚙️ Admin Portal
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
 </body>
+
 </html>

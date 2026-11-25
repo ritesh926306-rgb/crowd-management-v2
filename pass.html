@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Entry Pass — DEMO-SAMPLE-8899 · VenueGuard</title>
-  <meta name="description" content="VenueGuard — Professional crowd safety and event entry management system with digital QR verification and smart multi-gate routing.">
+  <title>Visitor ID Card — VG-VIS-88990 · VenueGuard</title>
+  <meta name="description"
+    content="VenueGuard — Professional crowd safety and event entry management system with digital QR verification and smart multi-gate routing.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="static/style.css">
   <script>
     window.IS_FLASK_BACKEND = ("false" === "true");
@@ -16,6 +20,7 @@
   <script src="static/static-mode.js" defer></script>
   
 </head>
+
 <body>
 
   <!-- ═══════════════════════ EMERGENCY BROADCAST BANNER ═══════════════════════ -->
@@ -23,562 +28,373 @@
 
   <!-- ═══════════════════════ PUBLIC HEADER & NAVIGATION ═══════════════════════ -->
   <header class="app-header no-print">
-    <div class="header-container">
-      <a href="index.html" class="brand-wrapper" title="VenueGuard Home">
-        <div class="brand-logo-icon">🛡️</div>
+    <div class="header-container"
+      style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.25rem;">
+
+      <!-- Brand Logo & Title -->
+      <a href="index.html" class="brand-wrapper" title="VenueGuard Home"
+        style="display: flex; align-items: center; gap: 0.65rem; text-decoration: none;">
+        <div class="brand-logo-icon"
+          style="width: 38px; height: 38px; background: rgba(0,255,198,0.12); border: 1.5px solid rgba(0,255,198,0.3); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+          🛡️
+        </div>
         <div>
-          <div class="brand-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <div class="brand-title"
+            style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; font-weight: 900; letter-spacing: -0.01em; color: #fff;">
             VENUEGUARD
-            
+            <span id="staffRoleBadge" style="display: none;" class="badge badge-teal"></span>
           </div>
-          <div class="brand-subtitle" data-i18n="system_subtitle">Community Cultural & Exhibition Gathering</div>
+          <div class="brand-subtitle" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
+            Smart Crowd Management System
+          </div>
         </div>
       </a>
 
       <!-- Public Navigation Menu (Clean & Visitor-Focused) -->
-      <nav class="header-actions" aria-label="Main Navigation">
-        <a href="index.html" class="nav-link" data-i18n="nav_home">Home</a>
-        <a href="index.html#registrationSection" class="nav-link" data-i18n="nav_register">Register</a>
-        <a href="check_registration.html" class="nav-link" data-i18n="nav_check_pass">Check My Pass</a>
-        <a href="venue_info.html" class="nav-link" data-i18n="nav_venue_info">Venue &amp; Guidelines</a>
-        <a href="help_contact.html" class="nav-link" data-i18n="nav_help">Help &amp; Safety</a>
+      <nav class="header-actions" aria-label="Main Navigation"
+        style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
 
-        <!-- Authenticated Staff Controls (Only visible when staff is logged in) -->
-        
+        <!-- Always Visible Links -->
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#registrationSection" class="nav-link">Register</a>
+        <a href="index.html#checkPassSection" class="nav-link">Check My Pass</a>
 
-        <!-- Language Switcher -->
-        <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Hindi / English">
-          🌐 <span id="langBtnText">हिंदी में बदलें</span>
-        </button>
+        <!-- Admin Toggleable Public Links (Hidden by default, shown via Admin Toggle) -->
+        <span id="adminToggleNavLinks" class="admin-toggle-nav"
+          style="display: none; align-items: center; gap: 0.75rem;">
+          <a href="venue_info.html" class="nav-link">Venue &amp; Gates</a>
+          <a href="help_contact.html" class="nav-link">Help &amp; Safety</a>
+        </span>
+
+        <!-- Authenticated Staff Controls (Shown only if logged in) -->
+        <span id="authStaffNav" style="display: none; align-items: center; gap: 0.65rem;">
+          <a href="admin.html" id="navAdminDashboardLink" class="nav-link"
+            style="display: none; color: var(--teal); font-weight: 700;">⚙️ Dashboard</a>
+          <a href="verify_terminal.html" id="navGuardScannerLink" class="nav-link"
+            style="display: none; color: #60A5FA; font-weight: 700;">🛡️ Scanner</a>
+          <a href="#" onclick="handleStaffLogout(event)" class="nav-link"
+            style="color: var(--red); font-size: 0.8rem;">Logout</a>
+        </span>
+
+        <!-- Hindi Language Switcher (Hidden by default, toggleable by Admin) -->
+        <span id="adminToggleHindi" class="admin-toggle-nav" style="display: none;">
+          <button id="langToggleBtn" class="lang-toggle-btn" onclick="toggleLanguage()" title="Switch Language"
+            style="font-size: 0.76rem; padding: 0.3rem 0.65rem;">
+            🌐 <span id="langBtnText">हिंदी</span>
+          </button>
+        </span>
+
       </nav>
     </div>
   </header>
 
   <!-- ═══════════════════════ FLASH NOTIFICATIONS ═══════════════════════ -->
   
-    
+  
   
 
   <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
-  <main class="main-wrapper">
+  <main class="main-wrapper" style="min-height: calc(100vh - 220px);">
     
-<div class="pass-container">
+<div class="pass-container" style="max-width: 760px; margin: 1.5rem auto 4rem; padding: 0 1rem;">
 
   <!-- Action Bar -->
   <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
-    <a href="index.html" class="btn btn-outline">
-      ← <span data-i18n="pass_new_btn">Register Another</span>
+    <a href="index.html" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.85rem;">
+      ← Register Another Pass
     </a>
-    <div style="display: flex; gap: 0.75rem;">
-      <button onclick="window.print()" class="btn btn-navy">
-        <span>🖨️</span>
-        <span data-i18n="pass_print_btn">Print / Save PDF</span>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button type="button" onclick="downloadPassAsPng()" class="btn btn-primary" style="font-size: 0.82rem; padding: 0.45rem 0.95rem; font-weight: 700;">
+        <span>📱</span> Download Pass (PNG)
+      </button>
+      <button type="button" onclick="window.print()" class="btn btn-navy" style="font-size: 0.82rem; padding: 0.45rem 0.95rem;">
+        <span>🖨️</span> Print / Save PDF
       </button>
     </div>
   </div>
 
-  <!-- ═══════════════════════ PASS CARD ═══════════════════════ -->
-  <div class="pass-card" id="printablePass">
+  <!-- ══════════════════ OFFICIAL DIGITAL ID CARD ══════════════════ -->
+  <div id="visitorIdCardBox" class="card" style="background: linear-gradient(145deg, #0A1C35, #040D18); border: 2px solid rgba(0,255,198,0.35); border-radius: var(--radius-lg); box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 30px rgba(0,255,198,0.12); overflow: hidden; position: relative;">
+    
+    <!-- Top Stripe -->
+    <div style="background: linear-gradient(90deg, #00FFC6, #3B82F6, #A855F7, #00FFC6); height: 6px; width: 100%;"></div>
 
-    <!-- Security Header -->
-    <div class="pass-security-header">
-      <div>
-        <span class="badge badge-pill" data-i18n="pass_verified_pill">CRYPTOGRAPHICALLY VERIFIED</span>
-        <div style="font-size: 1.25rem; font-weight: 800; margin-top: 0.5rem; letter-spacing: -0.01em; color: var(--text-primary);">
-          VENUE SMART ENTRY PASS
+    <!-- Header -->
+    <div style="padding: 1.15rem 1.35rem; background: rgba(0,0,0,0.35); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 42px; height: 42px; background: rgba(0,255,198,0.12); border: 1.5px solid rgba(0,255,198,0.3); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+          🏛️
         </div>
-        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem;">Single Entry Gate Clearance · HMAC-SHA256 Secured</div>
+        <div>
+          <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--teal); font-weight: 800; display: block;">
+            OFFICIAL DIGITAL VISITOR ID PASS
+          </span>
+          <h2 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 0.1rem 0 0;">
+            Community Cultural & Exhibition Gathering
+          </h2>
+          <span style="font-size: 0.74rem; color: var(--text-muted);">
+            City Grand Grounds & Exhibition Center
+          </span>
+        </div>
       </div>
+
       <div style="text-align: right;">
-        <div style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.3rem;">PASS CODE</div>
-        <div class="pass-reg_code mono-font">DEMO-SAMPLE-8899</div>
-      </div>
-    </div>
-
-    <!-- Pass Body -->
-    <div class="pass-body">
-
-      <!-- Left: Details -->
-      <div>
-
-        <!-- Gate Banner -->
-        <div class="gate-banner gate-theme-border theme-exit_a">
-          <div class="gate-icon-box gate-theme-bg" style="color: #040D18;">🚪</div>
-          <div class="gate-info">
-            <span class="gate-theme-color" style="font-size: 0.68rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em;">
-              SMART CROWD SPLIT · Group A
-            </span>
-            <h4>Exit Gate A (North Promenade)</h4>
-            <p>North Exit towards Main Boulevard & North Transit Plaza</p>
-          </div>
-        </div>
-
-        <!-- Visitor Details Table -->
-        <table class="pass-details-table">
-          <tbody>
-            <tr>
-              <th data-i18n="pass_primary_person">Primary Visitor</th>
-              <td>Demo Visitor</td>
-            </tr>
-            <tr>
-              <th data-i18n="pass_phone">Mobile</th>
-              <td class="mono-font">9876543210</td>
-            </tr>
-            <tr>
-              <th data-i18n="pass_age">Age</th>
-              <td>30 yrs</td>
-            </tr>
-            <tr>
-              <th data-i18n="pass_total_count">Group Count</th>
-              <td>
-                <span class="badge badge-teal" style="font-size: 0.85rem; padding: 0.25rem 0.7rem;">
-                  2 Persons
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <th data-i18n="pass_address">Address</th>
-              <td style="font-size: 0.85rem; color: var(--text-secondary);">123 Venue Boulevard, Central City</td>
-            </tr>
-            <tr>
-              <th data-i18n="pass_timestamp">Issued At</th>
-              <td class="mono-font" style="font-size: 0.8rem; color: var(--text-muted);">2026-10-18 20:00:00</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Group Members -->
-        <div style="margin-top: 1.5rem;">
-          <h5 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.65rem; font-weight: 700;">
-            <span data-i18n="pass_members_list">Group Members</span> (1)
-          </h5>
-
-          
-            <div style="border: 1px solid var(--glass-border); border-radius: var(--radius-md); overflow: hidden;">
-              <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
-                <thead>
-                  <tr style="background: rgba(255,255,255,0.04);">
-                    <th style="padding: 0.45rem 0.75rem; text-align: left; color: var(--text-muted); font-weight: 700; font-size: 0.72rem; text-transform: uppercase;">#</th>
-                    <th style="padding: 0.45rem 0.75rem; text-align: left; color: var(--text-muted); font-weight: 700; font-size: 0.72rem; text-transform: uppercase;">Name</th>
-                    <th style="padding: 0.45rem 0.75rem; text-align: left; color: var(--text-muted); font-weight: 700; font-size: 0.72rem; text-transform: uppercase;">Age</th>
-                    <th style="padding: 0.45rem 0.75rem; text-align: left; color: var(--text-muted); font-weight: 700; font-size: 0.72rem; text-transform: uppercase;">Mobile</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  
-                    <tr style="border-top: 1px solid rgba(255,255,255,0.04);">
-                      <td style="padding: 0.45rem 0.75rem; color: var(--text-muted);">1</td>
-                      <td style="padding: 0.45rem 0.75rem; font-weight: 600;">Accompanying Guest</td>
-                      <td style="padding: 0.45rem 0.75rem;">28y</td>
-                      <td style="padding: 0.45rem 0.75rem;" class="mono-font">9876543211</td>
-                    </tr>
-                  
-                </tbody>
-              </table>
-            </div>
-          
-        </div>
-
-      </div>
-
-      <!-- Right: QR Code -->
-      <div style="display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem;">
-        <div class="pass-qr-box">
-          <div class="qr-wrapper">
-            <div class="qr-loading" id="qrLoader">
-              <div style="text-align: center;">
-                <div class="spinner" style="margin: 0 auto 0.5rem;"></div>
-                <div style="font-size: 0.72rem;">Generating QR…</div>
-              </div>
-            </div>
-            <img id="qrImage" class="qr-image" src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&format=png&ecc=M&data=https://ritesh926306-rgb.github.io/crowd-management-v2/verify.html?code=DEMO-SAMPLE-8899" alt="QR Code" style="display:none;"
-              onload="this.style.display='block'; document.getElementById('qrLoader').style.display='none';"
-              onerror="document.getElementById('qrLoader').innerHTML='<div style=\'font-size:0.72rem;color:var(--red)\'>QR unavailable offline</div>';">
-          </div>
-          <div class="qr-caption" data-i18n="pass_scan_notice">
-            Show this QR to the security guard at the entrance gate.
-          </div>
-          <div style="margin-top: 0.5rem; font-size: 0.74rem; color: var(--teal); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-            <span>🛡️</span> Guard Portal Verification Only
-          </div>
-          <div style="font-size: 0.69rem; color: var(--text-muted); margin-top: 0.25rem;">
-            Third-party apps cannot verify this pass. Validated strictly by official security guards.
-          </div>
-          <div style="margin-top: 0.6rem;" class="no-print">
-            <a href="verify.html?code=DEMO-SAMPLE-8899" target="_blank"
-              style="font-size: 0.72rem; color: var(--teal); text-decoration: underline; opacity: 0.85;">
-              Guard Terminal Verification Link →
-            </a>
-          </div>
-        </div>
-
-        <!-- Security note -->
-        <div style="padding: 0.85rem; background: rgba(123,47,190,0.07); border-radius: var(--radius-md); border: 1px solid rgba(123,47,190,0.2); font-size: 0.76rem; color: var(--text-secondary); line-height: 1.5;">
-          <strong style="color: var(--text-primary);">🔐 Cryptographic Security</strong><br>
-          Pass is signed via HMAC-SHA256. Screenshots with altered details will fail verification.
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ── SVG Route Map ── -->
-    <div style="padding: 0 2rem 1.5rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-        <span style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;">
-          📍 Your Assigned Exit Route
+        <span class="badge badge-teal" style="font-size: 0.76rem; font-weight: 800; padding: 0.3rem 0.75rem;">
+          ✅ CRYPTOGRAPHICALLY VERIFIED
         </span>
-        <span class="badge badge-teal">Capacity-Balanced</span>
-      </div>
-
-      <div class="map-svg-container">
-        <svg viewBox="0 0 700 360" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#030C18"/>
-              <stop offset="100%" stop-color="#071428"/>
-            </linearGradient>
-            <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3.5" result="blur"/>
-              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-            </filter>
-            <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="2" result="blur"/>
-              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-            </filter>
-          </defs>
-
-          <!-- Background -->
-          <rect width="700" height="360" fill="url(#bgGrad)" rx="0"/>
-
-          <!-- Grid -->
-          <g stroke="rgba(255,255,255,0.04)" stroke-width="1">
-            <line x1="50" y1="0" x2="50" y2="360"/><line x1="150" y1="0" x2="150" y2="360"/>
-            <line x1="250" y1="0" x2="250" y2="360"/><line x1="350" y1="0" x2="350" y2="360"/>
-            <line x1="450" y1="0" x2="450" y2="360"/><line x1="550" y1="0" x2="550" y2="360"/>
-            <line x1="650" y1="0" x2="650" y2="360"/>
-            <line x1="0" y1="60" x2="700" y2="60"/><line x1="0" y1="120" x2="700" y2="120"/>
-            <line x1="0" y1="180" x2="700" y2="180"/><line x1="0" y1="240" x2="700" y2="240"/>
-            <line x1="0" y1="300" x2="700" y2="300"/>
-          </g>
-
-          <!-- Central Atrium -->
-          <rect x="230" y="100" width="240" height="130" rx="10" fill="rgba(0,255,198,0.04)" stroke="rgba(0,255,198,0.15)" stroke-width="1.5"/>
-          <text x="350" y="157" fill="rgba(255,255,255,0.85)" font-size="13" font-weight="700" text-anchor="middle">CENTRAL ATRIUM</text>
-          <text x="350" y="176" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="middle">Assembly · Stage · Sanctum</text>
-
-          <!-- Gate 5 — Hidden -->
-          <g transform="translate(555, 18)">
-            <rect x="0" y="0" width="130" height="44" rx="6" fill="rgba(245,158,11,0.08)" stroke="#F59E0B" stroke-dasharray="4,3" stroke-width="1.5"/>
-            <text x="65" y="18" fill="#FCD34D" font-size="10" font-weight="700" text-anchor="middle">GATE 5 (RESTRICTED)</text>
-            <text x="65" y="33" fill="rgba(252,211,77,0.65)" font-size="8.5" text-anchor="middle">Staff &amp; Emergency Only</text>
-          </g>
-          <path d="M 470 140 L 558 44" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,4" fill="none" opacity="0.5"/>
-
-          <!-- EXIT 1 (WEST) -->
-          <g transform="translate(20, 138)">
-            <rect x="0" y="0" width="130" height="50" rx="8"
-              fill="rgba(255,255,255,0.04)"
-              stroke="rgba(255,255,255,0.1)"
-              stroke-width="1"/>
-            <text x="65" y="23" fill="rgba(255,255,255,0.55)" font-size="11.5" font-weight="700" text-anchor="middle">EXIT 1 (WEST)</text>
-            <text x="65" y="38" fill="rgba(255,255,255,0.3)" font-size="9" text-anchor="middle">Group A · Transit Hub</text>
-            
-          </g>
-
-          <!-- EXIT 2 (NORTH) -->
-          <g transform="translate(285, 15)">
-            <rect x="0" y="0" width="130" height="50" rx="8"
-              fill="rgba(255,255,255,0.04)"
-              stroke="rgba(255,255,255,0.1)"
-              stroke-width="1"/>
-            <text x="65" y="23" fill="rgba(255,255,255,0.55)" font-size="11.5" font-weight="700" text-anchor="middle">EXIT 2 (NORTH)</text>
-            <text x="65" y="38" fill="rgba(255,255,255,0.3)" font-size="9" text-anchor="middle">Group B · Highway</text>
-          </g>
-
-          <!-- EXIT 3 (EAST) -->
-          <g transform="translate(550, 138)">
-            <rect x="0" y="0" width="130" height="50" rx="8"
-              fill="rgba(255,255,255,0.04)"
-              stroke="rgba(255,255,255,0.1)"
-              stroke-width="1"/>
-            <text x="65" y="23" fill="rgba(255,255,255,0.55)" font-size="11.5" font-weight="700" text-anchor="middle">EXIT 3 (EAST)</text>
-            <text x="65" y="38" fill="rgba(255,255,255,0.3)" font-size="9" text-anchor="middle">Group C · Metro Plaza</text>
-          </g>
-
-          <!-- EXIT 4 (SOUTH) -->
-          <g transform="translate(510, 295)">
-            <rect x="0" y="0" width="130" height="46" rx="8"
-              fill="rgba(255,255,255,0.04)"
-              stroke="rgba(255,255,255,0.1)"
-              stroke-width="1"/>
-            <text x="65" y="21" fill="rgba(255,255,255,0.55)" font-size="11.5" font-weight="700" text-anchor="middle">EXIT 4 (SOUTH)</text>
-            <text x="65" y="36" fill="rgba(255,255,255,0.3)" font-size="9" text-anchor="middle">Group D · Taxi Stand</text>
-          </g>
-
-          <!-- ENTRY GATE -->
-          <g transform="translate(272, 290)">
-            <rect x="0" y="0" width="155" height="48" rx="8" fill="rgba(0,255,198,0.15)" stroke="#00FFC6" stroke-width="2"/>
-            <text x="77" y="20" fill="#00FFC6" font-size="11.5" font-weight="800" text-anchor="middle">🚪 ENTRY GATE</text>
-            <text x="77" y="35" fill="rgba(0,255,198,0.7)" font-size="8.5" font-weight="600" text-anchor="middle">QR Checkpoint (You are here)</text>
-          </g>
-
-          <!-- Entry corridor -->
-          <line x1="350" y1="290" x2="350" y2="230" stroke="rgba(0,255,198,0.3)" stroke-width="2" stroke-dasharray="5,4"/>
-
-          <!-- Dynamic route path -->
-          
-        </svg>
+        <div style="font-size: 0.68rem; color: var(--teal); margin-top: 0.2rem;">HMAC-SHA256 SIGNED</div>
       </div>
     </div>
 
-    <!-- HMAC Footer -->
-    <div class="pass-security-footer">
+    <!-- Card Body -->
+    <div style="padding: 1.5rem 1.35rem; display: grid; grid-template-columns: 1fr auto; gap: 1.25rem; align-items: center;">
+      
+      <!-- Visitor Details -->
       <div>
-        <strong data-i18n="pass_hmac_hash">HMAC Signature:</strong>
-        <span class="hmac-hash">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+        <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700;">VISITOR NAME</span>
+        <h1 id="passName" style="font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0.1rem 0 0.4rem;">
+          Demo Visitor
+        </h1>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+          <div style="background: rgba(0,255,198,0.08); border: 1px solid rgba(0,255,198,0.25); border-radius: 6px; padding: 0.25rem 0.65rem; font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--teal);">
+            ID: <span id="passVisId">VG-VIS-88990</span>
+          </div>
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 6px; padding: 0.25rem 0.65rem; font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary);">
+            REF: <span id="passCode">DEMO-SAMPLE-8899</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.65rem; background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem; font-size: 0.82rem;">
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; display: block;">GROUP SIZE</span>
+            <strong id="passGroup">2 Persons</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; display: block;">AGE</span>
+            <strong id="passAge">30 Yrs</strong>
+          </div>
+        </div>
+
+        <div style="background: rgba(0,173,181,0.08); border-left: 3px solid var(--teal); border-radius: 4px; padding: 0.65rem 0.85rem;">
+          <span style="font-size: 0.65rem; text-transform: uppercase; color: var(--teal); font-weight: 800; display: block;">
+            ASSIGNED EXIT CORRIDOR
+          </span>
+          <strong id="passGate" style="font-size: 0.95rem; color: #fff;">Exit Gate A (North Promenade)</strong>
+        </div>
       </div>
-      <div style="color: var(--teal); font-weight: 700; font-size: 0.7rem;">
-        🔐 SHA256 ENCRYPTED
+
+      <!-- QR Code -->
+      <div style="text-align: center; background: #fff; padding: 0.65rem; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.35);">
+        <div id="passQrWrapper" style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center;">
+          
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&format=png&ecc=M&data=https://ritesh926306-rgb.github.io/crowd-management-v2/verify.html?code=DEMO-SAMPLE-8899" id="serverQrImg" style="width: 150px; height: 150px; display: block;" alt="Pass QR Code">
+          
+        </div>
+        <span style="font-size: 0.65rem; color: #000; font-weight: 800; display: block; margin-top: 0.25rem;">SCAN AT GATE 1</span>
+      </div>
+
+    </div>
+
+    <!-- Members -->
+    
+    <div style="padding: 0.75rem 1.35rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--glass-border); font-size: 0.8rem;">
+      <span style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 0.35rem;">
+        Accompanying Members (1):
+      </span>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+        
+        <span style="background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); border-radius: 999px; padding: 0.15rem 0.55rem; color: #fff;">
+          👤 Accompanying Guest (28y)
+        </span>
+        
       </div>
     </div>
+    
 
   </div>
+
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code');
+    if (codeParam && window.staticLookupPass) {
+      const passes = JSON.parse(localStorage.getItem('vg_passes') || '[]');
+      const clean = codeParam.toUpperCase();
+      const found = passes.find(p => p.reg_code === clean || p.visitor_id === clean);
+      if (found) {
+        document.getElementById('passName').textContent = found.primary_name;
+        document.getElementById('passVisId').textContent = found.visitor_id || found.reg_code;
+        document.getElementById('passCode').textContent = found.reg_code;
+        document.getElementById('passGroup').textContent = `${found.group_count} Person(s)`;
+        document.getElementById('passAge').textContent = `${found.age} Yrs`;
+        document.getElementById('passGate').textContent = found.assigned_gate || 'Exit Gate A';
+        drawCanvasQrCode(found.reg_code);
+      }
+    } else {
+      const code = document.getElementById('passCode')?.textContent || 'REG-SAMPLE';
+      drawCanvasQrCode(code);
+    }
+  });
+
+  function drawCanvasQrCode(code) {
+    const canvas = document.getElementById('passCanvasQr');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const size = 150;
+    canvas.width = size;
+    canvas.height = size;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000000';
+
+    drawFinderBox(ctx, 10, 10, 36);
+    drawFinderBox(ctx, size - 46, 10, 36);
+    drawFinderBox(ctx, 10, size - 46, 36);
+
+    let h = 0;
+    for (let i = 0; i < code.length; i++) h = ((h << 5) - h) + code.charCodeAt(i);
+
+    const cell = 7;
+    for (let x = 7; x < size - 7; x += cell) {
+      for (let y = 7; y < size - 7; y += cell) {
+        if ((x < 50 && y < 50) || (x > size - 55 && y < 50) || (x < 50 && y > size - 55)) continue;
+        const seed = Math.sin(h + x * 9 + y * 13) * 10000;
+        if ((seed - Math.floor(seed)) > 0.45) {
+          ctx.fillRect(x, y, cell - 1, cell - 1);
+        }
+      }
+    }
+  }
+
+  function drawFinderBox(ctx, x, y, s) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x, y, s, s);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 5, y + 5, s - 10, s - 10);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + 10, y + 10, s - 20, s - 20);
+  }
+
+  function downloadPassAsPng() {
+    const name = document.getElementById('passName')?.textContent || 'Visitor';
+    const visId = document.getElementById('passVisId')?.textContent || 'VG-VIS';
+    const regCode = document.getElementById('passCode')?.textContent || 'REG';
+    const gate = document.getElementById('passGate')?.textContent || 'Exit Gate A';
+    const group = document.getElementById('passGroup')?.textContent || '1 Person';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 620;
+    canvas.height = 360;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createLinearGradient(0, 0, 620, 360);
+    grad.addColorStop(0, '#0A1C35');
+    grad.addColorStop(1, '#040D18');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 620, 360);
+
+    ctx.strokeStyle = '#00FFC6';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, 616, 356);
+
+    ctx.fillStyle = '#00FFC6';
+    ctx.fillRect(0, 0, 620, 8);
+
+    ctx.fillStyle = '#00FFC6';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('VENUEGUARD OFFICIAL DIGITAL PASS', 30, 42);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(name, 30, 82);
+
+    ctx.fillStyle = '#94A8C5';
+    ctx.font = '14px monospace';
+    ctx.fillText(`ID: ${visId}  |  REF: ${regCode}`, 30, 118);
+
+    ctx.font = '13px sans-serif';
+    ctx.fillText(`Group Size: ${group}`, 30, 158);
+    ctx.fillText(`Assigned Exit: ${gate}`, 30, 188);
+
+    const qr = document.getElementById('serverQrImg') || document.getElementById('passCanvasQr');
+    if (qr) {
+      try {
+        ctx.drawImage(qr, 430, 50, 150, 150);
+      } catch (e) {}
+    }
+
+    const a = document.createElement('a');
+    a.download = `Visitor_Pass_${visId}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }
+</script>
 
   </main>
 
-  <!-- ═══════════════════════ PROFESSIONAL VISITOR FOOTER ═══════════════════════ -->
-  <footer class="app-footer no-print" style="background: rgba(4,13,24,0.96); border-top: 1px solid var(--glass-border); padding: 3rem 1.5rem 1.75rem; margin-top: 4rem;">
-    <div style="max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2.25rem; margin-bottom: 2.5rem;">
-      <!-- Brand & Mission -->
-      <div>
-        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem;">
-          <span style="font-size: 1.6rem;">🛡️</span>
-          <strong style="font-size: 1.15rem; color: var(--text-primary); letter-spacing: -0.01em;">VenueGuard</strong>
+  <!-- ═══════════════════════ CLEAN VISITOR FOOTER ═══════════════════════ -->
+  <footer class="app-footer no-print"
+    style="background: rgba(4,13,24,0.98); border-top: 1px solid var(--glass-border); padding: 2.25rem 1.25rem 1.5rem; margin-top: 3.5rem;">
+    <div style="max-width: 1100px; margin: 0 auto;">
+
+      <!-- Optional Extra Footer Links (Hidden by default, toggleable by Admin) -->
+      <div id="adminToggleFooterLinks" class="admin-toggle-section"
+        style="display: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+          <div>
+            <h4
+              style="font-size: 0.8rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.65rem;">
+              Navigation</h4>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.8rem; line-height: 2;">
+              <li><a href="index.html" style="color: var(--text-secondary); text-decoration: none;">Home</a>
+              </li>
+              <li><a href="venue_info.html"
+                  style="color: var(--text-secondary); text-decoration: none;">Venue Information</a></li>
+              <li><a href="help_contact.html" style="color: var(--text-secondary); text-decoration: none;">Help
+                  &amp; First Aid</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4
+              style="font-size: 0.8rem; text-transform: uppercase; color: var(--teal); font-weight: 700; margin-bottom: 0.65rem;">
+              Visitor Safety</h4>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.8rem; line-height: 2;">
+              <li><a href="help_contact.html#emergency"
+                  style="color: var(--text-secondary); text-decoration: none;">Emergency Protocols</a></li>
+              <li><a href="help_contact.html#lostfound"
+                  style="color: var(--text-secondary); text-decoration: none;">Lost &amp; Found Assistance</a></li>
+            </ul>
+          </div>
         </div>
-        <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
-          Smart crowd safety and digital event entry management. Designed to ensure safe, transparent, and seamless entry for all visitors.
-        </p>
-        <div style="font-size: 0.78rem; color: var(--text-secondary);">
-          📍 City Grand Grounds & Exhibition Center
+      </div>
+
+      <!-- Main Footer Bar -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--text-muted);">
+        <div>
+          &copy; 2026
+          <strong>VenueGuard</strong>. Smart Crowd Control Management System.
         </div>
-      </div>
 
-      <!-- Quick Visitor Links -->
-      <div>
-        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
-          Visitor Services
-        </h4>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
-          <li><a href="index.html" style="color: var(--text-secondary); text-decoration: none;">🏠 Official Home</a></li>
-          <li><a href="index.html#registrationSection" style="color: var(--text-secondary); text-decoration: none;">📝 Register Entry Pass</a></li>
-          <li><a href="check_registration.html" style="color: var(--text-secondary); text-decoration: none;">🔍 Check My Pass Status</a></li>
-          <li><a href="venue_info.html" style="color: var(--text-secondary); text-decoration: none;">🗺️ Venue Map &amp; Gates</a></li>
-          <li><a href="help_contact.html" style="color: var(--text-secondary); text-decoration: none;">ℹ️ Help Desk &amp; Guidelines</a></li>
-        </ul>
-      </div>
-
-      <!-- Safety & Support -->
-      <div>
-        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 1rem; font-weight: 700;">
-          Safety &amp; Support
-        </h4>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.84rem; line-height: 2.1;">
-          <li><a href="help_contact.html#emergency" style="color: var(--text-secondary); text-decoration: none;">🚑 First Aid &amp; Medical</a></li>
-          <li><a href="help_contact.html#lostfound" style="color: var(--text-secondary); text-decoration: none;">🎒 Lost &amp; Found Desk</a></li>
-          <li><a href="venue_info.html#parking" style="color: var(--text-secondary); text-decoration: none;">🚗 Parking Information</a></li>
-          <li><a href="help_contact.html#faq" style="color: var(--text-secondary); text-decoration: none;">❓ Frequently Asked Questions</a></li>
-        </ul>
-      </div>
-
-      <!-- Authorized Staff Access (Discrete) -->
-      <div>
-        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.45); margin-bottom: 1rem; font-weight: 700;">
-          Staff Portals
-        </h4>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.5;">
-          Restricted access for on-duty security guards and event administrators only.
-        </p>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <a href="guard_login.html" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
-            🛡️ Security Guard Login
+        <!-- Discrete Staff Portals Links (For authorized staff only) -->
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <a href="guard_login.html"
+            style="color: var(--text-muted); text-decoration: none; font-size: 0.76rem; border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.6rem; border-radius: 4px;">
+            🛡️ Guard Terminal
           </a>
-          <a href="login.html" class="btn btn-navy" style="font-size: 0.78rem; padding: 0.4rem 0.8rem; justify-content: center;">
-            ⚙️ Admin Command Center
+          <a href="login.html"
+            style="color: var(--text-muted); text-decoration: none; font-size: 0.76rem; border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.6rem; border-radius: 4px;">
+            ⚙️ Admin Portal
           </a>
         </div>
       </div>
-    </div>
 
-    <!-- Bottom Legal Bar -->
-    <div style="max-width: 1180px; margin: 0 auto; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--text-muted);">
-      <div>
-        &copy; 2026 VenueGuard. All rights reserved. &bull; Official Crowd Safety Platform.
-      </div>
-      <div style="display: flex; gap: 1.25rem;">
-        <a href="#privacyModal" onclick="openModal('privacyModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Privacy Policy</a>
-        <span>&bull;</span>
-        <a href="#termsModal" onclick="openModal('termsModal'); return false;" style="color: var(--text-muted); text-decoration: none;">Terms of Entry</a>
-      </div>
     </div>
   </footer>
 
-  <!-- ═══════════════════════ PRIVACY POLICY MODAL ═══════════════════════ -->
-  <div id="privacyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
-    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
-      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">🛡️ Privacy &amp; Data Protection</h3>
-      <p>VenueGuard collects visitor name, age, mobile number, and address strictly for authorized venue entry verification, emergency communication, and event safety management.</p>
-      <p style="margin-top:0.75rem;">Your data is cryptographically protected and never sold or shared with commercial third parties. Digital passes mask personal phone numbers and private addresses on public views.</p>
-      <button onclick="closeModal('privacyModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">Close</button>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════ TERMS MODAL ═══════════════════════ -->
-  <div id="termsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:1.5rem;">
-    <div style="background:#0F172A; border:1px solid var(--teal); border-radius:12px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto; padding:1.75rem; color:var(--text-secondary); font-size:0.86rem; line-height:1.6;">
-      <h3 style="color:#fff; margin-bottom:1rem; font-size:1.15rem;">📋 Venue Entry Terms &amp; Conditions</h3>
-      <ul style="padding-left:1.25rem; margin-top:0.5rem; line-height:1.7;">
-        <li>Each digital pass is valid only for the registered group size and assigned date.</li>
-        <li>Passes must be presented to official security guards at designated entry points.</li>
-        <li>Pass duplication or unauthorized sharing is strictly prohibited under anti-passback security protocols.</li>
-        <li>Visitors must adhere to assigned exit routes and follow safety directions issued by event security.</li>
-      </ul>
-      <button onclick="closeModal('termsModal')" class="btn btn-primary" style="margin-top:1.25rem; width:100%;">I Understand &amp; Agree</button>
-    </div>
-  </div>
-
-  <script>
-    function openModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'flex';
-    }
-    function closeModal(id) {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    }
-  </script>
-
-  <!-- ═══════════════════════ I18N DICTIONARY ═══════════════════════ -->
-  <script>
-    const translations = {
-      en: {
-        system_subtitle: "Smart Entry · Crowd Safety · Anti-Fraud",
-        lang_btn: "हिंदी में बदलें",
-        nav_home: "Home",
-        nav_register: "Register",
-        nav_check_pass: "Check My Pass",
-        nav_venue_info: "Venue & Guidelines",
-        nav_help: "Help & Safety",
-        form_title: "Venue Entry Pass Registration",
-        form_subtitle: "Fill in your details to receive an official digital entry pass with smart exit gate routing.",
-        sec_primary: "Primary Visitor Details",
-        name_label: "Full Name",
-        name_placeholder: "e.g., Rajesh Sharma",
-        phone_label: "Mobile (10 Digits)",
-        phone_placeholder: "e.g., 9876543210",
-        age_label: "Age",
-        age_placeholder: "e.g., 34",
-        address_label: "Common Home Address",
-        address_placeholder: "House No, Area, City, State, PIN",
-        sec_group: "Accompanying Family / Group Members",
-        sec_group_desc: "Add accompanying members. All will be issued under this single verified digital entry pass.",
-        btn_add_member: "+ Add Family / Group Member",
-        member_name_placeholder: "Member Full Name",
-        member_age_placeholder: "Age",
-        member_mobile_placeholder: "Mobile (Optional)",
-        btn_submit_pass: "Generate Official Entry Pass & Exit Route",
-        venue_summary_title: "Venue Architecture & Safe Routing",
-        entry_gate_desc: "Single check-in entrance with QR pass verification.",
-        exit_routing_desc: "Auto-allocated exit corridors to balance crowd flow.",
-        pass_title: "OFFICIAL DIGITAL ENTRY PASS",
-        pass_verified_pill: "CRYPTOGRAPHICALLY VERIFIED",
-        pass_reg_code: "Pass Code",
-        pass_assigned_exit: "ASSIGNED EXIT ROUTE",
-        pass_total_count: "Total Group Count",
-        pass_primary_person: "Primary Visitor",
-        pass_phone: "Mobile",
-        pass_age: "Age",
-        pass_address: "Address",
-        pass_members_list: "Group Members",
-        pass_no_members: "Solo Visitor",
-        pass_timestamp: "Issued At",
-        pass_print_btn: "Print / Save PDF",
-        pass_new_btn: "Register Another",
-        pass_scan_notice: "Show this QR code to the security guard at the entrance gate."
-      },
-      hi: {
-        system_subtitle: "स्मार्ट प्रवेश · भीड़ सुरक्षा · पारदर्शी प्रबंधन",
-        lang_btn: "Switch to English",
-        nav_home: "होम",
-        nav_register: "पंजीकरण",
-        nav_check_pass: "पास स्थिति जांचें",
-        nav_venue_info: "स्थल व दिशानिर्देश",
-        nav_help: "सहायता व सुरक्षा",
-        form_title: "आयोजन प्रवेश पास पंजीकरण",
-        form_subtitle: "डिजिटल प्रवेश पास और निकास गेट आवंटन के लिए विवरण भरें।",
-        sec_primary: "मुख्य आगंतुक का विवरण",
-        name_label: "पूरा नाम",
-        name_placeholder: "उदा. राजेश शर्मा",
-        phone_label: "मोबाइल (१० अंक)",
-        phone_placeholder: "उदा. 9876543210",
-        age_label: "आयु",
-        age_placeholder: "उदा. 34",
-        address_label: "सामान्य पता",
-        address_placeholder: "मकान नं., क्षेत्र, शहर, राज्य, पिन",
-        sec_group: "साथी परिवार / समूह सदस्य",
-        sec_group_desc: "साथ आने वाले सदस्यों को जोड़ें। सभी का एक ही आधिकारिक डिजिटल पास बनेगा।",
-        btn_add_member: "+ सदस्य जोड़ें",
-        member_name_placeholder: "सदस्य का पूरा नाम",
-        member_age_placeholder: "आयु",
-        member_mobile_placeholder: "मोबाइल (वैकल्पिक)",
-        btn_submit_pass: "प्रवेश पास और निकास मार्ग प्राप्त करें",
-        venue_summary_title: "स्थल व्यवस्था व सुरक्षित निकास",
-        entry_gate_desc: "मुख्य प्रवेश द्वार पर त्वरित क्यूआर सत्यापन।",
-        exit_routing_desc: "संतुलित निकास हेतु स्वचालित गेट आवंटन।",
-        pass_title: "आधिकारिक डिजिटल प्रवेश पास",
-        pass_verified_pill: "प्रमाणित डिजिटल पास",
-        pass_reg_code: "पास कोड",
-        pass_assigned_exit: "आवंटित निकास मार्ग",
-        pass_total_count: "कुल समूह संख्या",
-        pass_primary_person: "मुख्य आगंतुक",
-        pass_phone: "मोबाइल",
-        pass_age: "आयु",
-        pass_address: "पता",
-        pass_members_list: "साथ के सदस्य",
-        pass_no_members: "एकल आगंतुक",
-        pass_timestamp: "जारी होने का समय",
-        pass_print_btn: "प्रिंट / पीडीएफ सहेजें",
-        pass_new_btn: "नया पंजीकरण",
-        pass_scan_notice: "प्रवेश द्वार पर सुरक्षा कर्मी को यह क्यूआर कोड दिखाएं।"
-      }
-    };
-
-    let currentLang = localStorage.getItem('venue_lang') || 'en';
-
-    function setLanguage(lang) {
-      currentLang = lang;
-      localStorage.setItem('venue_lang', lang);
-      document.documentElement.lang = lang;
-      const langText = document.getElementById('langBtnText');
-      if (langText) langText.textContent = translations[lang].lang_btn;
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (translations[lang]?.[key]) el.textContent = translations[lang][key];
-      });
-      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
-        const key = el.getAttribute('data-i18n-ph');
-        if (translations[lang]?.[key]) el.placeholder = translations[lang][key];
-      });
-      const hiddenLang = document.getElementById('formLanguageChoice');
-      if (hiddenLang) hiddenLang.value = lang;
-    }
-
-    function toggleLanguage() {
-      setLanguage(currentLang === 'en' ? 'hi' : 'en');
-    }
-
-    document.addEventListener('DOMContentLoaded', () => setLanguage(currentLang));
-  </script>
-  
 </body>
+
 </html>
