@@ -395,6 +395,278 @@
     </div>
   </footer>
 
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- 🚨 CHANNEL 1: LIVE SOS EMERGENCY EVACUATION FULL-SCREEN OVERLAY      -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div id="emergencyEvacuationOverlay" class="no-print" style="display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(140, 0, 0, 0.96); backdrop-filter: blur(12px); overflow-y: auto; color: #fff; padding: 1.5rem 1rem; font-family: 'Inter', -apple-system, sans-serif; box-sizing: border-box;">
+    
+    <div style="max-width: 640px; margin: 0 auto; background: #110303; border: 3px solid #EF4444; border-radius: 16px; box-shadow: 0 0 50px rgba(239, 68, 68, 0.8), 0 20px 40px rgba(0,0,0,0.9); overflow: hidden; animation: sosPulse 1.2s infinite alternate;">
+      
+      <!-- Top Pulsing Hazard Banner -->
+      <div style="background: repeating-linear-gradient(45deg, #DC2626, #DC2626 15px, #991B1B 15px, #991B1B 30px); padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid rgba(255,255,255,0.2);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 1.8rem; animation: shakeSiren 0.6s infinite;">🚨</span>
+          <div>
+            <h2 style="margin: 0; font-size: 1.15rem; font-weight: 900; letter-spacing: 0.05em; color: #fff; text-transform: uppercase;">
+              EMERGENCY EVACUATION ALERT
+            </h2>
+            <span style="font-size: 0.75rem; color: #FEE2E2; font-weight: 600;">
+              आपातकालीन निकास सूचना • CROWD SAFETY ADVISORY
+            </span>
+          </div>
+        </div>
+        <button type="button" id="evacSirenToggleBtn" onclick="toggleEvacuationSiren()" style="background: rgba(0,0,0,0.5); border: 1.5px solid #fff; color: #fff; border-radius: 20px; padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+          <span id="evacSirenIcon">🔊</span> <span id="evacSirenText">Mute Siren</span>
+        </button>
+      </div>
+
+      <!-- Main Emergency Body -->
+      <div style="padding: 1.5rem 1.25rem; text-align: center;">
+
+        <!-- Danger Area Warning -->
+        <div style="background: rgba(220, 38, 38, 0.2); border: 1.5px solid #EF4444; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+          <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #FCA5A5; font-weight: 800; display: block; margin-bottom: 0.2rem;">
+            ⚠️ KHATRA / DANGER AREA (DO NOT ENTER):
+          </span>
+          <div id="evacDangerZoneDisplay" style="font-size: 1.2rem; font-weight: 800; color: #FFFFFF;">
+            Main Gate &amp; Entrance Corridor Overcrowded
+          </div>
+          <div id="evacReasonDisplay" style="font-size: 0.8rem; color: #FCA5A5; margin-top: 0.35rem;">
+            Heavy crowd buildup detected. Immediate evacuation in progress.
+          </div>
+        </div>
+
+        <!-- Safe Exit Box (KAHAN JANA HAI) -->
+        <div style="background: #064E3B; border: 3px solid #10B981; border-radius: 12px; padding: 1.25rem 1rem; box-shadow: 0 0 30px rgba(16, 185, 129, 0.35); margin-bottom: 1.25rem; text-align: center;">
+          <span style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.1em; color: #6EE7B7; font-weight: 800; display: block; margin-bottom: 0.35rem;">
+            ✅ KAHAN JANA HAI (PROCEED IMMEDIATELY TO):
+          </span>
+          <div id="evacSafeGateDisplay" style="font-size: 1.6rem; font-weight: 900; color: #FFFFFF; text-shadow: 0 2px 10px rgba(0,0,0,0.5); line-height: 1.25;">
+            👉 EXIT GATE 3 (NORTH OPEN GROUND) 👈
+          </div>
+        </div>
+
+        <!-- Route Guidance (KAISE JANA HAI) -->
+        <div style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 1rem 1.15rem; margin-bottom: 1.25rem; text-align: left;">
+          <h4 style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #FCD34D; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🚶</span> KAISE JANA HAI (EVACUATION ROUTE):
+          </h4>
+          <div id="evacRouteInstructions" style="font-size: 0.92rem; line-height: 1.55; color: #F3F4F6; font-weight: 500;">
+            Turn Left into North Corridor. Follow green emergency glow signs directly to Gate 3 open staging ground. Medical and rescue teams are deployed there.
+          </div>
+        </div>
+
+        <!-- Important Safety Dos & Don'ts -->
+        <div style="background: rgba(0, 0, 0, 0.4); border-left: 4px solid #F59E0B; padding: 0.75rem 1rem; border-radius: 6px; text-align: left; margin-bottom: 1.35rem; font-size: 0.8rem; line-height: 1.5; color: #E5E7EB;">
+          <strong style="color: #FBBF24; display: block; margin-bottom: 0.2rem;">🛡️ SHANTI AUR SURAKSHA PROTOCOL:</strong>
+          • Bhaagein nahi, dheere aur sambhal kar chalein (Do not run).<br>
+          • Bachhon aur buzurgo ko aage ya beech me rakhein.<br>
+          • Saaman ki chinta na karein, pehle surakshit bahar niklein.<br>
+          • On-site security guards ke isharon ka palan karein.
+        </div>
+
+        <!-- Emergency Helpdesk Call Buttons -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+          <a href="tel:112" style="background: #DC2626; color: #fff; padding: 0.75rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(220,38,38,0.4);">
+            📞 Call Police / SOS (112)
+          </a>
+          <a href="tel:108" style="background: #2563EB; color: #fff; padding: 0.75rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(37,99,235,0.4);">
+            🚑 Call Ambulance (108)
+          </a>
+        </div>
+
+        <!-- Dismiss / Minimize for Staff -->
+        <button type="button" onclick="minimizeEmergencyOverlay()" style="background: transparent; border: 1px solid rgba(255,255,255,0.25); color: #9CA3AF; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.74rem; cursor: pointer;">
+          Minimize Overlay (I have seen this)
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes sosPulse {
+      0% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.4); }
+      100% { box-shadow: 0 0 60px rgba(239, 68, 68, 0.9); }
+    }
+    @keyframes shakeSiren {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-12deg); }
+      75% { transform: rotate(12deg); }
+    }
+  </style>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- 🚨 CHANNEL 1: LIVE SIREN, VIBRATION & REAL-TIME POLL SCRIPT       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <script>
+    (function() {
+      // 1. Audio Siren Controller via Web Audio API
+      let audioCtx = null;
+      let osc = null;
+      let gainNode = null;
+      let sirenInterval = null;
+      let isSirenMuted = false;
+      let isEmergencyActive = false;
+
+      function startSirenAudio() {
+        if (isSirenMuted) return;
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          if (!osc) {
+            osc = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start();
+
+            let high = false;
+            sirenInterval = setInterval(() => {
+              if (osc && audioCtx) {
+                const targetFreq = high ? 650 : 980;
+                osc.frequency.linearRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.35);
+                high = !high;
+              }
+            }, 400);
+          }
+        } catch (e) {
+          console.log('[SOS Siren] Audio autoplay pending user gesture');
+        }
+      }
+
+      function stopSirenAudio() {
+        if (sirenInterval) {
+          clearInterval(sirenInterval);
+          sirenInterval = null;
+        }
+        if (osc) {
+          try {
+            osc.stop();
+            osc.disconnect();
+          } catch(e){}
+          osc = null;
+        }
+      }
+
+      function startVibration() {
+        if ('vibrate' in navigator) {
+          try {
+            navigator.vibrate([400, 200, 400, 200, 600, 300]);
+          } catch(e){}
+        }
+      }
+
+      window.toggleEvacuationSiren = function() {
+        isSirenMuted = !isSirenMuted;
+        const icon = document.getElementById('evacSirenIcon');
+        const text = document.getElementById('evacSirenText');
+        if (isSirenMuted) {
+          stopSirenAudio();
+          if (icon) icon.textContent = '🔇';
+          if (text) text.textContent = 'Unmute Siren';
+        } else {
+          startSirenAudio();
+          if (icon) icon.textContent = '🔊';
+          if (text) text.textContent = 'Mute Siren';
+        }
+      };
+
+      window.minimizeEmergencyOverlay = function() {
+        const overlay = document.getElementById('emergencyEvacuationOverlay');
+        if (overlay) overlay.style.display = 'none';
+        stopSirenAudio();
+      };
+
+      function renderEmergencyOverlay(data) {
+        const overlay = document.getElementById('emergencyEvacuationOverlay');
+        if (!overlay) return;
+
+        const dangerEl = document.getElementById('evacDangerZoneDisplay');
+        const safeEl = document.getElementById('evacSafeGateDisplay');
+        const routeEl = document.getElementById('evacRouteInstructions');
+        const reasonEl = document.getElementById('evacReasonDisplay');
+
+        if (dangerEl) dangerEl.textContent = data.danger_zone || 'Main Gate & Corridor Overcrowded';
+        if (safeEl) safeEl.textContent = `👉 ${data.safe_gate || 'EXIT GATE 3 (NORTH OPEN GROUND)'} 👈`;
+        if (routeEl) routeEl.textContent = data.route_instructions || 'Turn Left into North Corridor. Follow green emergency glow signs directly to Gate 3 open ground.';
+        if (reasonEl) reasonEl.textContent = data.reason || 'Heavy crowd buildup detected. Immediate evacuation in progress.';
+
+        overlay.style.display = 'block';
+        startSirenAudio();
+        startVibration();
+      }
+
+      function hideEmergencyOverlay() {
+        const overlay = document.getElementById('emergencyEvacuationOverlay');
+        if (overlay) overlay.style.display = 'none';
+        stopSirenAudio();
+      }
+
+      // Check emergency status periodically
+      function checkEmergencyStatus() {
+        // 1. Try static mode localStorage state first
+        if (typeof window.staticGetEmergencyState === 'function') {
+          const st = window.staticGetEmergencyState();
+          if (st && st.is_emergency) {
+            if (!isEmergencyActive) {
+              isEmergencyActive = true;
+              renderEmergencyOverlay(st);
+            }
+            return;
+          } else if (isEmergencyActive) {
+            isEmergencyActive = false;
+            hideEmergencyOverlay();
+            return;
+          }
+        }
+
+        // 2. Otherwise query backend API
+        fetch('/api/emergency/status')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.is_emergency) {
+              if (!isEmergencyActive) {
+                isEmergencyActive = true;
+                renderEmergencyOverlay(data);
+              }
+            } else if (isEmergencyActive) {
+              isEmergencyActive = false;
+              hideEmergencyOverlay();
+            }
+          })
+          .catch(() => {});
+      }
+
+      // Start periodic poller every 2.5 seconds
+      setInterval(checkEmergencyStatus, 2500);
+      setTimeout(checkEmergencyStatus, 800);
+
+      // Listen to cross-tab storage changes
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'vg_emergency_state') {
+          checkEmergencyStatus();
+        }
+      });
+      window.addEventListener('vg_emergency_changed', function() {
+        checkEmergencyStatus();
+      });
+
+      // User click anywhere on page allows Web Audio to play if blocked initially
+      document.addEventListener('click', function() {
+        if (isEmergencyActive && !isSirenMuted && !osc) {
+          startSirenAudio();
+        }
+      }, { once: true });
+    })();
+  </script>
+
 </body>
 
 </html>
