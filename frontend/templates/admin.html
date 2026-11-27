@@ -117,6 +117,9 @@
     <button type="button" class="nav-tab" onclick="switchAdminTab('tabGuards')" id="tabBtn_tabGuards">
       🛡️ Guard Security PIN
     </button>
+    <button type="button" class="nav-tab" onclick="switchAdminTab('tabEmergency')" id="tabBtn_tabEmergency" style="color: #F87171; font-weight: 800;">
+      🚨 Crowd Evacuation SOS
+    </button>
     <button type="button" class="nav-tab" onclick="switchAdminTab('tabAudit')" id="tabBtn_tabAudit">
       📋 Activity Log
     </button>
@@ -408,6 +411,107 @@
     </div>
   </div>
 
+  <!-- ══════════════════ TAB 6: 🚨 CROWD EVACUATION & SOS CONTROL ══════════════════ -->
+  <div id="tabEmergency" class="admin-tab-pane" style="display: none;">
+    <div class="card" style="max-width: 760px; padding: 1.75rem; border: 2px solid #EF4444; box-shadow: 0 0 35px rgba(239,68,68,0.2);">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div>
+          <h3 style="font-size: 1.35rem; font-weight: 900; color: #fff; margin: 0 0 0.25rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🚨</span> Crowd Evacuation &amp; Danger Zone SOS Control
+          </h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+            Broadcast instant evacuation instructions, safe exit routes, and sound alarms to every visitor's mobile screen.
+          </p>
+        </div>
+        <div id="adminEmergencyBadge" style="padding: 0.4rem 0.85rem; border-radius: 20px; font-size: 0.8rem; font-weight: 800; background: rgba(16,185,129,0.15); color: #10B981; border: 1.5px solid #10B981;">
+          🟢 NORMAL (No Active Emergency)
+        </div>
+      </div>
+
+      <!-- Live Broadcast Preview Box -->
+      <div id="adminLiveEmergencyPreview" style="display: none; background: rgba(220, 38, 38, 0.15); border: 1.5px solid #EF4444; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: #FCA5A5; font-weight: 800; margin-bottom: 0.35rem;">
+          ACTIVE EVACUATION IN PROGRESS:
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+          <div><strong style="color: #F87171;">Danger Area:</strong> <span id="adminPrevDanger">-</span></div>
+          <div><strong style="color: #34D399;">Safe Exit:</strong> <span id="adminPrevSafe">-</span></div>
+        </div>
+        <div style="margin-top: 0.5rem; font-size: 0.82rem; color: #E5E7EB;">
+          <strong>Route Given:</strong> <span id="adminPrevRoute">-</span>
+        </div>
+      </div>
+
+      <!-- Evacuation Setup Form -->
+      <form id="emergencyEvacForm" onsubmit="return handleActivateEmergency(event)">
+        
+        <!-- 1. Danger Zone Selection -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: #FCA5A5;">
+            ⚠️ Khatra / Danger Zone (Overcrowded Area)
+          </label>
+          <select id="emDangerZoneSelect" class="form-control" onchange="syncDangerZoneCustom(this.value)" style="margin-bottom: 0.5rem;">
+            <option value="Main Gate & Entrance Corridor (Gate 1)">Main Gate &amp; Entrance Corridor (Gate 1) - Overcrowded</option>
+            <option value="Sanctum Sanctorum & Main Central Hall">Sanctum Sanctorum &amp; Main Central Hall</option>
+            <option value="East Lawn & Food Court Promenade">East Lawn &amp; Food Court Promenade</option>
+            <option value="North Corridor & Hall B">North Corridor &amp; Hall B</option>
+            <option value="CUSTOM">-- Enter Custom Danger Area --</option>
+          </select>
+          <input type="text" id="emDangerZoneCustom" class="form-control" placeholder="Specify custom danger zone..." style="display: none;">
+        </div>
+
+        <!-- 2. Safe Exit Gate Selection -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: #6EE7B7;">
+            ✅ Kahan Jana Hai (Safe Exit Gate)
+          </label>
+          <select id="emSafeGateSelect" class="form-control" onchange="syncSafeGateCustom(this.value)" style="margin-bottom: 0.5rem;">
+            <option value="Exit Gate 3 (North Open Ground)">Exit Gate 3 (North Open Ground) - WIDE OPEN</option>
+            <option value="Exit Gate 2 (East Open Plaza)">Exit Gate 2 (East Open Plaza)</option>
+            <option value="Exit Gate 4 (West Ring Road)">Exit Gate 4 (West Ring Road)</option>
+            <option value="Exit Gate 1 (South Corridor)">Exit Gate 1 (South Corridor)</option>
+            <option value="CUSTOM">-- Enter Custom Safe Exit Gate --</option>
+          </select>
+          <input type="text" id="emSafeGateCustom" class="form-control" placeholder="Specify custom safe exit gate..." style="display: none;">
+        </div>
+
+        <!-- 3. Step-by-Step Route Directions -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: #FCD34D;">
+            🚶 Kaise Jana Hai (Step-by-Step Navigation Route)
+          </label>
+          <textarea id="emRouteInstructions" class="form-control" rows="3" style="font-size: 0.85rem; line-height: 1.5;">Turn Left immediately into North Corridor. Follow green emergency glow signs directly to Gate 3 open staging ground. Keep calm, do not run, and assist children and elderly.</textarea>
+        </div>
+
+        <!-- 4. Reason for Emergency -->
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label" style="font-size: 0.85rem; font-weight: 700;">
+            Reason for Advisory / Broadcast Note
+          </label>
+          <input type="text" id="emReasonInput" class="form-control" value="High Crowd Surge Detected - Precautionary Evacuation in Effect">
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button type="submit" class="btn" style="flex: 2; min-width: 240px; background: #DC2626; color: #fff; font-weight: 800; font-size: 0.9rem; padding: 0.75rem 1.25rem; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(220,38,38,0.4);">
+            🚨 BROADCAST EMERGENCY EVACUATION (ACTIVATE SOS)
+          </button>
+          
+          <button type="button" onclick="handleResolveEmergency()" class="btn" style="flex: 1; min-width: 180px; background: #10B981; color: #fff; font-weight: 800; font-size: 0.9rem; padding: 0.75rem 1.25rem; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+            ✅ RESOLVE &amp; CLEAR
+          </button>
+
+          <button type="button" onclick="testAdminSiren()" class="btn btn-outline" style="padding: 0.75rem 1rem; font-size: 0.85rem;">
+            🔊 Test Siren Audio
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
 </div>
 
 <!-- ══════════════════ EDIT VISITOR MODAL ══════════════════ -->
@@ -589,5 +693,159 @@
     closeEditModal();
     return false;
   }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     🚨 CHANNEL 1: EMERGENCY EVACUATION ADMIN CONTROLS
+  ═══════════════════════════════════════════════════════════════════ */
+  function syncDangerZoneCustom(val) {
+    const customInp = document.getElementById('emDangerZoneCustom');
+    if (customInp) customInp.style.display = (val === 'CUSTOM') ? 'block' : 'none';
+  }
+
+  function syncSafeGateCustom(val) {
+    const customInp = document.getElementById('emSafeGateCustom');
+    if (customInp) customInp.style.display = (val === 'CUSTOM') ? 'block' : 'none';
+  }
+
+  function getSelectedDangerZone() {
+    const sel = document.getElementById('emDangerZoneSelect').value;
+    if (sel === 'CUSTOM') {
+      return document.getElementById('emDangerZoneCustom').value.trim() || 'Overcrowded Danger Zone';
+    }
+    return sel;
+  }
+
+  function getSelectedSafeGate() {
+    const sel = document.getElementById('emSafeGateSelect').value;
+    if (sel === 'CUSTOM') {
+      return document.getElementById('emSafeGateCustom').value.trim() || 'Designated Safe Exit Gate';
+    }
+    return sel;
+  }
+
+  function handleActivateEmergency(e) {
+    e.preventDefault();
+    const danger = getSelectedDangerZone();
+    const safe = getSelectedSafeGate();
+    const route = document.getElementById('emRouteInstructions').value.trim();
+    const reason = document.getElementById('emReasonInput').value.trim();
+
+    if (!confirm(`⚠️ CRITICAL CONFIRMATION: Are you sure you want to trigger LIVE EMERGENCY EVACUATION?\n\nDanger Area: ${danger}\nSafe Exit: ${safe}\n\nThis will blast siren alarms and evacuation screens to ALL visitors!`)) {
+      return false;
+    }
+
+    // Static mode
+    if (window.staticToggleEmergency) {
+      window.staticToggleEmergency('activate', danger, safe, route, reason);
+      updateAdminEmergencyDisplay();
+      alert(`🚨 LIVE EMERGENCY BROADCAST ACTIVATED!\nEvacuation direction to "${safe}" sent to all phones.`);
+      return false;
+    }
+
+    // Flask mode
+    fetch('/api/admin/emergency', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'activate', danger_zone: danger, safe_gate: safe, route_instructions: route, reason: reason })
+    })
+    .then(r => r.json())
+    .then(data => {
+      updateAdminEmergencyDisplay();
+      alert(`🚨 LIVE EMERGENCY BROADCAST ACTIVATED!\nEvacuation direction to "${safe}" sent to all phones.`);
+    })
+    .catch(() => alert('⚠️ Error triggering emergency on backend.'));
+
+    return false;
+  }
+
+  function handleResolveEmergency() {
+    if (!confirm('Resolve and clear Emergency Evacuation? This will restore normal screens and stop all alarms.')) {
+      return;
+    }
+
+    // Static mode
+    if (window.staticToggleEmergency) {
+      window.staticToggleEmergency('resolve');
+      updateAdminEmergencyDisplay();
+      alert('✅ Emergency resolved. Normal venue operations restored.');
+      return;
+    }
+
+    // Flask mode
+    fetch('/api/admin/emergency', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resolve' })
+    })
+    .then(r => r.json())
+    .then(data => {
+      updateAdminEmergencyDisplay();
+      alert('✅ Emergency resolved. Normal venue operations restored.');
+    })
+    .catch(() => alert('⚠️ Error resolving emergency on backend.'));
+  }
+
+  function updateAdminEmergencyDisplay() {
+    let isEm = false;
+    let data = {};
+
+    if (window.staticGetEmergencyState) {
+      data = window.staticGetEmergencyState();
+      isEm = !!(data && data.is_emergency);
+    }
+
+    const badge = document.getElementById('adminEmergencyBadge');
+    const preview = document.getElementById('adminLiveEmergencyPreview');
+    const prevDanger = document.getElementById('adminPrevDanger');
+    const prevSafe = document.getElementById('adminPrevSafe');
+    const prevRoute = document.getElementById('adminPrevRoute');
+
+    if (isEm) {
+      if (badge) {
+        badge.innerHTML = '🔴 ACTIVE EVACUATION PROTOCOL';
+        badge.style.background = 'rgba(239, 68, 68, 0.2)';
+        badge.style.color = '#EF4444';
+        badge.style.borderColor = '#EF4444';
+      }
+      if (preview) preview.style.display = 'block';
+      if (prevDanger) prevDanger.textContent = data.danger_zone || '-';
+      if (prevSafe) prevSafe.textContent = data.safe_gate || '-';
+      if (prevRoute) prevRoute.textContent = data.route_instructions || '-';
+    } else {
+      if (badge) {
+        badge.innerHTML = '🟢 NORMAL (No Active Emergency)';
+        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+        badge.style.color = '#10B981';
+        badge.style.borderColor = '#10B981';
+      }
+      if (preview) preview.style.display = 'none';
+    }
+  }
+
+  function testAdminSiren() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(1000, audioCtx.currentTime + 0.3);
+      osc.frequency.linearRampToValueAtTime(700, audioCtx.currentTime + 0.6);
+      osc.frequency.linearRampToValueAtTime(1000, audioCtx.currentTime + 0.9);
+      setTimeout(() => {
+        try { osc.stop(); osc.disconnect(); } catch(e){}
+      }, 1000);
+    } catch(e) {
+      alert('Audio test requires user interaction.');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    updateAdminEmergencyDisplay();
+  });
 </script>
 {% endblock %}

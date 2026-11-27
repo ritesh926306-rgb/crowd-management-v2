@@ -33,6 +33,23 @@
     </div>
   </div>
 
+  <!-- 🚨 GUARD LIVE EMERGENCY ADVISORY BANNER -->
+  <div id="guardEmergencyAdvisory" style="display: none; margin: 1rem 1.25rem 0; padding: 0.85rem 1.25rem; background: rgba(220, 38, 38, 0.2); border: 2px solid #EF4444; border-radius: var(--radius-md);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.4rem;">🚨</span>
+        <div>
+          <strong style="color: #F87171; font-size: 0.95rem; display: block;">INCIDENT COMMAND: EVACUATION ACTIVE</strong>
+          <span style="font-size: 0.78rem; color: #FCA5A5;">Danger: <span id="guardEmDanger">-</span></span>
+        </div>
+      </div>
+      <div style="background: #064E3B; border: 1.5px solid #10B981; padding: 0.4rem 0.85rem; border-radius: 6px; text-align: right;">
+        <span style="font-size: 0.68rem; color: #6EE7B7; text-transform: uppercase; display: block; font-weight: 700;">Direct Crowds To:</span>
+        <strong id="guardEmSafe" style="color: #fff; font-size: 0.92rem;">-</strong>
+      </div>
+    </div>
+  </div>
+
   <!-- Server-Side Jinja Verification Feedback (for backend direct loads) -->
   {% if is_valid and reg %}
     <div style="margin: 1rem 1.25rem; padding: 1rem 1.25rem; background: rgba(0,255,198,0.06); border: 1.5px solid #00FFC6; border-radius: var(--radius-md);">
@@ -411,5 +428,37 @@
       window.location.href = 'guard_login.html';
     }
   }
+
+  function updateGuardEmergencyBanner() {
+    let data = (typeof window.staticGetEmergencyState === 'function') ? window.staticGetEmergencyState() : null;
+    const banner = document.getElementById('guardEmergencyAdvisory');
+    if (!banner) return;
+    if (data && data.is_emergency) {
+      banner.style.display = 'block';
+      const d = document.getElementById('guardEmDanger');
+      const s = document.getElementById('guardEmSafe');
+      if (d) d.textContent = data.danger_zone || 'Overcrowded Area';
+      if (s) s.textContent = data.safe_gate || 'Exit Gate 3 (North)';
+    } else {
+      fetch('/api/emergency/status')
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.is_emergency) {
+            banner.style.display = 'block';
+            const d = document.getElementById('guardEmDanger');
+            const s = document.getElementById('guardEmSafe');
+            if (d) d.textContent = res.danger_zone || 'Overcrowded Area';
+            if (s) s.textContent = res.safe_gate || 'Exit Gate 3 (North)';
+          } else {
+            banner.style.display = 'none';
+          }
+        })
+        .catch(() => { banner.style.display = 'none'; });
+    }
+  }
+
+  setInterval(updateGuardEmergencyBanner, 2500);
+  setTimeout(updateGuardEmergencyBanner, 500);
+  window.addEventListener('vg_emergency_changed', updateGuardEmergencyBanner);
 </script>
 {% endblock %}
