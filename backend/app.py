@@ -848,7 +848,10 @@ def bootstrap_password_hashes():
         "is_registration_active": "1",
         "event_status": "ACTIVE",
         "emergency_mode": "0",
-        "emergency_reason": ""
+        "emergency_reason": "",
+        "emergency_danger_zone": "Main Gate & Hall Corridor",
+        "emergency_safe_gate": "Exit Gate 3 (North Open Ground)",
+        "emergency_route_instructions": "Turn Left into North Corridor. Follow green exit signs directly to Gate 3 open staging ground. Keep calm and do not run."
     }
     for k, v in event_defaults.items():
         if not _get_setting(k):
@@ -2287,6 +2290,9 @@ def api_toggle_emergency():
     data = request.get_json(silent=True) or request.form
     action = data.get("action", "activate").lower()
     reason = data.get("reason", "Evacuation Protocol Triggered by Incident Commander").strip()
+    danger_zone = data.get("danger_zone", "Main Gate & Hall Corridor").strip()
+    safe_gate = data.get("safe_gate", "Exit Gate 3 (North Open Ground)").strip()
+    route_instructions = data.get("route_instructions", "Turn Left into North Corridor. Follow green exit signs directly to Gate 3 open staging ground. Keep calm and do not run.").strip()
 
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = get_db_connection()
@@ -2295,19 +2301,26 @@ def api_toggle_emergency():
     if action == "activate":
         _set_setting("emergency_mode", "1")
         _set_setting("emergency_reason", reason)
+        _set_setting("emergency_danger_zone", danger_zone)
+        _set_setting("emergency_safe_gate", safe_gate)
+        _set_setting("emergency_route_instructions", route_instructions)
+        _set_setting("emergency_activated_at", now_str)
         try:
             cursor.execute(
                 "INSERT INTO emergency_events (status, reason, activated_by, activated_at) VALUES ('EMERGENCY', ?, 'Admin', ?)",
-                (reason, now_str)
+                (f"[{danger_zone} -> {safe_gate}] {reason}", now_str)
             )
             conn.commit()
         except Exception:
             pass
-        log_audit("admin", "EMERGENCY_ACTIVATED", f"Reason: {reason}")
+        log_audit("admin", "EMERGENCY_ACTIVATED", f"Danger: {danger_zone} -> Safe: {safe_gate}. Reason: {reason}")
         conn.close()
         return jsonify({
             "success": True,
             "emergency_mode": True,
+            "danger_zone": danger_zone,
+            "safe_gate": safe_gate,
+            "route_instructions": route_instructions,
             "message": "EMERGENCY PROTOCOL ACTIVATED. Entrances restricted, exit alarms active."
         })
     else:
@@ -2335,6 +2348,10 @@ def api_emergency_status():
     """Real-time emergency status and evacuation route allocations."""
     is_em = is_emergency_active()
     reason = _get_setting("emergency_reason") or "Emergency evacuation in effect"
+    danger_zone = _get_setting("emergency_danger_zone") or "Main Gate & Hall Corridor"
+    safe_gate = _get_setting("emergency_safe_gate") or "Exit Gate 3 (North Open Ground)"
+    route_instructions = _get_setting("emergency_route_instructions") or "Follow green evacuation arrows to Exit Gate 3."
+    activated_at = _get_setting("emergency_activated_at") or ""
     inside = get_current_occupancy()
 
     evac_routes = [
@@ -2367,7 +2384,11 @@ def api_emergency_status():
     return jsonify({
         "success": True,
         "is_emergency": is_em,
+        "danger_zone": danger_zone if is_em else None,
+        "safe_gate": safe_gate if is_em else None,
+        "route_instructions": route_instructions if is_em else None,
         "reason": reason if is_em else None,
+        "activated_at": activated_at if is_em else None,
         "current_occupancy": inside,
         "evacuation_routes": evac_routes,
         "staff_gate": STAFF_GATE

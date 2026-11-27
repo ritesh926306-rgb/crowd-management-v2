@@ -183,6 +183,61 @@
     } catch (e) {}
   }
 
+  /* ══════════════════════════════════════════════════════════
+     EMERGENCY EVACUATION & DANGER ZONE MANAGEMENT
+  ══════════════════════════════════════════════════════════ */
+  const EMERGENCY_STORAGE_KEY = 'vg_emergency_state';
+
+  function getEmergencyState() {
+    try {
+      const raw = localStorage.getItem(EMERGENCY_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return {
+      is_emergency: false,
+      danger_zone: 'Main Gate & Hall Corridor',
+      safe_gate: 'Exit Gate 3 (North Open Ground)',
+      route_instructions: 'Turn Left into North Corridor. Follow green exit signs directly to Gate 3 open staging ground. Keep calm and do not run.',
+      reason: 'Crowd Safety Advisory',
+      activated_at: null
+    };
+  }
+
+  function setEmergencyState(state) {
+    localStorage.setItem(EMERGENCY_STORAGE_KEY, JSON.stringify(state));
+    window.dispatchEvent(new CustomEvent('vg_emergency_changed', { detail: state }));
+  }
+
+  window.staticGetEmergencyState = getEmergencyState;
+  window.staticSetEmergencyState = setEmergencyState;
+  window.staticToggleEmergency = function (action, dangerZone, safeGate, routeInstructions, reason) {
+    if (action === 'activate') {
+      const state = {
+        is_emergency: true,
+        danger_zone: dangerZone || 'Main Gate & Hall Corridor',
+        safe_gate: safeGate || 'Exit Gate 3 (North Open Ground)',
+        route_instructions: routeInstructions || 'Turn Left into North Corridor. Follow green exit signs directly to Gate 3 open staging ground. Keep calm and do not run.',
+        reason: reason || 'Crowd Safety Advisory',
+        activated_at: new Date().toLocaleTimeString()
+      };
+      setEmergencyState(state);
+      logActivity('admin', 'EMERGENCY_ACTIVATED', `Danger: ${state.danger_zone} -> Safe: ${state.safe_gate}`);
+      return { success: true, emergency_mode: true, ...state };
+    } else {
+      const state = {
+        is_emergency: false,
+        danger_zone: null,
+        safe_gate: null,
+        route_instructions: null,
+        reason: null,
+        activated_at: null
+      };
+      setEmergencyState(state);
+      logActivity('admin', 'EMERGENCY_RESOLVED', 'All emergency alerts cleared');
+      return { success: true, emergency_mode: false };
+    }
+  };
+
   window.clearActivityLogs = function () {
     localStorage.removeItem('vg_audit_logs');
     renderAdminAuditTable();
