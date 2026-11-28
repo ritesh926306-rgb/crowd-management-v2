@@ -89,6 +89,27 @@
           </span>
           <strong id="passGate" style="font-size: 0.95rem; color: #fff;">{{ reg.assigned_gate }}</strong>
         </div>
+
+        <!-- Live Reverse Countdown Timer Box -->
+        <div id="passCountdownContainer" style="background: rgba(0, 255, 198, 0.08); border: 1.5px solid rgba(0, 255, 198, 0.3); border-radius: 8px; padding: 0.65rem 0.85rem; margin-top: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+            <span style="font-size: 0.68rem; text-transform: uppercase; color: var(--teal); font-weight: 800;">
+              ⏱️ VENUE TIME REMAINING
+            </span>
+            <span id="countdownStatusBadge" class="badge badge-teal" style="font-size: 0.65rem; padding: 0.15rem 0.45rem;">
+              {{ 'Active Inside Venue' if reg.checked_in == 1 else 'Ready for Entry' }}
+            </span>
+          </div>
+          <div id="passCountdownTimer" style="font-size: 1.35rem; font-weight: 900; font-family: monospace; color: #fff; letter-spacing: 0.04em;">
+            --:--:--
+          </div>
+          <div id="passCountdownNotice" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Countdown begins once admitted at Gate 1 Turnstile.
+          </div>
+          <div style="background: rgba(255,255,255,0.1); height: 5px; border-radius: 3px; overflow: hidden; margin-top: 0.4rem;">
+            <div id="passCountdownBar" style="background: var(--teal); height: 100%; width: 100%;"></div>
+          </div>
+        </div>
       </div>
 
       <!-- QR Code -->
@@ -97,7 +118,8 @@
           {% if qr_code %}
             <img src="{{ qr_code }}" id="serverQrImg" style="width: 150px; height: 150px; display: block;" alt="Pass QR Code">
           {% else %}
-            <canvas id="passCanvasQr" width="150" height="150"></canvas>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ reg.reg_code }}" id="passRealQrImg" style="width: 150px; height: 150px; display: block; border-radius: 4px;" alt="Real Optical Pass QR">
+            <canvas id="passCanvasQr" width="150" height="150" style="display: none;"></canvas>
           {% endif %}
         </div>
         <span style="font-size: 0.65rem; color: #000; font-weight: 800; display: block; margin-top: 0.25rem;">SCAN AT GATE 1</span>

@@ -424,6 +424,21 @@
           .catch(() => {});
       }
 
+      // Check if URL has ?sos=1 or ?emergency=1 (opened directly from Emergency SOS SMS link)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('sos') === '1' || urlParams.get('emergency') === '1') {
+        const fallbackData = {
+          danger_zone: 'Main Gate & Hall Corridor Overcrowded',
+          safe_gate: 'EXIT GATE 3 (NORTH OPEN GROUND)',
+          route_instructions: 'Turn Left into North Corridor. Follow green emergency glow signs directly to Gate 3 open staging ground.',
+          reason: 'Emergency Evacuation Protocol Activated'
+        };
+        setTimeout(() => {
+          isEmergencyActive = true;
+          renderEmergencyOverlay(fallbackData);
+        }, 300);
+      }
+
       // Start periodic poller every 2.5 seconds
       setInterval(checkEmergencyStatus, 2500);
       setTimeout(checkEmergencyStatus, 800);

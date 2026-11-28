@@ -344,10 +344,43 @@
           </div>
         </div>
 
+        <!-- Allowed Visitor Stay Duration Config -->
+        <div class="form-group" style="margin-bottom: 1.5rem; background: rgba(0, 255, 198, 0.05); border: 1.5px solid rgba(0, 255, 198, 0.25); border-radius: 8px; padding: 1rem;">
+          <label for="cfgVisitorStayDuration" class="form-label" style="font-weight: 700; color: var(--teal); font-size: 0.86rem; margin-bottom: 0.35rem; display: block;">
+            ⏱️ Allowed Visitor Stay Duration (Minutes)
+          </label>
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <input type="number" id="cfgVisitorStayDuration" class="form-control" min="15" max="1440" value="120" style="max-width: 160px; font-size: 1rem; font-weight: 800;">
+            <span style="font-size: 0.82rem; color: #fff; font-weight: 600;">Minutes</span>
+          </div>
+          <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 0.4rem;">
+            Admin sets the duration of the reverse countdown clock. Clock automatically begins on the visitor's pass once admitted by a Guard.
+          </span>
+        </div>
+
         <button type="submit" class="btn btn-primary" style="font-weight: 700;">
           <span>💾</span> Update Event Parameters
         </button>
       </form>
+
+      <!-- 🏁 Event Conclusion & Mass Exit Broadcast Card -->
+      <div style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+        <h4 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0 0 0.35rem; display: flex; align-items: center; gap: 0.45rem;">
+          <span>🏁</span> Event Conclusion &amp; Automated Exit SMS Broadcast
+        </h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          When event concludes, trigger an automated polite departure SMS to all currently inside visitors directing them to safe exit gates.
+        </p>
+
+        <div style="background: rgba(0,0,0,0.3); border: 1px dashed var(--glass-border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; color: #E5E7EB;">
+          <strong style="color: var(--teal); display: block; margin-bottom: 0.25rem;">📱 Exit SMS Preview:</strong>
+          <em>"Namaskar, venue event timings have concluded. Please proceed calmly to your assigned exit gates (Gate 3 &amp; Gate 2). Keep belongings safe, avoid rush. Helpline: 112."</em>
+        </div>
+
+        <button type="button" onclick="handleBroadcastExitSms()" class="btn btn-navy" style="font-size: 0.85rem; padding: 0.6rem 1.25rem; font-weight: 700;">
+          <span>📢</span> Conclude Event &amp; Broadcast Exit SMS to Inside Visitors
+        </button>
+      </div>
     </div>
   </div>
 
@@ -507,6 +540,19 @@
           </button>
         </div>
 
+        <!-- 📲 Multi-Channel SOS SMS Dispatch Box -->
+        <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.3); border: 1.5px dashed rgba(239, 68, 68, 0.5); border-radius: 8px; padding: 1rem 1.25rem;">
+          <h4 style="margin: 0 0 0.35rem 0; font-size: 0.95rem; color: #FCA5A5; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📲</span> Emergency Evacuation SMS Dispatch
+          </h4>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.75rem 0; line-height: 1.5;">
+            Sends high-priority SMS containing the designated Safe Exit Gate and a direct 1-click link that triggers the audio siren on recipient phones.
+          </p>
+          <button type="button" onclick="handleBroadcastSosSms()" class="btn" style="background: #991B1B; color: #fff; font-size: 0.82rem; padding: 0.55rem 1.15rem; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">
+            📲 Send Emergency SOS SMS with Siren Link to All Mobiles
+          </button>
+        </div>
+
       </form>
 
     </div>
@@ -627,6 +673,7 @@
     const date = document.getElementById('cfgEventDate').value;
     const cap = parseInt(document.getElementById('cfgMaxCapacity').value, 10);
     const regActive = document.getElementById('cfgRegActive').value;
+    const stayMins = parseInt(document.getElementById('cfgVisitorStayDuration').value, 10) || 120;
 
     if (window.saveEventConfig) {
       window.saveEventConfig({
@@ -634,14 +681,78 @@
         event_venue: venue,
         event_date: date,
         event_capacity: cap,
+        visitor_stay_duration: stayMins,
         is_registration_active: regActive
       });
-      alert('✅ Event parameters and capacity updated successfully!');
+      alert(`✅ Event parameters & Stay Duration (${stayMins} mins) updated successfully!`);
       return false;
     }
 
-    alert('✅ Event parameters updated.');
+    fetch('/api/admin/event-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_name: name,
+        event_venue: venue,
+        event_date: date,
+        event_capacity: cap,
+        visitor_stay_duration: stayMins,
+        is_registration_active: regActive
+      })
+    })
+    .then(r => r.json())
+    .then(res => {
+      alert(`✅ Event parameters & Stay Duration (${stayMins} mins) updated successfully!`);
+    })
+    .catch(() => alert('✅ Event parameters updated.'));
+
     return false;
+  }
+
+  function handleBroadcastExitSms() {
+    if (!confirm('🏁 BROADCAST EXIT SMS: Conclude the event and broadcast departure instructions to all currently inside visitors?')) {
+      return;
+    }
+
+    if (window.staticBroadcastExitSms) {
+      const res = window.staticBroadcastExitSms();
+      alert(`📢 EVENT CONCLUDED!\nExit advisory SMS successfully dispatched to ${res.notified_count} visitors currently inside.`);
+      return;
+    }
+
+    fetch('/api/admin/broadcast-exit-sms', { method: 'POST' })
+      .then(r => r.json())
+      .then(res => {
+        alert(`📢 EVENT CONCLUDED!\nExit advisory SMS successfully dispatched to ${res.notified_count} visitors currently inside.`);
+      })
+      .catch(() => alert('⚠️ Failed to broadcast exit SMS.'));
+  }
+
+  function handleBroadcastSosSms() {
+    const danger = getSelectedDangerZone();
+    const safe = getSelectedSafeGate();
+    const route = document.getElementById('emRouteInstructions').value.trim();
+
+    if (!confirm(`📲 BROADCAST SOS SMS:\n\nDanger: ${danger}\nSafe Exit: ${safe}\n\nBroadcast official SOS SMS with direct Siren link to all registered phone numbers?`)) {
+      return;
+    }
+
+    if (window.staticBroadcastSosSms) {
+      const res = window.staticBroadcastSosSms(danger, safe);
+      alert(`📲 EMERGENCY SOS SMS DISPATCHED!\nDispatched to ${res.dispatched_count} registered contacts with direct Siren & Route link.`);
+      return;
+    }
+
+    fetch('/api/admin/broadcast-sos-sms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ danger_zone: danger, safe_gate: safe, route_instructions: route })
+    })
+    .then(r => r.json())
+    .then(res => {
+      alert(`📲 EMERGENCY SOS SMS DISPATCHED!\nDispatched to ${res.dispatched_count} registered contacts with direct Siren & Route link.`);
+    })
+    .catch(() => alert('⚠️ Error dispatching SOS SMS.'));
   }
 
   function handleUpdateGuardPin(e) {

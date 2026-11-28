@@ -26,7 +26,17 @@
       </div>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <!-- Gate Mode Toggle (Entry vs Exit) -->
+      <div style="background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); border-radius: 20px; padding: 0.2rem 0.35rem; display: flex; gap: 0.25rem;">
+        <button type="button" id="gateModeEntryBtn" onclick="switchGateMode('ENTRY')" style="background: var(--teal); color: #040D18; border: none; border-radius: 16px; padding: 0.25rem 0.65rem; font-size: 0.74rem; font-weight: 800; cursor: pointer;">
+          🚪 Gate 1 Entry
+        </button>
+        <button type="button" id="gateModeExitBtn" onclick="switchGateMode('EXIT')" style="background: transparent; color: var(--text-muted); border: none; border-radius: 16px; padding: 0.25rem 0.65rem; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+          🚶 Gate 3/4 Exit
+        </button>
+      </div>
+
       <button type="button" onclick="handleGuardLogout()" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; color: var(--amber); border-color: rgba(245,158,11,0.35);" title="Lock Gate Terminal">
         <span>🔒</span> Lock Portal
       </button>
@@ -185,6 +195,33 @@
   let html5QrScanner = null;
   let isCameraScanning = false;
   let activeScannedCode = null;
+  let currentGateMode = 'ENTRY'; // 'ENTRY' or 'EXIT'
+
+  function switchGateMode(mode) {
+    currentGateMode = mode;
+    const entryBtn = document.getElementById('gateModeEntryBtn');
+    const exitBtn = document.getElementById('gateModeExitBtn');
+
+    if (mode === 'ENTRY') {
+      entryBtn.style.background = 'var(--teal)';
+      entryBtn.style.color = '#040D18';
+      entryBtn.style.fontWeight = '800';
+      exitBtn.style.background = 'transparent';
+      exitBtn.style.color = 'var(--text-muted)';
+      exitBtn.style.fontWeight = '700';
+    } else {
+      exitBtn.style.background = '#3B82F6';
+      exitBtn.style.color = '#FFFFFF';
+      exitBtn.style.fontWeight = '800';
+      entryBtn.style.background = 'transparent';
+      entryBtn.style.color = 'var(--text-muted)';
+      entryBtn.style.fontWeight = '700';
+    }
+
+    if (activeScannedCode) {
+      processScannedQrData(activeScannedCode);
+    }
+  }
 
   function toggleCameraScanner() {
     const btn = document.getElementById('cameraToggleBtn');
@@ -308,43 +345,78 @@
     const markBtn = document.getElementById('markEnteredBtn');
     const tamperNotice = document.getElementById('scanTamperNotice');
 
-    if (color === 'GREEN') {
-      card.style.borderColor = '#00FFC6';
-      card.style.background = 'rgba(0,255,198,0.05)';
-      badge.style.background = '#00FFC6';
-      badge.style.color = '#040D18';
-      badge.textContent = '🟢 VALID PASS — ACCESS GRANTED';
-      markBtn.style.display = 'block';
-      markBtn.disabled = false;
-      markBtn.textContent = '✅ Mark as Entered / Admit Visitor';
-      tamperNotice.style.display = 'none';
-    } else if (color === 'ORANGE') {
-      card.style.borderColor = '#F59E0B';
-      card.style.background = 'rgba(245,158,11,0.06)';
-      badge.style.background = '#F59E0B';
-      badge.style.color = '#040D18';
-      badge.textContent = '🟠 ALREADY SCANNED — DUPLICATE ENTRY';
-      markBtn.style.display = 'none';
-      tamperNotice.textContent = '⚠️ ANTI-PASSBACK ALERT: This pass was already admitted. Verify visitor identity.';
-      tamperNotice.style.display = 'block';
-    } else if (color === 'GREY') {
-      card.style.borderColor = '#94A8C5';
-      card.style.background = 'rgba(148,168,197,0.05)';
-      badge.style.background = '#64748B';
-      badge.style.color = '#fff';
-      badge.textContent = '⚪ CANCELLED PASS — ADMISSION DENIED';
-      markBtn.style.display = 'none';
-      tamperNotice.textContent = '🚫 THIS PASS HAS BEEN CANCELLED BY ADMINISTRATION. ENTRY STRICTLY DENIED.';
-      tamperNotice.style.display = 'block';
+    if (currentGateMode === 'EXIT') {
+      const isAdmitted = res.reg && res.reg.checked_in === 1;
+      const isExited = res.reg && (res.reg.checked_out === 1 || res.is_checked_out);
+
+      if (isExited) {
+        card.style.borderColor = '#94A8C5';
+        badge.style.background = '#64748B';
+        badge.style.color = '#fff';
+        badge.textContent = '⚪ VISITOR HAS ALREADY EXITED';
+        markBtn.style.display = 'none';
+        tamperNotice.style.display = 'none';
+      } else if (isAdmitted) {
+        card.style.borderColor = '#3B82F6';
+        card.style.background = 'rgba(59,130,246,0.06)';
+        badge.style.background = '#3B82F6';
+        badge.style.color = '#fff';
+        badge.textContent = '🔵 ADMITTED VISITOR — READY FOR EXIT CLEARANCE';
+        markBtn.style.display = 'block';
+        markBtn.disabled = false;
+        markBtn.style.background = '#2563EB';
+        markBtn.textContent = '🚶 Mark as Exited / Check-Out Visitor';
+        tamperNotice.style.display = 'none';
+      } else {
+        card.style.borderColor = '#F59E0B';
+        badge.style.background = '#F59E0B';
+        badge.style.color = '#040D18';
+        badge.textContent = '⚠️ NOT ENTERED YET (Cannot Exit)';
+        markBtn.style.display = 'none';
+        tamperNotice.textContent = 'Visitor has not cleared Gate 1 entrance yet.';
+        tamperNotice.style.display = 'block';
+      }
     } else {
-      card.style.borderColor = '#FF4D6D';
-      card.style.background = 'rgba(255,77,109,0.06)';
-      badge.style.background = '#FF4D6D';
-      badge.style.color = '#fff';
-      badge.textContent = '🔴 INVALID / COUNTERFEIT QR';
-      markBtn.style.display = 'none';
-      tamperNotice.textContent = res.tamper_reason || 'UNVERIFIED PASS. Not found in official registry.';
-      tamperNotice.style.display = 'block';
+      // ENTRY MODE
+      if (color === 'GREEN') {
+        card.style.borderColor = '#00FFC6';
+        card.style.background = 'rgba(0,255,198,0.05)';
+        badge.style.background = '#00FFC6';
+        badge.style.color = '#040D18';
+        badge.textContent = '🟢 VALID PASS — ACCESS GRANTED';
+        markBtn.style.display = 'block';
+        markBtn.disabled = false;
+        markBtn.style.background = 'var(--teal)';
+        markBtn.textContent = '✅ Mark as Entered (Starts Stay Countdown)';
+        tamperNotice.style.display = 'none';
+      } else if (color === 'ORANGE') {
+        card.style.borderColor = '#F59E0B';
+        card.style.background = 'rgba(245,158,11,0.06)';
+        badge.style.background = '#F59E0B';
+        badge.style.color = '#040D18';
+        badge.textContent = '🟠 ALREADY SCANNED — DUPLICATE ENTRY';
+        markBtn.style.display = 'none';
+        tamperNotice.textContent = '⚠️ ANTI-PASSBACK ALERT: This pass was already admitted. Verify visitor identity.';
+        tamperNotice.style.display = 'block';
+      } else if (color === 'GREY') {
+        card.style.borderColor = '#94A8C5';
+        card.style.background = 'rgba(148,168,197,0.05)';
+        badge.style.background = '#64748B';
+        badge.style.color = '#fff';
+        badge.textContent = '⚪ CANCELLED PASS — ADMISSION DENIED';
+        markBtn.style.display = 'none';
+        tamperNotice.textContent = '🚫 THIS PASS HAS BEEN CANCELLED BY ADMINISTRATION. ENTRY STRICTLY DENIED.';
+        tamperNotice.style.display = 'block';
+      } else {
+        card.style.borderColor = '#FF4D6D';
+        card.style.background = 'rgba(255,77,109,0.06)';
+        badge.style.background = '#FF4D6D';
+        badge.style.color = '#fff';
+        badge.textContent = '🔴 INVALID / COUNTERFEIT QR';
+        markBtn.style.display = 'none';
+        tamperNotice.textContent = res.tamper_reason || 'UNVERIFIED PASS. Not found in official registry.';
+        tamperNotice.style.display = 'block';
+      }
     }
 
     const reg = res.reg || {};
@@ -383,18 +455,54 @@
     if (!activeScannedCode) return;
     const btn = document.getElementById('markEnteredBtn');
     btn.disabled = true;
+
+    if (currentGateMode === 'EXIT') {
+      btn.textContent = 'Clearing Exit...';
+
+      if (window.staticCheckOutPass) {
+        const res = window.staticCheckOutPass(activeScannedCode);
+        if (res.success) {
+          alert('🚶 Visitor marked as EXITED. Headcount decremented and countdown stopped.');
+          btn.textContent = '🚶 Exited';
+          document.getElementById('scanResultStatusText').innerHTML = '<span style="color:#9CA3AF;">Exited (Checked Out)</span>';
+        } else {
+          alert(res.message || 'Error checking out visitor.');
+          btn.disabled = false;
+          btn.textContent = '🚶 Mark as Exited / Check-Out Visitor';
+        }
+        return;
+      }
+
+      // Flask Backend Check-Out
+      fetch(`/api/check-out/${encodeURIComponent(activeScannedCode)}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(res => {
+          if (res.success) {
+            alert('🚶 Visitor marked as EXITED. Headcount decremented and countdown stopped.');
+            btn.textContent = '🚶 Exited';
+            document.getElementById('scanResultStatusText').innerHTML = '<span style="color:#9CA3AF;">Exited (Checked Out)</span>';
+          } else {
+            alert(res.message || 'Error checking out visitor.');
+            btn.disabled = false;
+            btn.textContent = '🚶 Mark as Exited / Check-Out Visitor';
+          }
+        });
+      return;
+    }
+
+    // ENTRY MODE
     btn.textContent = 'Marking Entered...';
 
     if (window.staticCheckInPass) {
       const res = window.staticCheckInPass(activeScannedCode);
       if (res.success) {
-        alert('✅ Visitor successfully marked as ENTERED.');
-        btn.textContent = '✅ Admitted';
+        alert(`✅ Visitor marked as ENTERED.\nLive reverse stay countdown (${res.stay_duration_minutes || 120} mins) has started on their pass!`);
+        btn.textContent = '✅ Admitted (Countdown Active)';
         document.getElementById('scanResultStatusText').innerHTML = '<span style="color:#F59E0B;">Admitted (Inside Venue)</span>';
       } else {
         alert(res.message || 'Error admitting visitor.');
         btn.disabled = false;
-        btn.textContent = '✅ Mark as Entered / Admit Visitor';
+        btn.textContent = '✅ Mark as Entered (Starts Stay Countdown)';
       }
       return;
     }
@@ -404,13 +512,13 @@
       .then(r => r.json())
       .then(res => {
         if (res.success) {
-          alert('✅ Visitor successfully marked as ENTERED.');
-          btn.textContent = '✅ Admitted';
+          alert('✅ Visitor marked as ENTERED.\nLive stay countdown has started on their pass!');
+          btn.textContent = '✅ Admitted (Countdown Active)';
           document.getElementById('scanResultStatusText').innerHTML = '<span style="color:#F59E0B;">Admitted (Inside Venue)</span>';
         } else {
           alert(res.message || 'Error admitting visitor.');
           btn.disabled = false;
-          btn.textContent = '✅ Mark as Entered / Admit Visitor';
+          btn.textContent = '✅ Mark as Entered (Starts Stay Countdown)';
         }
       });
   }

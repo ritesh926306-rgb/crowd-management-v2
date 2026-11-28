@@ -165,12 +165,34 @@
             </span>
             <strong id="cardAssignedGate" style="font-size: 0.88rem; color: #fff;">Exit Gate A (North Promenade)</strong>
           </div>
+
+          <!-- Live Reverse Countdown Timer Box -->
+          <div id="cardCountdownContainer" style="background: rgba(0, 255, 198, 0.08); border: 1.5px solid rgba(0, 255, 198, 0.3); border-radius: 8px; padding: 0.65rem 0.85rem; margin-top: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+              <span style="font-size: 0.68rem; text-transform: uppercase; color: var(--teal); font-weight: 800;">
+                ⏱️ VENUE TIME REMAINING
+              </span>
+              <span id="countdownStatusBadge" class="badge badge-teal" style="font-size: 0.65rem; padding: 0.15rem 0.45rem;">
+                Ready for Entry
+              </span>
+            </div>
+            <div id="cardCountdownTimer" style="font-size: 1.35rem; font-weight: 900; font-family: monospace; color: #fff; letter-spacing: 0.04em;">
+              --:--:--
+            </div>
+            <div id="cardCountdownNotice" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Countdown begins once admitted at Gate 1 Turnstile.
+            </div>
+            <div style="background: rgba(255,255,255,0.1); height: 5px; border-radius: 3px; overflow: hidden; margin-top: 0.4rem;">
+              <div id="cardCountdownBar" style="background: var(--teal); height: 100%; width: 100%; transition: width 1s linear;"></div>
+            </div>
+          </div>
         </div>
 
-        <!-- Right: QR Code -->
+        <!-- Right: Real Optical Camera-Scannable QR Code -->
         <div style="text-align: center; background: #fff; padding: 0.6rem; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
-          <div id="cardQrCodeContainer" style="width: 140px; height: 140px; display: flex; align-items: center; justify-content: center;">
-            <canvas id="cardQrCanvas" width="140" height="140" style="display: block; width: 140px; height: 140px;"></canvas>
+          <div id="cardQrCodeContainer" style="width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; position: relative;">
+            <canvas id="cardQrCanvas" width="140" height="140" style="display: none; width: 140px; height: 140px;"></canvas>
+            <img id="cardQrImg" src="" alt="Pass QR Code" style="width: 140px; height: 140px; display: block; border-radius: 6px; object-fit: contain;">
           </div>
           <span style="font-size: 0.65rem; color: #000; font-weight: 800; display: block; margin-top: 0.25rem;">SCAN AT GATE 1</span>
         </div>
@@ -669,8 +691,9 @@
       membersList.innerHTML = '';
     }
 
-    // Generate dynamic QR on Canvas
+    // Generate dynamic QR and start stay countdown
     drawPassQr(pass.reg_code);
+    startVisitorCountdown(pass);
 
     // Show section and scroll smoothly
     const sec = document.getElementById('instantIdCardSection');
@@ -682,12 +705,27 @@
   }
 
   function closeInstantCard() {
+    if (countdownInterval) clearInterval(countdownInterval);
     document.getElementById('instantIdCardSection').style.display = 'none';
     document.getElementById('registrationSection').scrollIntoView({ behavior: 'smooth' });
   }
 
   function drawPassQr(regCode) {
+    const qrImg = document.getElementById('cardQrImg');
     const canvas = document.getElementById('cardQrCanvas');
+    
+    // Real optical camera-scannable QR matrix URL
+    const realQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(regCode)}`;
+    
+    if (qrImg) {
+      qrImg.src = realQrUrl;
+      qrImg.style.display = 'block';
+      qrImg.onerror = function() {
+        qrImg.style.display = 'none';
+        if (canvas) canvas.style.display = 'block';
+      };
+    }
+
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const size = 140;
@@ -698,25 +736,17 @@
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, size, size);
 
-    // Decorative simulated high-density QR grid with real encoded corner squares
+    // Decorative simulated high-density QR grid
     ctx.fillStyle = '#000000';
     const cell = 7;
-
-    // Top-Left Finder
     drawQrFinder(ctx, 10, 10, 35);
-    // Top-Right Finder
     drawQrFinder(ctx, size - 45, 10, 35);
-    // Bottom-Left Finder
     drawQrFinder(ctx, 10, size - 45, 35);
 
-    // Seed pattern based on regCode
     let hash = 0;
     for (let i = 0; i < regCode.length; i++) hash = ((hash << 5) - hash) + regCode.charCodeAt(i);
-    
-    // Draw pattern modules
     for (let x = 7; x < size - 7; x += cell) {
       for (let y = 7; y < size - 7; y += cell) {
-        // Skip finders
         if ((x < 50 && y < 50) || (x > size - 55 && y < 50) || (x < 50 && y > size - 55)) continue;
         const seed = Math.sin(hash + x * 13 + y * 17) * 10000;
         if ((seed - Math.floor(seed)) > 0.45) {
@@ -724,15 +754,89 @@
         }
       }
     }
+  }
 
-    // Center badge
-    ctx.fillStyle = '#040D18';
-    ctx.fillRect(52, 52, 36, 36);
-    ctx.fillStyle = '#00FFC6';
-    ctx.font = 'bold 9px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('VG', 70, 70);
+  let countdownInterval = null;
+  function startVisitorCountdown(pass) {
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    const timerEl = document.getElementById('cardCountdownTimer');
+    const badgeEl = document.getElementById('countdownStatusBadge');
+    const noticeEl = document.getElementById('cardCountdownNotice');
+    const barEl = document.getElementById('cardCountdownBar');
+
+    const cfg = (typeof getEventConfig === 'function') ? getEventConfig() : { visitor_stay_duration: 120 };
+    const stayMins = parseInt(pass.stay_duration_minutes || cfg.visitor_stay_duration, 10) || 120;
+    const totalMs = stayMins * 60 * 1000;
+
+    const isAdmitted = pass.checked_in === 1;
+    const isExited = pass.checked_out === 1;
+
+    if (isExited) {
+      if (badgeEl) { badgeEl.textContent = 'Checked Out'; badgeEl.className = 'badge badge-outline'; }
+      if (timerEl) { timerEl.textContent = 'COMPLETED'; timerEl.style.color = '#9CA3AF'; }
+      if (noticeEl) { noticeEl.textContent = 'Visitor has departed the venue via designated exit gates.'; }
+      if (barEl) { barEl.style.width = '0%'; barEl.style.background = '#6B7280'; }
+      return;
+    }
+
+    if (!isAdmitted) {
+      if (badgeEl) { badgeEl.textContent = 'Ready for Entry'; badgeEl.className = 'badge badge-teal'; }
+      const hrs = Math.floor(stayMins / 60);
+      const mins = stayMins % 60;
+      if (timerEl) { timerEl.textContent = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:00`; timerEl.style.color = '#fff'; }
+      if (noticeEl) { noticeEl.textContent = `Allowed Stay: ${stayMins} mins (Countdown begins upon Gate 1 turnstile check-in).`; }
+      if (barEl) { barEl.style.width = '100%'; barEl.style.background = 'var(--teal)'; }
+      return;
+    }
+
+    let deadline = pass.exit_deadline;
+    if (!deadline && pass.entry_timestamp) {
+      deadline = pass.entry_timestamp + totalMs;
+    } else if (!deadline) {
+      deadline = Date.now() + totalMs;
+    }
+
+    function updateTick() {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
+        if (timerEl) { timerEl.textContent = '00:00:00 (EXPIRED)'; timerEl.style.color = '#EF4444'; }
+        if (badgeEl) { badgeEl.textContent = 'Time Limit Expired'; badgeEl.className = 'badge badge-danger'; }
+        if (noticeEl) { noticeEl.textContent = '⚠️ Your permitted stay has elapsed. Please proceed towards Exit Gate 3.'; noticeEl.style.color = '#FCA5A5'; }
+        if (barEl) { barEl.style.width = '0%'; barEl.style.background = '#EF4444'; }
+        clearInterval(countdownInterval);
+        return;
+      }
+
+      const totalSec = Math.floor(remainingMs / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+
+      if (timerEl) {
+        timerEl.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        timerEl.style.color = remainingMs < 900000 ? '#F59E0B' : '#FFFFFF';
+      }
+
+      if (badgeEl) {
+        if (remainingMs < 900000) {
+          badgeEl.textContent = 'Under 15 Mins Left';
+          badgeEl.className = 'badge badge-warning';
+        } else {
+          badgeEl.textContent = 'Active Inside Venue';
+          badgeEl.className = 'badge badge-teal';
+        }
+      }
+
+      const pct = Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
+      if (barEl) {
+        barEl.style.width = `${pct}%`;
+        barEl.style.background = remainingMs < 900000 ? '#F59E0B' : 'var(--teal)';
+      }
+    }
+
+    updateTick();
+    countdownInterval = setInterval(updateTick, 1000);
   }
 
   function drawQrFinder(ctx, x, y, size) {

@@ -89,10 +89,16 @@
           <div style="font-size: 0.82rem; color: var(--teal); margin-top: 0.25rem;">
             Assigned Exit: <strong id="standaloneExitGate" style="color: #fff;"></strong>
           </div>
+          <!-- Live Countdown Box in Standalone Pass -->
+          <div id="standaloneCountdownBox" style="margin-top: 0.6rem; background: rgba(0,255,198,0.08); border: 1px solid rgba(0,255,198,0.3); border-radius: 6px; padding: 0.4rem 0.65rem;">
+            <div style="font-size: 0.65rem; color: var(--teal); font-weight: 800; text-transform: uppercase;">⏱️ VENUE TIME REMAINING</div>
+            <div id="standaloneCountdownClock" style="font-size: 1.15rem; font-weight: 900; font-family: monospace; color: #fff;">--:--:--</div>
+          </div>
         </div>
 
         <div style="background: #fff; padding: 0.5rem; border-radius: 8px; text-align: center;">
-          <canvas id="standaloneQrCanvas" width="130" height="130"></canvas>
+          <img id="standaloneRealQrImg" src="" style="width: 130px; height: 130px; display: block; border-radius: 4px;" alt="Real Optical QR">
+          <canvas id="standaloneQrCanvas" width="130" height="130" style="display: none;"></canvas>
         </div>
       </div>
 
@@ -158,9 +164,38 @@
     document.getElementById('standaloneGroupSize').textContent = `${pass.group_count} Person(s)`;
     document.getElementById('standaloneExitGate').textContent = pass.assigned_gate || 'Exit Gate A (North Promenade)';
 
+    // Real optical QR with canvas fallback
+    const realImg = document.getElementById('standaloneRealQrImg');
     const canvas = document.getElementById('standaloneQrCanvas');
-    if (canvas) {
+    if (realImg) {
+      realImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pass.reg_code)}`;
+      realImg.onerror = function() {
+        realImg.style.display = 'none';
+        if (canvas) { canvas.style.display = 'block'; drawQrOnCanvas(canvas, pass.reg_code); }
+      };
+    } else if (canvas) {
       drawQrOnCanvas(canvas, pass.reg_code);
+    }
+
+    // Countdown Timer in standalone
+    const clock = document.getElementById('standaloneCountdownClock');
+    if (clock) {
+      if (pass.checked_out === 1) {
+        clock.textContent = 'CHECKED OUT';
+      } else if (pass.checked_in === 1) {
+        const stayMins = parseInt(pass.stay_duration_minutes || 120, 10);
+        let deadline = pass.exit_deadline || (pass.entry_timestamp ? pass.entry_timestamp + (stayMins * 60 * 1000) : Date.now() + (stayMins * 60 * 1000));
+        const rem = deadline - Date.now();
+        if (rem <= 0) {
+          clock.textContent = '00:00:00 (EXPIRED)';
+          clock.style.color = '#EF4444';
+        } else {
+          const s = Math.floor(rem / 1000);
+          clock.textContent = `${Math.floor(s/3600).toString().padStart(2,'0')}:${Math.floor((s%3600)/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+        }
+      } else {
+        clock.textContent = 'READY FOR ENTRY';
+      }
     }
 
     const resSec = document.getElementById('standaloneCardResult');

@@ -83,6 +83,8 @@
       event_venue: 'Main Exhibition Grounds & Pavilion',
       event_date: '2026-11-25',
       event_capacity: 1000,
+      visitor_stay_duration: 120,
+      event_concluded: '0',
       is_registration_active: '1'
     };
     try {
@@ -482,7 +484,7 @@
   };
 
   /* ══════════════════════════════════════════════════════════
-     GUARD MARK AS ENTERED / CHECK-IN
+     GUARD MARK AS ENTERED / CHECK-IN & COUNTDOWN START
   ══════════════════════════════════════════════════════════ */
   window.staticCheckInPass = function (code) {
     const passes = getPasses();
@@ -493,12 +495,69 @@
     if (!pass) return { success: false, message: 'Pass not found.' };
     if (pass.status === 'CANCELLED') return { success: false, message: 'Cannot admit cancelled pass.' };
 
+    const cfg = getEventConfig();
+    const stayMins = parseInt(cfg.visitor_stay_duration, 10) || 120;
+    const nowMs = Date.now();
+
     pass.checked_in = 1;
     pass.checked_in_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    pass.entry_timestamp = nowMs;
+    pass.exit_deadline = nowMs + (stayMins * 60 * 1000);
+    pass.stay_duration_minutes = stayMins;
+    pass.checked_out = 0;
+
     savePasses(passes);
-    logActivity('guard', 'VISITOR_ADMITTED', `${pass.primary_name} (${pass.visitor_id}) checked in`);
+    logActivity('guard', 'VISITOR_ADMITTED', `${pass.primary_name} (${pass.visitor_id}) checked in (Allowed: ${stayMins}m)`);
     updatePublicCapacityDisplay();
-    return { success: true, checked_in: 1 };
+    return { success: true, checked_in: 1, stay_duration_minutes: stayMins, exit_deadline: pass.exit_deadline };
+  };
+
+  /* ══════════════════════════════════════════════════════════
+     GUARD MARK AS EXITED / CHECK-OUT (Turnstile Exit)
+  ══════════════════════════════════════════════════════════ */
+  window.staticCheckOutPass = function (code) {
+    const passes = getPasses();
+    const clean = (code || '').trim().toUpperCase();
+    const pass = passes.find(p => (p.reg_code && p.reg_code.toUpperCase() === clean) ||
+                                  (p.visitor_id && p.visitor_id.toUpperCase() === clean));
+
+    if (!pass) return { success: false, message: 'Pass not found.' };
+
+    pass.checked_out = 1;
+    pass.checked_out_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    savePasses(passes);
+    logActivity('guard', 'VISITOR_EXIT', `${pass.primary_name} (${pass.visitor_id}) checked out / exited`);
+    updatePublicCapacityDisplay();
+    return { success: true, checked_out: 1, checked_out_at: pass.checked_out_at };
+  };
+
+  /* ══════════════════════════════════════════════════════════
+     AUTOMATED EVENT EXIT SMS & EMERGENCY SOS SMS BROADCAST
+  ══════════════════════════════════════════════════════════ */
+  window.staticBroadcastExitSms = function () {
+    const passes = getPasses();
+    const inside = passes.filter(p => p.checked_in === 1 && (!p.checked_out || p.checked_out === 0) && p.status !== 'CANCELLED');
+    const cfg = getEventConfig();
+    cfg.event_concluded = '1';
+    saveEventConfig(cfg);
+    logActivity('admin', 'EXIT_SMS_BROADCAST', `Exit broadcast SMS dispatched to ${inside.length} visitors currently inside.`);
+    return {
+      success: true,
+      notified_count: inside.length,
+      sms_message: 'Namaskar, venue event timings have concluded. Please proceed calmly to your assigned exit gates. Keep belongings safe, avoid rush. Helpline: 112.'
+    };
+  };
+
+  window.staticBroadcastSosSms = function (dangerZone, safeGate) {
+    const passes = getPasses();
+    const valid = passes.filter(p => p.status !== 'CANCELLED');
+    logActivity('admin', 'SOS_SMS_BROADCAST', `Emergency SOS SMS broadcast sent to ${valid.length} registered contacts.`);
+    return {
+      success: true,
+      dispatched_count: valid.length,
+      sms_text: `🚨 [SOS EMERGENCY - VENUEGUARD]\nDanger: ${dangerZone || 'Main Gate Overcrowded'}\nSafe Exit: ${safeGate || 'Exit Gate 3 (North Open Ground)'}\nTap link for live audio siren & map: https://ritesh926306-rgb.github.io/crowd-management-v2/index.html?sos=1`
+    };
   };
 
   /* ══════════════════════════════════════════════════════════
@@ -874,6 +933,8 @@
     if (cfgCap) cfgCap.value = cfg.event_capacity;
     const cfgReg = document.getElementById('cfgRegActive');
     if (cfgReg) cfgReg.value = cfg.is_registration_active;
+    const cfgStay = document.getElementById('cfgVisitorStayDuration');
+    if (cfgStay) cfgStay.value = cfg.visitor_stay_duration || 120;
 
     // 5. Render Admin tables if on Admin page
     if (document.getElementById('visitorTableBody')) {

@@ -851,7 +851,9 @@ def bootstrap_password_hashes():
         "emergency_reason": "",
         "emergency_danger_zone": "Main Gate & Hall Corridor",
         "emergency_safe_gate": "Exit Gate 3 (North Open Ground)",
-        "emergency_route_instructions": "Turn Left into North Corridor. Follow green exit signs directly to Gate 3 open staging ground. Keep calm and do not run."
+        "emergency_route_instructions": "Turn Left into North Corridor. Follow green exit signs directly to Gate 3 open staging ground. Keep calm and do not run.",
+        "visitor_stay_duration": os.environ.get("VISITOR_STAY_DURATION", "120"),
+        "event_concluded": "0"
     }
     for k, v in event_defaults.items():
         if not _get_setting(k):
@@ -921,7 +923,9 @@ def get_event_config() -> dict:
         "is_registration_active": _get_setting("is_registration_active") or "1",
         "event_status": _get_setting("event_status") or "ACTIVE",
         "emergency_mode": _get_setting("emergency_mode") or "0",
-        "emergency_reason": _get_setting("emergency_reason") or ""
+        "emergency_reason": _get_setting("emergency_reason") or "",
+        "visitor_stay_duration": _get_setting("visitor_stay_duration") or "120",
+        "event_concluded": _get_setting("event_concluded") or "0"
     }
 
 
@@ -2013,6 +2017,9 @@ def api_update_event():
         _set_setting("event_expected", expected_str)
     if desc:
         _set_setting("event_description", desc)
+    stay_dur = str(data.get("visitor_stay_duration", "") or data.get("stay_duration", "")).strip()
+    if stay_dur and stay_dur.isdigit():
+        _set_setting("visitor_stay_duration", stay_dur)
     _set_setting("is_registration_active", "1" if str(is_active) in ("1", "true", "True") else "0")
     _set_setting("event_status", event_status)
 
@@ -2022,6 +2029,63 @@ def api_update_event():
         return jsonify({"success": True, "message": "Event configuration updated successfully."})
     flash("Event configuration updated successfully.", "success")
     return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/api/admin/broadcast-exit-sms", methods=["POST"])
+@login_required
+def api_broadcast_exit_sms():
+    """Broadcast polite exit instructions to all currently entered visitors."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, primary_name, mobile, reg_code, assigned_gate FROM registrations WHERE checked_in = 1 AND (checked_out = 0 OR checked_out IS NULL) AND status != 'CANCELLED'"
+    )
+    entered_visitors = cursor.fetchall()
+    conn.close()
+
+    count = len(entered_visitors)
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _set_setting("event_concluded", "1")
+    _set_setting("event_concluded_at", now_str)
+
+    msg_template = "Namaskar, venue event timings have concluded. Please proceed calmly to your assigned exit gates. Keep belongings safe, avoid rush. Helpline: 112."
+    log_audit("admin", "EXIT_SMS_BROADCAST", f"Exit SMS dispatched to {count} currently inside visitors.")
+
+    return jsonify({
+        "success": True,
+        "notified_count": count,
+        "sms_message": msg_template,
+        "event_concluded": True,
+        "timestamp": now_str
+    })
+
+
+@app.route("/api/admin/broadcast-sos-sms", methods=["POST"])
+@login_required
+def api_broadcast_sos_sms():
+    """Broadcast high-priority emergency SOS SMS with direct link to all registered visitors."""
+    data = request.get_json(silent=True) or request.form
+    danger_zone = data.get("danger_zone") or _get_setting("emergency_danger_zone") or "Main Gate & Hall Corridor"
+    safe_gate = data.get("safe_gate") or _get_setting("emergency_safe_gate") or "Exit Gate 3 (North Open Ground)"
+    route = data.get("route_instructions") or _get_setting("emergency_route_instructions") or "Follow green evacuation markers."
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) AS total FROM registrations WHERE status != 'CANCELLED'")
+    row = cursor.fetchone()
+    total_reg = row["total"] if row else 0
+    conn.close()
+
+    sms_text = f"🚨 [SOS EMERGENCY - VENUEGUARD]\nDanger: {danger_zone}\nSafe Exit: {safe_gate}\nRoute: {route}\nTap link for live audio siren & map: https://ritesh926306-rgb.github.io/crowd-management-v2/index.html?sos=1"
+    log_audit("admin", "SOS_SMS_BROADCAST", f"Emergency SOS SMS sent to {total_reg} registered contacts.")
+
+    return jsonify({
+        "success": True,
+        "dispatched_count": total_reg,
+        "sms_text": sms_text,
+        "danger_zone": danger_zone,
+        "safe_gate": safe_gate
+    })
 
 
 # ---------------------------------------------------------------------------
